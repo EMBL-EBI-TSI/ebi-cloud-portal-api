@@ -1,6 +1,6 @@
-# cloud-portal-public-repo
+# EBI Cloud Portal API
 
-The Portal API web services as seen by external clients (e.g. Portal web applications).  
+The EBI Cloud Portal API web services as seen by external clients (e.g. Portal web applications).  
 
 ## HOW-TO run  
 
