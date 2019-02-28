@@ -1,0 +1,3 @@
+[submodule "src/main/java/uk/ac/ebi/tsc/portal/api/healthcheck/ebi_project_settings"]
+	path = src/main/java/uk/ac/ebi/tsc/portal/api/healthcheck/ebi_project_settings
+	url = https://github.com/embl-ebi-sdo/ebi_project_settings.git
