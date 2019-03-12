@@ -4,6 +4,8 @@ The Portal API web services as seen by external clients (e.g. Portal web applica
 
 ## HOW-TO run  
 
+Please note the project executes .sh files so your environment should be capable of executing .sh files. (eg. Mac OS, Ubuntu etc). 
+
 This project uses Spring-Boot and Maven. In order to run it, after installing all the software dependencies as mentioned below just run  
 
     mvn spring-boot:run  
@@ -67,7 +69,8 @@ Production environments must change the credentials, and should tweak the settin
 
 ### Running intergration tests
 
-In order to run integration test following prerequisites are needed. Test user credentials of AAP dev server needed to be set as environmental variables Variables : AAP_TEST_USERNAME,AAP_TEST_PASSWORD Docker host should be set or docker from localhost can be used.Port 5432 must be free. Execute:-
+In order to run integration test following prerequisites are needed. Test user credentials of AAP dev server needed to be set as environmental variables Variables : AAP_TEST_USERNAME,AAP_TEST_PASSWORD. (If you need help in setting environment variables 
+please refer to https://www.digitalocean.com/community/tutorials/how-to-read-and-set-environmental-and-shell-variables-on-a-linux-vps for more understanding)
 
 mvn clean verify
 
