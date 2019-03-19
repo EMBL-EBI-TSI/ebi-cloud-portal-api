@@ -4,32 +4,50 @@ The Portal API web services as seen by external clients (e.g. Portal web applica
 
 ## HOW-TO run  
 
-This project uses Spring-Boot and Maven. In order to run it, just run  
+Please note the project executes .sh files so your environment should be capable of executing .sh files. (eg. Mac OS, Ubuntu etc). 
+
+This project uses Spring-Boot and Maven. In order to run it, after installing all the software dependencies as mentioned below just run  
 
     mvn spring-boot:run  
 
  The API entry point is the root [http://localhost:8080](http://localhost:8080).  
 
-Right now the API endpoints are only accessible by `jwt` tokens.  
+Right now the API endpoints are only accessible by `jwt` tokens. 
 
-### Properties  
-
-For the application to be setup, follow the comments in application.properties.
-
-I. The file 'application.properties' has been divided into two sections. 
------------------------------------------------------------------------
+For the application to be setup, follow the comments in application.properties. The file can be divide into 2 sections 
+as follows
 
 1. Settings to be modified 
-   Users please follow the comments under this heading, minimal setup is required to get portal running.
-   
-2. Settings which can be used a boilerplate 	
-   Users can use it as it is, no modification is required
 
-### Dependencies  
+    Users please follow the comments under this heading, minimal setup is required to get portal running.
+   
+2. Settings which can be used a boilerplate 
+
+   Users can use it as it is, no modification is required
+   
+
+### Software Dependencies  
 
 The portal backend needs a DB and an ElasticSearch index. Both of them can be provided using Docker containers. The properties file contains comments about how to run them.  
 
+### Java and Maven
+
+Portal API is a java based maven project. 
+
+Install java on your machine following instructions from https://www.java.com/en/download/manual.jsp
+
+To compile and run the application you would require Maven. Detailed instructions on how to setup and run Maven
+can be found at https://maven.apache.org/install.html.
+
+### Docker
+
+Portal API application uses docker for database setup (more information on how to do this, can be found at src/main/resources/application.properties), for running integration tests and elastic instance. 
+
+Setup docker on your machine, by downloading appropriate software based on your OS from https://docs.docker.com/.
+
 #### ElasticSearch index
+
+Users please download https://github.com/deviantony/docker-elk and using the master branch, spin up the elk instance in docker using docker-compose up (more information can be found in the docker-compose.yml file in the project itself.)
 
 The ElasticSearch instance has to have an index defined, that matches the `elasticsearch.index` 
 specified in the `src/main/resources/application.properties` file. If you use the above mentioned `docker-elk` setup,
@@ -48,6 +66,13 @@ PUT ecp-deployments
 }
 ```
 Production environments must change the credentials, and should tweak the settings depending on the workload.
+
+### Running intergration tests
+
+In order to run integration test following prerequisites are needed. Test user credentials of AAP dev server needed to be set as environmental variables Variables : AAP_TEST_USERNAME,AAP_TEST_PASSWORD. (If you need help in setting environment variables 
+please refer to https://www.digitalocean.com/community/tutorials/how-to-read-and-set-environmental-and-shell-variables-on-a-linux-vps for more understanding)
+
+mvn clean verify
 
 ## Example usage
 
