@@ -4,6 +4,10 @@ import org.springframework.hateoas.Link;
 import org.springframework.hateoas.ResourceSupport;
 import org.springframework.stereotype.Component;
 
+import com.fasterxml.jackson.annotation.JsonAnySetter;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import uk.ac.ebi.tsc.portal.api.account.controller.AccountRestController;
 import uk.ac.ebi.tsc.portal.api.account.repo.Account;
 import uk.ac.ebi.tsc.portal.api.application.repo.Application;
@@ -33,7 +37,7 @@ public class ApplicationResource extends ResourceSupport {
     private String contact;
     private String version;
     private Collection<ApplicationCloudProviderResource> cloudProviders;
-    private Collection<String> inputs;
+    private Collection<ApplicationInputResource> inputs;
     private Collection<String> deploymentParameters;
     private Collection<String> outputs;
     private Collection<String> volumes;
@@ -58,7 +62,7 @@ public class ApplicationResource extends ResourceSupport {
         );
         this.inputs = new LinkedList<>();
         this.inputs.addAll(
-                application.getInputs().stream().map(param -> param.name).collect(Collectors.toList())
+                application.getInputs().stream().map(ApplicationInputResource::new).collect(Collectors.toList())
         );
         
         this.deploymentParameters = new LinkedList<>();
@@ -126,10 +130,6 @@ public class ApplicationResource extends ResourceSupport {
     public Collection<ApplicationCloudProviderResource> getCloudProviders() {
         return cloudProviders;
     }
-
-    public Collection<String> getInputs() {
-        return inputs;
-    }
     
     public Collection<String> getDeploymentParameters() {
 		return deploymentParameters;
@@ -162,4 +162,12 @@ public class ApplicationResource extends ResourceSupport {
     public String getAccountEmail() {
         return accountEmail;
     }
+
+	public Collection<ApplicationInputResource> getInputs() {
+		return inputs;
+	}
+
+	public void setInputs(Collection<ApplicationInputResource> inputs) {
+		this.inputs = inputs;
+	}
 }

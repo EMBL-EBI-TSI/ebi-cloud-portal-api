@@ -2,13 +2,16 @@ package uk.ac.ebi.tsc.portal.api.deployment.service;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import uk.ac.ebi.tsc.portal.api.deployment.controller.DeploymentAssignedInputResource;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.Deployment;
+import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentApplication;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentRepository;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentStatus;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentStatusEnum;

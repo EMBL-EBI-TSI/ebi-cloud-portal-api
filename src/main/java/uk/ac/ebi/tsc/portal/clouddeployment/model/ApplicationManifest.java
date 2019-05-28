@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import uk.ac.ebi.tsc.portal.api.application.repo.ApplicationDeploymentParameter;
+import uk.ac.ebi.tsc.portal.api.application.repo.ApplicationInput;
 
 import java.util.Collection;
 
@@ -40,7 +41,7 @@ public class ApplicationManifest {
     public Collection<String> volumes;
 
     @JsonProperty
-    public Collection<String> inputs;
+    public Collection<ApplicationInput> inputs;
 
     @JsonProperty
     public Collection<String> outputs;

@@ -94,14 +94,14 @@ public class DeploymentStrategy {
         
         return concat(
             
-              asList("docker", "run")
+             asList("docker", "run" )
             , volume(appFolder         , CONTAINER_APP_FOLDER)           // appFolder
             , volume(deploymentsFolder , CONTAINER_DEPLOYMENTS_FOLDER)   // deploymentFolder
-            , envToOpts(env)
-            , asList("-w", CONTAINER_APP_FOLDER)                         // working dir
+            , envToOpts(env),
+             asList("-w", CONTAINER_APP_FOLDER)
             , asList( "--entrypoint", ""                                 // disable erik's image entry-point
-                    , "erikvdbergh/ecp-agent"                            // erik's image
-                    , BASH_COMMAND
+                   , "erikvdbergh/ecp-agent"                            // erik's image
+                    ,BASH_COMMAND
                     , scriptPath(cloudProviderPath, script)              // script path
                     )
         );

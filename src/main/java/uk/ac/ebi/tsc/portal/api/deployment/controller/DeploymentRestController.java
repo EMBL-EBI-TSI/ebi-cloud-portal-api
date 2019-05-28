@@ -59,6 +59,8 @@ import uk.ac.ebi.tsc.aap.client.repo.DomainService;
 import uk.ac.ebi.tsc.portal.api.account.repo.Account;
 import uk.ac.ebi.tsc.portal.api.account.service.AccountService;
 import uk.ac.ebi.tsc.portal.api.application.controller.InvalidApplicationInputException;
+import uk.ac.ebi.tsc.portal.api.application.controller.InvalidApplicationInputNameException;
+import uk.ac.ebi.tsc.portal.api.application.controller.InvalidApplicationInputValueException;
 import uk.ac.ebi.tsc.portal.api.application.repo.Application;
 import uk.ac.ebi.tsc.portal.api.application.repo.ApplicationCloudProvider;
 import uk.ac.ebi.tsc.portal.api.application.service.ApplicationNotFoundException;
@@ -107,6 +109,7 @@ import uk.ac.ebi.tsc.portal.api.team.service.TeamService;
 import uk.ac.ebi.tsc.portal.api.volumeinstance.repo.VolumeInstance;
 import uk.ac.ebi.tsc.portal.api.volumeinstance.service.VolumeInstanceService;
 import uk.ac.ebi.tsc.portal.clouddeployment.application.ApplicationDeployer;
+import uk.ac.ebi.tsc.portal.clouddeployment.application.ApplicationDeployerHelper;
 import uk.ac.ebi.tsc.portal.clouddeployment.exceptions.ApplicationDeployerException;
 import uk.ac.ebi.tsc.portal.usage.deployment.model.DeploymentDocument;
 import uk.ac.ebi.tsc.portal.usage.deployment.service.DeploymentIndexService;
@@ -174,6 +177,8 @@ public class DeploymentRestController {
 	private final ConfigDeploymentParamsCopyService configDeploymentParamsCopyService;
 
 	private DeploymentSecretService deploymentSecretService;
+	
+	private ApplicationDeployerHelper applicationDeployerHelper;
 
 	@Autowired
 	DeploymentRestController(DeploymentService deploymentService,
@@ -196,7 +201,8 @@ public class DeploymentRestController {
                              ConfigDeploymentParamsCopyService configDeploymentParamsCopyService,
                              EncryptionService encryptionService,
                              DeploymentSecretService deploymentSecretService,
-                             DeploymentGeneratedOutputService deploymentGeneratedOutputService
+                             DeploymentGeneratedOutputService deploymentGeneratedOutputService,
+                             ApplicationDeployerHelper applicationDeployerHelper
 			) {
 		this.cloudProviderParametersCopyService = cloudProviderParametersCopyService;
 		this.deploymentService = deploymentService;
@@ -215,6 +221,7 @@ public class DeploymentRestController {
 		this.teamService = teamService;
 		this.deploymentSecretService = deploymentSecretService;
 		this.deploymentGeneratedOutputService = deploymentGeneratedOutputService;
+		this.applicationDeployerHelper = applicationDeployerHelper;
 	}
 
 
@@ -228,7 +235,8 @@ public class DeploymentRestController {
 	public ResponseEntity<?> addDeployment(HttpServletRequest request, Principal principal, @RequestBody DeploymentResource input)
 			throws IOException, NoSuchPaddingException, InvalidKeyException,
 			NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException,
-			InvalidAlgorithmParameterException, InvalidKeySpecException, NoSuchProviderException, ApplicationDeployerException {
+			InvalidAlgorithmParameterException, InvalidKeySpecException, NoSuchProviderException,
+			ApplicationDeployerException, InvalidApplicationInputNameException, InvalidApplicationInputValueException {
 
 		logger.info("Adding new " + input.applicationName +
 				" deployment by user " + principal.getName() +
@@ -405,8 +413,8 @@ public class DeploymentRestController {
 				theApplication,
 				theReference,
 				getCloudProviderPathFromApplication(theApplication, selectedCloudProviderParameters.getCloudProvider()),
-				input.getAssignedInputs()!=null ?
-						input.getAssignedInputs().stream().collect(Collectors.toMap(s -> s.getInputName(), s-> s.getAssignedValue()))
+				input.getAssignedInputs()!=null ? applicationDeployerHelper.validateInputNameandValues(input.getAssignedInputs(), theApplication)
+						//input.getAssignedInputs().stream().collect(Collectors.toMap(s -> s.getInputName(), s-> s.getAssignedValue()))
 						: null,
 				//the following based on precedence discussion might change, so placeholder here
 				deploymentParameterKV!=null ? deploymentParameterKV :null,
@@ -423,7 +431,7 @@ public class DeploymentRestController {
 		if (input.getAssignedInputs()!=null) {
 			for (DeploymentAssignedInputResource assignment : input.getAssignedInputs()) {
 				logger.debug("Setting application input  assignment for " + assignment.getInputName()+ " to value " + assignment.getAssignedValue());
-				// create the assignment
+				// check and create the assignment
 				DeploymentAssignedInput newAssignment = new DeploymentAssignedInput(
 						assignment.getInputName(),
 						assignment.getAssignedValue(),

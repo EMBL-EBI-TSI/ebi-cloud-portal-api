@@ -1,28 +1,33 @@
 package uk.ac.ebi.tsc.portal.clouddeployment.application;
 
+import static java.lang.String.format;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.stream.Collectors;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import io.vavr.Tuple;
 import io.vavr.Tuple2;
 import io.vavr.control.Either;
 import uk.ac.ebi.tsc.portal.api.account.repo.Account;
-import uk.ac.ebi.tsc.portal.api.account.repo.AccountRepository;
 import uk.ac.ebi.tsc.portal.api.account.service.AccountService;
-import uk.ac.ebi.tsc.portal.api.application.repo.*;
+import uk.ac.ebi.tsc.portal.api.application.repo.Application;
+import uk.ac.ebi.tsc.portal.api.application.repo.ApplicationCloudProvider;
+import uk.ac.ebi.tsc.portal.api.application.repo.ApplicationCloudProviderInput;
+import uk.ac.ebi.tsc.portal.api.application.repo.ApplicationCloudProviderOutput;
+import uk.ac.ebi.tsc.portal.api.application.repo.ApplicationCloudProviderVolume;
+import uk.ac.ebi.tsc.portal.api.application.repo.ApplicationDeploymentParameter;
+import uk.ac.ebi.tsc.portal.api.application.repo.ApplicationInput;
+import uk.ac.ebi.tsc.portal.api.application.repo.ApplicationOutput;
+import uk.ac.ebi.tsc.portal.api.application.repo.ApplicationVolume;
 import uk.ac.ebi.tsc.portal.clouddeployment.exceptions.ApplicationDownloaderException;
 import uk.ac.ebi.tsc.portal.clouddeployment.model.ApplicationManifest;
 import uk.ac.ebi.tsc.portal.clouddeployment.utils.InputStreamLogger;
 import uk.ac.ebi.tsc.portal.clouddeployment.utils.ManifestParser;
-
-import static java.lang.String.format;
-
-import java.io.File;
-import java.io.IOException;
-import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * @author Jose A. Dianes <jdianes@ebi.ac.uk>
@@ -224,8 +229,17 @@ public class ApplicationDownloader {
 		}
 		if (applicationManifest.inputs != null) {
 			application.getInputs().addAll(
-					applicationManifest.inputs.stream().map(param -> new ApplicationInput(param, application)).collect(Collectors.toList())
-					);
+					applicationManifest.inputs.stream().map(
+								input -> {
+									ApplicationInput newApplicationInput = new ApplicationInput(input.name, application);
+									if(input.getValues() != null) {
+										newApplicationInput.getValues().addAll(
+												input.getValues());
+									}
+									return newApplicationInput;
+								}
+							).collect(Collectors.toList())
+			);
 		}
 		if (applicationManifest.outputs != null) {
 			application.getOutputs().addAll(

@@ -80,6 +80,7 @@ import uk.ac.ebi.tsc.portal.api.team.repo.Team;
 import uk.ac.ebi.tsc.portal.api.team.service.TeamService;
 import uk.ac.ebi.tsc.portal.api.volumeinstance.service.VolumeInstanceService;
 import uk.ac.ebi.tsc.portal.clouddeployment.application.ApplicationDeployer;
+import uk.ac.ebi.tsc.portal.clouddeployment.application.ApplicationDeployerHelper;
 import uk.ac.ebi.tsc.portal.clouddeployment.exceptions.ApplicationDeployerException;
 import uk.ac.ebi.tsc.portal.usage.deployment.service.DeploymentIndexService;
 import uk.ac.ebi.tsc.portal.usage.tracker.DeploymentStatusTracker;
@@ -169,6 +170,9 @@ public class DeploymentRestControllerTest {
 
 	@MockBean
 	DeploymentGeneratedOutputService deploymentGeneratedOutputService;
+	
+	@MockBean
+	ApplicationDeployerHelper applicationDeployerHelper;
 
 	String cppReference = "cppReference";
 	@Before 
@@ -182,6 +186,7 @@ public class DeploymentRestControllerTest {
 		ReflectionTestUtils.setField(subject, "teamService", teamService);
 		ReflectionTestUtils.setField(subject, "cloudProviderParametersService", cloudProviderParametersService);
 		ReflectionTestUtils.setField(subject, "applicationDeployer", applicationDeployer);
+		ReflectionTestUtils.setField(subject, "applicationDeployerHelper", applicationDeployerHelper);
 		Properties props = new Properties();
 		props.put("be.applications.root", "blah");    
 		props.put("be.deployments.root", "bleh");
@@ -470,6 +475,7 @@ public class DeploymentRestControllerTest {
 		DeploymentAssignedInputResource inputResource = mock(DeploymentAssignedInputResource.class);
 		when(inputResource.getInputName()).thenReturn("somename");
 		when(inputResource.getAssignedValue()).thenReturn("somevalue");
+		
 		inputResources.add(inputResource);
 		when(input.getAssignedInputs()).thenReturn(inputResources);
 
