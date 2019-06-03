@@ -200,7 +200,7 @@ public class EcpAuthenticationService {
                     teamService.addMemberToTeamByAccountNoNotification(ecpAapToken, defaultTeam.getName(), account);
                 }
             } catch (TeamNotFoundException tnfe) {
-               // logger.info("Team " + defaultTeamMap.getTeamName() + " not found. Can't add user " + account.getEmail());
+               logger.info("Team " + defaultTeamMap.getTeamName() + " not found. Can't add user " + account.getEmail());
             }
         });
     }
