@@ -58,19 +58,22 @@ public class ConfigurationService {
 	private final ConfigurationDeploymentParametersService cdpService;
 	private final CloudProviderParamsCopyService cloudProviderParametersCopyService;
 	private final DeploymentService deploymentService;
+	private final SendMail sendMail;
 
 	private static final Logger logger = LoggerFactory.getLogger(ConfigurationDeploymentParametersService.class);
 
 	@Autowired
 	public ConfigurationService(ConfigurationRepository configurationRepository, DomainService domainService,
 			CloudProviderParametersService cppService, ConfigurationDeploymentParametersService cdpService,
-			CloudProviderParamsCopyService cloudProviderParametersCopyService, DeploymentService deploymentService) {
+			CloudProviderParamsCopyService cloudProviderParametersCopyService, DeploymentService deploymentService,
+			SendMail sendMail) {
 		this.configurationRepository = configurationRepository;
 		this.domainService = domainService;
 		this.cppService = cppService;
 		this.cdpService = cdpService;
 		this.cloudProviderParametersCopyService = cloudProviderParametersCopyService;
 		this.deploymentService = deploymentService;
+		this.sendMail = sendMail;
 	}
 
 	public Collection<Configuration> findByAccountUsername(String username) {
@@ -495,7 +498,7 @@ public class ConfigurationService {
 					+ "This was because the configuration " + "'" + configuration.name + "'" +" was \n"
 					+ " deleted by its owner " + configuration.getAccount().givenName + ".";
 			try{
-				SendMail.send(toNotify, "Deployments destroyed", message );
+				sendMail.send(toNotify, "Deployments destroyed", message );
 			}catch(IOException e){
 				logger.error("Failed to send, deployments destroyed notification on deleting "
 						+ "configuration'" + configuration.getName() + "' ." );
@@ -630,7 +633,7 @@ public class ConfigurationService {
 					+ "This was because the configuration deployment parameter " + "'" + cdpCopy.name + "'" +" was \n"
 					+ " deleted by its owner " + cdpCopy.getAccount().givenName + ".";
 			try{
-				SendMail.send(toNotify, "Deployments destroyed", message );
+				sendMail.send(toNotify, "Deployments destroyed", message );
 			}catch(IOException e){
 				logger.error("Failed to send, deployments destroyed notification on deleting "
 						+ " configuration deployment parameter '" + cdpCopy.getName() + "' ." );

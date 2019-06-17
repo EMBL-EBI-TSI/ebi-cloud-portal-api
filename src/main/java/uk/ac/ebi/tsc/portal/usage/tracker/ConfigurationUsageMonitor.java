@@ -38,6 +38,7 @@ public class ConfigurationUsageMonitor implements Runnable {
     private final ConfigurationService configurationService;
     private final CloudProviderParamsCopyService cloudProviderParamsCopyService;
     private final DeploymentConfigurationService deploymentConfigurationService;
+    private final SendMail sendMail;
 
     private final ApplicationDeployer applicationDeployer;
 
@@ -49,13 +50,15 @@ public class ConfigurationUsageMonitor implements Runnable {
                                      ConfigurationService configurationService,
                                      CloudProviderParamsCopyService cloudProviderParamsCopyService,
                                      DeploymentConfigurationService deploymentConfigurationService,
-                                     ApplicationDeployer applicationDeployer) {
+                                     ApplicationDeployer applicationDeployer,
+                                     SendMail sendMail) {
         this.deploymentIndexService = deploymentIndexService;
         this.deploymentService = deploymentService;
         this.configurationService = configurationService;
         this.cloudProviderParamsCopyService = cloudProviderParamsCopyService;
         this.deploymentConfigurationService = deploymentConfigurationService;
         this.applicationDeployer = applicationDeployer;
+        this.sendMail = sendMail;
     }
 
     @Override
@@ -186,7 +189,7 @@ public class ConfigurationUsageMonitor implements Runnable {
                 + "This was because the configuration " + "'" + configuration.name + "'" +" hard usage limit was reached. \n"
                 + "You can contact the configuration owner at " + configuration.getAccount().getEmail() + ".";
         try{
-            SendMail.send(toNotify, "Deployment " + deployment.getReference() + " destroyed", message );
+            sendMail.send(toNotify, "Deployment " + deployment.getReference() + " destroyed", message );
         } catch (IOException e) {
             logger.error("Failed to send messages to concerned person, regarding destroying deployment");
         }
@@ -202,7 +205,7 @@ public class ConfigurationUsageMonitor implements Runnable {
                 " configuration " + "'" + configuration.name + "'. The deployment will be running until is destroyed manually or reaches a hard usage limit. \n"
                     + "You can contact the configuration owner at " + configuration.getAccount().getEmail() + ".";
         try{
-            SendMail.send(toNotify, "Deployment " + deployment.getReference() + " usage limit", message );
+            sendMail.send(toNotify, "Deployment " + deployment.getReference() + " usage limit", message );
         } catch (IOException e) {
             logger.error("Failed to send messages to concerned person, regarding destroying deployment");
         }

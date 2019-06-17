@@ -58,17 +58,20 @@ public class CloudProviderParametersService {
 	private final DomainService domainService;
 	private final CloudProviderParamsCopyService cloudProviderParametersCopyService;
 	private final EncryptionService encryptionService;
+	private final SendMail sendMail;
 
 	@Autowired
 	public CloudProviderParametersService(
 			CloudProviderParametersRepository cloudProviderParametersRepository,
 			DomainService domainService,
 			CloudProviderParamsCopyService cloudProviderParametersCopyService,
-			EncryptionService encryptionService) {
+			EncryptionService encryptionService,
+			SendMail sendMail) {
 		this.cloudProviderParametersRepository = cloudProviderParametersRepository;
 		this.domainService = domainService;
 		this.cloudProviderParametersCopyService = cloudProviderParametersCopyService;
 		this.encryptionService = encryptionService;
+		this.sendMail = sendMail;
 	}
 
 	public Collection<CloudProviderParameters> findByAccountUsername(String username) throws InvalidAlgorithmParameterException, InvalidKeyException, NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeySpecException, IOException, BadPaddingException, IllegalBlockSizeException {
@@ -373,7 +376,7 @@ public class CloudProviderParametersService {
 					+ "This was because the cloud credential " + "'" + cloudParameters.name + "'" +" was \n"
 					+ " deleted by its owner " + cloudParameters.getAccount().givenName + ".";
 			try{
-				SendMail.send(toNotify, "Deployments destroyed", message );
+				sendMail.send(toNotify, "Deployments destroyed", message );
 			}catch(IOException e){
 				logger.error("Failed to send messages to concerned persons, regarding destroying deployments");
 			}

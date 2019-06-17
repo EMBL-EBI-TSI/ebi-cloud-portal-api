@@ -42,6 +42,7 @@ import uk.ac.ebi.tsc.portal.api.encryptdecrypt.security.EncryptionService;
 import uk.ac.ebi.tsc.portal.api.team.repo.Team;
 import uk.ac.ebi.tsc.portal.api.team.repo.TeamRepository;
 import uk.ac.ebi.tsc.portal.api.team.service.*;
+import uk.ac.ebi.tsc.portal.api.utils.SendMail;
 import uk.ac.ebi.tsc.portal.clouddeployment.exceptions.ApplicationDeployerException;
 
 import javax.crypto.BadPaddingException;
@@ -162,6 +163,9 @@ public class TeamRestControllerTest {
 	@MockBean
 	private EncryptionService encryptionService;
 	
+	@MockBean
+	private SendMail sendMail;
+	
 	String baseURL = "something.api";
 	
 	@Before
@@ -180,7 +184,7 @@ public class TeamRestControllerTest {
 		ReflectionTestUtils.setField(subject, "cloudProviderParametersCopyService", cppCopyService);
 		ReflectionTestUtils.setField(cppCopyService, "encryptionService", encryptionService);
 		ReflectionTestUtils.setField(cppService, "encryptionService", encryptionService);
-		
+		ReflectionTestUtils.setField(teamService, "sendMail", sendMail);
 		toRemove = mock(Team.class);
 	}
 

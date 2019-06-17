@@ -51,7 +51,8 @@ public class TeamService {
 	private final DeploymentService deploymentService;
 	private final CloudProviderParamsCopyService cloudProviderParametersCopyService;
 	private final ApplicationDeployer applicationDeployer;
-
+	private final SendMail sendMail;
+	
 	private static final Logger logger = LoggerFactory.getLogger(TeamService.class);
 
 	@Autowired
@@ -61,7 +62,8 @@ public class TeamService {
                        DeploymentService deploymentService,
                        CloudProviderParamsCopyService cloudProviderParametersCopyService,
                        DeploymentConfigurationService deploymentConfigurationService,
-                       ApplicationDeployer applicationDeployer
+                       ApplicationDeployer applicationDeployer,
+                       SendMail sendMail
 			){
 		this.teamRepository = teamRepository;
 		this.accountService = accountService;
@@ -69,6 +71,7 @@ public class TeamService {
 		this.deploymentService = deploymentService ;
 		this.cloudProviderParametersCopyService = cloudProviderParametersCopyService;
 		this.applicationDeployer = applicationDeployer;
+		this.sendMail = sendMail;
 
 	}
 
@@ -334,7 +337,7 @@ public class TeamService {
 					String toNotifyEmail = account.getEmail();
 
 					try {
-						SendMail.send(new ArrayList<String>(){{
+						sendMail.send(new ArrayList<String>(){{
 							add(toNotifyEmail);
 						}}, "Request granted: Added to team " + team.getName(), message );
 					} catch (IOException e) {
@@ -491,7 +494,7 @@ public class TeamService {
 					+ "This was because the associated cloud credentials are not available anymore in team " + "'" + team.getName() + "'.\nYou had used team"
 					+ " shared cloud credential for these deployments." ;
 			try {
-				SendMail.send(toNotify, "Deployments destroyed", message );
+				sendMail.send(toNotify, "Deployments destroyed", message );
 			} catch (IOException e) {
 				logger.error("Failed to send, deployments destroyed notification to the members of the team " + team.getName());
 			}
@@ -543,7 +546,7 @@ public class TeamService {
                     + "This was because the associated configurations are not available anymore in team " + "'" + team.getName() + "'.\nYou had used team"
                     + " shared configurations for these deployments." ;
             try {
-                SendMail.send(toNotify, "Deployments destroyed", message );
+                sendMail.send(toNotify, "Deployments destroyed", message );
             } catch (IOException e) {
                 logger.error("Failed to send, deployments destroyed notification to the members of the team " + team.getName());
             }
@@ -597,7 +600,7 @@ public class TeamService {
             String message = "Your deployments were destroyed. \n"
                     + "This was because you were removed from the team " + "'" + team.getName() + "'." ;
             try {
-                SendMail.send(toNotify, "Deployments destroyed", message );
+                sendMail.send(toNotify, "Deployments destroyed", message );
             } catch (IOException e) {
                 logger.error("Failed to send, deployments destroyed notification to " + account.getGivenName() + ".");
             }
@@ -662,7 +665,7 @@ public class TeamService {
                     + "This was because the associated cloud credentials are not available anymore in team " + "'" + team.getName() + "'.\nYou had used team"
                     + " shared cloud credential for these deployments." ;
             try {
-                SendMail.send(toNotify, "Deployments destroyed", message );
+                sendMail.send(toNotify, "Deployments destroyed", message );
             } catch (IOException e) {
                 logger.error("Failed to send, deployments destroyed notification to the members of the team " + team.getName());
             }
@@ -729,7 +732,7 @@ public class TeamService {
                     + "This was because the associated cloud credentials are not available anymore in team " + "'" + team.getName() + "'.\nYou had used team"
                     + " shared cloud credential for these deployments." ;
             try {
-                SendMail.send(toNotify, "Deployments destroyed", message );
+                sendMail.send(toNotify, "Deployments destroyed", message );
             } catch (IOException e) {
                 logger.error("Failed to send, deployments destroyed notification to the members of the team " + team.getName());
             }
@@ -764,7 +767,7 @@ public class TeamService {
 				+ "\n"
 				+ "and use the email " + yetToBeMember.getEmail() + " to add member.\n\n";
 
-		SendMail.send(toNotify, "Request to join team " + team.getName(), message );
+		sendMail.send(toNotify, "Request to join team " + team.getName(), message );
 
 	}
 

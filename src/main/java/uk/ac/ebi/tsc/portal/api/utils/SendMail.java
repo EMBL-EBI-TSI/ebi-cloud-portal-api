@@ -1,21 +1,20 @@
 package uk.ac.ebi.tsc.portal.api.utils;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.Collection;
-import java.util.Properties;
 
 import javax.mail.Address;
 import javax.mail.Message;
 import javax.mail.MessagingException;
-import javax.mail.PasswordAuthentication;
-import javax.mail.Session;
 import javax.mail.Transport;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.PropertySource;
+import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Component;
 
 /**
@@ -24,36 +23,37 @@ import org.springframework.stereotype.Component;
  * @author Navis Raj <navis@ebi.ac.uk>
  */
 @Component
+@PropertySource("classpath:application.properties")
 public class SendMail {
-
+	
 	private static final Logger logger = LoggerFactory.getLogger(SendMail.class);
-
-	public static void send(Collection<String> toNotify, String subject, String  body) throws IOException{
-
-		InputStream input = SendMail.class.getClassLoader().getResourceAsStream("application.properties");
-
-		Properties props = System.getProperties();
-		props.load(input);
-		String username = props.getProperty("sftp.mail.username");
-		String password = props.getProperty("sftp.mail.password");
-		String from = props.getProperty("sftp.mail.from");
-		String host = props.getProperty("smtp.mail.host");
-		String port = props.getProperty("smtp.mail.port");
-		props.put("mail.smtp.auth", "true");
-		props.put("mail.smtp.starttls.enable", "true");
-		props.put("mail.smtp.host", host);
-		props.put("mail.smtp.port", port);
-
-		Session session = Session.getInstance(props,
-				new javax.mail.Authenticator() {
-			protected PasswordAuthentication getPasswordAuthentication() {
-				return new PasswordAuthentication(username, password);
-			}
-		});
+	
+	@Value("${spring.mail.username}")
+	private String username;
+	
+	@Value("${spring.mail.password}")
+	private String password;
+	
+	@Value("${spring.mail.host}")
+	private String host;
+	
+	@Value("${spring.mail.port}")
+	private String port;
+	
+	@Value("${spring.mail.from}")
+	private String from;
+	
+	private final JavaMailSender javamailSender;
+	
+	public SendMail(JavaMailSender javamailSender) {
+		this.javamailSender = javamailSender;
+	}
+	
+	public void send(Collection<String> toNotify, String subject, String  body) throws IOException{
 
 		try {
 			// Create a default MimeMessage object.
-			MimeMessage message = new MimeMessage(session);
+			MimeMessage message = javamailSender.createMimeMessage();
 
 			// Set From: header field of the header.
 			message.setFrom(new InternetAddress(from));
@@ -69,7 +69,7 @@ public class SendMail {
 			message.setSubject(subject);
 			String mailBody = "Hi, \n\n" + body + "\n\n" + "Thanks, \n" + "The CloudPortal Team.";
 			message.setText(mailBody);
-			Transport.send(message);
+			javamailSender.send(message);
 			logger.info("Sent message successfully....");
 
 		} catch (MessagingException mex) {

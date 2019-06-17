@@ -19,6 +19,7 @@ import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigurationService;
 import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentConfigurationService;
 import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentService;
 import uk.ac.ebi.tsc.portal.api.encryptdecrypt.security.EncryptionService;
+import uk.ac.ebi.tsc.portal.api.utils.SendMail;
 import uk.ac.ebi.tsc.portal.clouddeployment.application.ApplicationDeployer;
 import uk.ac.ebi.tsc.portal.usage.deployment.service.DeploymentIndexService;
 
@@ -58,6 +59,7 @@ public class DeploymentStatusTracker {
 	private final CloudProviderParamsCopyService cloudProviderParametersCopyService;
 	private final CloudProviderParamsCopyRepository cloudProviderParametersCopyRepository;
 	private final EncryptionService encryptionService;
+	private final SendMail sendMail;
 
 	@Autowired
 	public DeploymentStatusTracker(DeploymentService deploymentService,
@@ -69,7 +71,8 @@ public class DeploymentStatusTracker {
                                    DeploymentConfigurationService deploymentConfigurationService,
                                    ApplicationDeployer applicationDeployer,
                                    EncryptionService encryptionService,
-                                   CloudProviderParamsCopyRepository cloudProviderParametersCopyRepository) {
+                                   CloudProviderParamsCopyRepository cloudProviderParametersCopyRepository,
+                                   SendMail sendMail) {
 		this.deploymentService = deploymentService;
 		this.cloudProviderParametersCopyService = cloudProviderParametersCopyService;
 		this.cloudProviderParametersService = cloudProviderParametersService;
@@ -80,6 +83,7 @@ public class DeploymentStatusTracker {
 		scheduledThreadPoolExecutor = new ScheduledThreadPoolExecutor(4);
 		this.encryptionService = encryptionService;
 		this.cloudProviderParametersCopyRepository = cloudProviderParametersCopyRepository;
+		this.sendMail = sendMail;
 	}
 
 	public void start(long initialDelay, long periodInSeconds) {
@@ -105,7 +109,8 @@ public class DeploymentStatusTracker {
 						configurationService,
 						cloudProviderParametersCopyService,
 						deploymentConfigurationService,
-                        applicationDeployer),
+                        applicationDeployer,
+                        sendMail),
 				initialDelay,
 				periodInSeconds,
 				TimeUnit.SECONDS
