@@ -285,6 +285,8 @@ public class DeploymentRestController {
 			throw new ApplicationNotFoundException(applicationOwnerAccount.getGivenName(), input.getApplicationName());
 		}
 
+		//validate the application inputs along with its values
+		Map<String, String> validatedInputs = applicationDeployerHelper.validateInputNameandValues(input.getAssignedInputs(), theApplication);
 
 		// Get the configuration
 		logger.info("Looking for configuration " + input.getConfigurationName() + " for user " + account.getGivenName());
@@ -413,9 +415,7 @@ public class DeploymentRestController {
 				theApplication,
 				theReference,
 				getCloudProviderPathFromApplication(theApplication, selectedCloudProviderParameters.getCloudProvider()),
-				input.getAssignedInputs()!=null ? applicationDeployerHelper.validateInputNameandValues(input.getAssignedInputs(), theApplication)
-						//input.getAssignedInputs().stream().collect(Collectors.toMap(s -> s.getInputName(), s-> s.getAssignedValue()))
-						: null,
+				input.getAssignedInputs()!=null ? validatedInputs : null,
 				//the following based on precedence discussion might change, so placeholder here
 				deploymentParameterKV!=null ? deploymentParameterKV :null,
 				input.getAttachedVolumes()!=null? toProviderIdHashMap(input.getAttachedVolumes()) : null,
