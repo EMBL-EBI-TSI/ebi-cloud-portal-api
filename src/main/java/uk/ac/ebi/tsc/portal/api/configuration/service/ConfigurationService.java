@@ -19,6 +19,7 @@ import uk.ac.ebi.tsc.aap.client.model.Domain;
 import uk.ac.ebi.tsc.aap.client.model.User;
 import uk.ac.ebi.tsc.aap.client.repo.DomainService;
 import uk.ac.ebi.tsc.portal.api.account.repo.Account;
+import uk.ac.ebi.tsc.portal.api.application.repo.Application;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParameters;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParamsCopy;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.service.CloudProviderParametersNotFoundException;
@@ -710,6 +711,20 @@ public class ConfigurationService {
 		configuration.getSharedWithTeams().stream().anyMatch(t -> t.getDomainReference().equals(team.getDomainReference())))){
 			return true;
 		}else{
+			return false;
+		}
+	}
+
+	public boolean canConfigurationBeUsedForApplication(Configuration configuration, Application application) {
+		
+		Set<Team> configurationSharedWithTeams = configuration.getSharedWithTeams();
+		Set<Team> applicationSharedWithTeams = application.getSharedWithTeams();
+		
+		//test if the application and configuration are together shared with a team
+		//if not the configuration cannot be used for the application
+		if(applicationSharedWithTeams.contains(configurationSharedWithTeams)) {
+			return true;
+		}else {
 			return false;
 		}
 	}

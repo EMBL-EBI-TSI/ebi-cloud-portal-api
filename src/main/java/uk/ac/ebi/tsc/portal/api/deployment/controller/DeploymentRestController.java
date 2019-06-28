@@ -96,6 +96,7 @@ import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentAttachedVolume;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentConfiguration;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentConfigurationParameter;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentStatusEnum;
+import uk.ac.ebi.tsc.portal.api.deployment.service.ConfigurationNotUsableForApplicationException;
 import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentApplicationService;
 import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentConfigurationService;
 import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentGeneratedOutputService;
@@ -236,7 +237,7 @@ public class DeploymentRestController {
 			throws IOException, NoSuchPaddingException, InvalidKeyException,
 			NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException,
 			InvalidAlgorithmParameterException, InvalidKeySpecException, NoSuchProviderException,
-			ApplicationDeployerException, InvalidApplicationInputNameException, InvalidApplicationInputValueException {
+			ApplicationDeployerException, InvalidApplicationInputNameException, InvalidApplicationInputValueException, ConfigurationNotUsableForApplicationException {
 
 		logger.info("Adding new " + input.applicationName +
 				" deployment by user " + principal.getName() +
@@ -305,8 +306,11 @@ public class DeploymentRestController {
 			if(!configurationService.isConfigurationSharedWithAccount(account, configuration)){
 				throw new ConfigurationNotSharedException(account.getGivenName(), configuration.getName());
 			}
+			if(!configurationService.canConfigurationBeUsedForApplication(configuration, theApplication)) {
+				throw new ConfigurationNotUsableForApplicationException(configuration.getName(), theApplication.getName());
+			}
 		}
-		// Find the cloud provider parameters
+		
 		CloudProviderParameters selectedCloudProviderParameters;
 		if(configuration != null) {
 			Account credentialOwnerAccount = this.accountService.findByUsername(input.getConfigurationAccountUsername());
