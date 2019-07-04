@@ -58,6 +58,7 @@ import uk.ac.ebi.tsc.portal.api.application.service.ApplicationService;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.controller.CloudProviderParametersCopyResource;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParameters;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParamsCopy;
+import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.service.CloudProviderParametersNotFoundException;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.service.CloudProviderParametersService;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.service.CloudProviderParamsCopyService;
 import uk.ac.ebi.tsc.portal.api.configuration.controller.InvalidConfigurationInputException;
@@ -72,6 +73,7 @@ import uk.ac.ebi.tsc.portal.api.deployment.repo.Deployment;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentApplication;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentApplicationCloudProvider;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentConfiguration;
+import uk.ac.ebi.tsc.portal.api.deployment.service.CloudCredentialNotUsableForApplicationException;
 import uk.ac.ebi.tsc.portal.api.deployment.service.ConfigurationNotUsableForApplicationException;
 import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentApplicationService;
 import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentConfigurationService;
@@ -301,7 +303,8 @@ public class DeploymentRestControllerTest {
 	public void test_if_deployment_throws_exception_null_cloud_providers()
 			throws InvalidKeyException, NoSuchPaddingException, NoSuchAlgorithmException, IllegalBlockSizeException,
 			BadPaddingException, InvalidAlgorithmParameterException, InvalidKeySpecException, NoSuchProviderException,
-			IOException, ApplicationDeployerException, InvalidApplicationInputNameException, InvalidApplicationInputValueException, ConfigurationNotUsableForApplicationException {
+			IOException, ApplicationDeployerException, InvalidApplicationInputNameException, InvalidApplicationInputValueException, 
+			ConfigurationNotUsableForApplicationException, CloudCredentialNotUsableForApplicationException {
 
 		DeploymentResource deploymentResourceMock = mock(DeploymentResource.class);
 		String accountUserName = "a_name";
@@ -336,7 +339,8 @@ public class DeploymentRestControllerTest {
 	public void test_add_deployment()
 			throws InvalidKeyException, NoSuchPaddingException, NoSuchAlgorithmException, IllegalBlockSizeException,
 			BadPaddingException, InvalidAlgorithmParameterException, InvalidKeySpecException, NoSuchProviderException,
-			IOException, ApplicationDeployerException, InvalidApplicationInputNameException, InvalidApplicationInputValueException, ConfigurationNotUsableForApplicationException {
+			IOException, ApplicationDeployerException, InvalidApplicationInputNameException, InvalidApplicationInputValueException,
+			ConfigurationNotUsableForApplicationException, CloudCredentialNotUsableForApplicationException {
 
 		String sharedWithUsername = "sharedWithUsername";
 		Principal principal = mock(Principal.class);
@@ -498,7 +502,8 @@ public class DeploymentRestControllerTest {
 	}
 
 	@Test(expected = InvalidConfigurationInputException.class)
-	public void configuration_name_not_specified() throws InvalidKeyException, NoSuchPaddingException, NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException, InvalidKeySpecException, NoSuchProviderException, IOException, ApplicationDeployerException, InvalidApplicationInputNameException, InvalidApplicationInputValueException, ConfigurationNotUsableForApplicationException{
+	public void configuration_name_not_specified() throws InvalidKeyException, NoSuchPaddingException, NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException, InvalidKeySpecException, NoSuchProviderException, IOException, ApplicationDeployerException, InvalidApplicationInputNameException, InvalidApplicationInputValueException, 
+	ConfigurationNotUsableForApplicationException, CloudCredentialNotUsableForApplicationException{
 
 		String username = "username";
 		Principal principal = mock(Principal.class);
@@ -528,7 +533,8 @@ public class DeploymentRestControllerTest {
 
 
 	@Test(expected = InvalidConfigurationInputException.class)
-	public void configuration_owner_name_not_specified() throws InvalidKeyException, NoSuchPaddingException, NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException, InvalidKeySpecException, NoSuchProviderException, IOException, ApplicationDeployerException, InvalidApplicationInputNameException, InvalidApplicationInputValueException, ConfigurationNotUsableForApplicationException{
+	public void configuration_owner_name_not_specified() throws InvalidKeyException, NoSuchPaddingException, NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException, InvalidKeySpecException, NoSuchProviderException, IOException, ApplicationDeployerException, InvalidApplicationInputNameException, InvalidApplicationInputValueException, 
+	ConfigurationNotUsableForApplicationException, CloudCredentialNotUsableForApplicationException{
 
 		String username = "username";
 		Principal principal = mock(Principal.class);
@@ -558,7 +564,8 @@ public class DeploymentRestControllerTest {
 	}
 
 	@Test(expected = InvalidApplicationInputException.class)
-	public void invalid_application_input_no_app_name() throws InvalidKeyException, NoSuchPaddingException, NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException, InvalidKeySpecException, NoSuchProviderException, IOException, ApplicationDeployerException, InvalidApplicationInputNameException, InvalidApplicationInputValueException, ConfigurationNotUsableForApplicationException{
+	public void invalid_application_input_no_app_name() throws InvalidKeyException, NoSuchPaddingException, NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException, InvalidKeySpecException, NoSuchProviderException, IOException, ApplicationDeployerException, InvalidApplicationInputNameException, InvalidApplicationInputValueException, 
+	ConfigurationNotUsableForApplicationException, CloudCredentialNotUsableForApplicationException{
 
 		String username = "username";
 		Principal principal = mock(Principal.class);
@@ -572,7 +579,8 @@ public class DeploymentRestControllerTest {
 	}
 
 	@Test(expected = InvalidApplicationInputException.class)
-	public void invalid_application_input_no_app_owner_acc_username() throws InvalidKeyException, NoSuchPaddingException, NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException, InvalidKeySpecException, NoSuchProviderException, IOException, ApplicationDeployerException, InvalidApplicationInputNameException, InvalidApplicationInputValueException, ConfigurationNotUsableForApplicationException{
+	public void invalid_application_input_no_app_owner_acc_username() throws InvalidKeyException, NoSuchPaddingException, NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException, InvalidKeySpecException, NoSuchProviderException, IOException, ApplicationDeployerException, InvalidApplicationInputNameException, InvalidApplicationInputValueException, 
+	ConfigurationNotUsableForApplicationException, CloudCredentialNotUsableForApplicationException{
 
 		String username = "username";
 		Principal principal = mock(Principal.class);
@@ -586,7 +594,8 @@ public class DeploymentRestControllerTest {
 	}
 
 	@Test(expected=ApplicationNotFoundException.class)
-	public void app_not_found_exception() throws InvalidKeyException, NoSuchPaddingException, NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException, InvalidKeySpecException, NoSuchProviderException, IOException, ApplicationDeployerException, InvalidApplicationInputNameException, InvalidApplicationInputValueException, ConfigurationNotUsableForApplicationException{
+	public void app_not_found_exception() throws InvalidKeyException, NoSuchPaddingException, NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException, InvalidKeySpecException, NoSuchProviderException, IOException, ApplicationDeployerException, InvalidApplicationInputNameException, InvalidApplicationInputValueException, 
+	ConfigurationNotUsableForApplicationException, CloudCredentialNotUsableForApplicationException{
 
 		String username = "username";
 		Principal principal = mock(Principal.class);
@@ -686,7 +695,8 @@ public class DeploymentRestControllerTest {
 	}
 
 	@Test(expected = ConfigurationNotUsableForApplicationException.class)
-	public void testIfConfigurationisNotUsable() throws InvalidKeyException, NoSuchPaddingException, NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException, InvalidKeySpecException, NoSuchProviderException, InvalidApplicationInputNameException, InvalidApplicationInputValueException, IOException, ApplicationDeployerException, ConfigurationNotUsableForApplicationException {
+	public void testIfConfigurationisNotUsable() throws InvalidKeyException, NoSuchPaddingException, NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException, InvalidKeySpecException, NoSuchProviderException, InvalidApplicationInputNameException, InvalidApplicationInputValueException, IOException, ApplicationDeployerException, 
+	ConfigurationNotUsableForApplicationException, CloudCredentialNotUsableForApplicationException {
 
 		DeploymentResource input = mock(DeploymentResource.class);
 		
@@ -735,4 +745,69 @@ public class DeploymentRestControllerTest {
 		subject.addDeployment(request, principal, input);
 
 	}
+	
+	@Test(expected = CloudCredentialNotUsableForApplicationException.class)
+	public void testIfCredentialisNotUsable() throws InvalidKeyException, NoSuchPaddingException, NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException, InvalidKeySpecException, NoSuchProviderException, InvalidApplicationInputNameException, InvalidApplicationInputValueException, IOException, ApplicationDeployerException,
+	ConfigurationNotUsableForApplicationException, CloudCredentialNotUsableForApplicationException {
+
+		DeploymentResource input = mock(DeploymentResource.class);
+		
+		String sharedWithUsername = "sharedWithUsername";
+		Principal principal = mock(Principal.class);
+		given(principal.getName()).willReturn(sharedWithUsername);
+		//get account of the user with whom application and configuration are shared
+		Account account = mock(Account.class);
+		String accountReference = "accountReference";
+		given(accountService.findByUsername(sharedWithUsername)).willReturn(account);
+		given(account.getGivenName()).willReturn(sharedWithUsername);
+		given(account.getUsername()).willReturn(sharedWithUsername);
+		given(account.getFirstJoinedDate()).willReturn(new Date(0, 0, 0));
+		given(account.getReference()).willReturn(accountReference);
+		
+		
+		String applicationName = "applicationName";
+		String applicationOwnerAccountUsername = "applicationOwnerAccountUsername";
+		Account applicationOwner =  mock(Account.class);
+		when(input.getApplicationName()).thenReturn(applicationName);
+		when(input.getApplicationAccountUsername()).thenReturn(applicationOwnerAccountUsername);
+		given(accountService.findByUsername(applicationOwnerAccountUsername)).willReturn(applicationOwner);
+		Application application = mock(Application.class);
+		given(application.getName()).willReturn(applicationName);
+		given(applicationOwner.getUsername()).willReturn(applicationOwnerAccountUsername);
+		given(applicationService.findByAccountUsernameAndName(applicationOwnerAccountUsername, applicationName)).willReturn(application);
+		given(applicationService.isApplicationSharedWithAccount(account, application)).willReturn(true);
+		
+		String configurationName = "configurationName";
+		when(input.getConfigurationName()).thenReturn(configurationName);
+		when(input.getConfigurationAccountUsername()).thenReturn(sharedWithUsername);
+		given(accountService.findByUsername(sharedWithUsername)).willReturn(account);
+		Configuration configuration = mock(Configuration.class);
+		given(configuration.getName()).willReturn(configurationName);
+		String credentialName = "credentialName";
+		given(configuration.getCloudProviderParametersName()).willReturn(credentialName);
+		given(configurationService.findByNameAndAccountUsername(configurationName, sharedWithUsername)).willReturn(configuration);
+			
+		given(cloudProviderParametersService.findByNameAndAccountUsername(credentialName, sharedWithUsername))
+		.willThrow(CloudProviderParametersNotFoundException.class);
+		CloudProviderParameters cloudProviderParameters =  mock(CloudProviderParameters.class);
+		String credentialReference = "credentialReference";
+		given(configuration.getCloudProviderParametersReference()).willReturn(credentialReference);
+		given(cloudProviderParametersService.findByReference(credentialReference)).willReturn(cloudProviderParameters);
+		
+		//credential owner account
+		Account cppOwner = mock(Account.class);
+		String cppOwnerName = "cppOwnerName";
+		given(cppOwner.getUsername()).willReturn(cppOwnerName);
+		given(cloudProviderParameters.getAccount()).willReturn(cppOwner);
+		given(accountService.findByUsername(cppOwnerName)).willReturn(cppOwner);
+		given(cloudProviderParametersService
+				.isCloudProviderParametersSharedWithAccount(account, cloudProviderParameters)).willReturn(true);
+		given(cloudProviderParametersService
+				.canCredentialBeUsedForApplication(cloudProviderParameters, application)).willReturn(false);
+		HttpServletRequest request = new MockHttpServletRequest();
+		when(subject.addDeployment(request, principal, input)).thenCallRealMethod();
+		subject.addDeployment(request, principal, input);
+
+	}
+	
 }

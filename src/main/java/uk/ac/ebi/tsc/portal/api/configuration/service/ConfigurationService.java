@@ -4,10 +4,13 @@ import java.io.IOException;
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.Map.Entry;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
@@ -717,15 +720,28 @@ public class ConfigurationService {
 
 	public boolean canConfigurationBeUsedForApplication(Configuration configuration, Application application) {
 		
-		Set<Team> configurationSharedWithTeams = configuration.getSharedWithTeams();
-		Set<Team> applicationSharedWithTeams = application.getSharedWithTeams();
+		Map<String, String> configurationSharedWithTeams  = new HashMap<String, String>();
+		configuration.getSharedWithTeams().stream().forEach(t -> {
+			configurationSharedWithTeams.put(t.getName(), t.getAccount().getUsername());
+		});
 		
-		//test if the application and configuration are together shared with a team
-		//if not the configuration cannot be used for the application
-		if(applicationSharedWithTeams.contains(configurationSharedWithTeams)) {
-			return true;
-		}else {
-			return false;
+		Map<String, String> applicationSharedWithTeams  = new HashMap<String, String>();
+		application.getSharedWithTeams().stream().forEach(t -> {
+			applicationSharedWithTeams.put(t.getName(), t.getAccount().getUsername());
+		});
+		
+		for(Entry<String, String> team: configurationSharedWithTeams.entrySet()) {
+			//find matching team name
+			if(applicationSharedWithTeams.keySet().contains(team.getKey())){
+				//if found check if username matches
+				if(applicationSharedWithTeams.get(team.getKey()).equals(team.getValue())){
+					//if team name and team account username is same
+					return true;
+				}
+			}
 		}
+		
+		return false;
 	}
+
 }

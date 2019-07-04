@@ -8,6 +8,7 @@ import java.security.Principal;
 import java.security.spec.InvalidKeySpecException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -29,6 +30,7 @@ import uk.ac.ebi.tsc.aap.client.model.Domain;
 import uk.ac.ebi.tsc.aap.client.model.User;
 import uk.ac.ebi.tsc.aap.client.repo.DomainService;
 import uk.ac.ebi.tsc.portal.api.account.repo.Account;
+import uk.ac.ebi.tsc.portal.api.application.repo.Application;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.controller.CloudProviderParametersResource;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParameters;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParametersField;
@@ -388,6 +390,33 @@ public class CloudProviderParametersService {
 		t.getCppBelongingToTeam().stream().anyMatch(c -> c.getReference().equals(cloudParameters.getReference())))){
 			return true;
 		}
+		return false;
+	}
+
+	public boolean canCredentialBeUsedForApplication(CloudProviderParameters cloudProviderParameters,
+			Application application) {
+		
+		Map<String, String> cloudProviderParametersSharedWithTeams  = new HashMap<String, String>();
+		cloudProviderParameters.getSharedWithTeams().stream().forEach(t -> {
+			cloudProviderParametersSharedWithTeams.put(t.getName(), t.getAccount().getUsername());
+		});
+		
+		Map<String, String> applicationSharedWithTeams  = new HashMap<String, String>();
+		application.getSharedWithTeams().stream().forEach(t -> {
+			applicationSharedWithTeams.put(t.getName(), t.getAccount().getUsername());
+		});
+		
+		for(Entry<String, String> team: cloudProviderParametersSharedWithTeams.entrySet()) {
+			//find matching team name
+			if(applicationSharedWithTeams.keySet().contains(team.getKey())){
+				//if found check if username matches
+				if(applicationSharedWithTeams.get(team.getKey()).equals(team.getValue())){
+					//if team name and team account username is same
+					return true;
+				}
+			}
+		}
+		
 		return false;
 	}
 
