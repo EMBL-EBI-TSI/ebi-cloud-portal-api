@@ -16,7 +16,6 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.context.web.WebAppConfiguration;
 
-import uk.ac.ebi.tsc.portal.api.application.controller.InvalidApplicationInputNameException;
 import uk.ac.ebi.tsc.portal.api.application.controller.InvalidApplicationInputValueException;
 import uk.ac.ebi.tsc.portal.api.application.repo.Application;
 import uk.ac.ebi.tsc.portal.api.application.repo.ApplicationInput;
@@ -56,26 +55,6 @@ public class ApplicationDeployerHelperTest {
 		when(helper.validateInputNameandValues(assignedInputs, application)).thenCallRealMethod();
 		Map<String, String> returnedInputs = helper.validateInputNameandValues(assignedInputs, application);
 		assertEquals(returnedInputs.size(),1);
-	}
-
-	@Test(expected = InvalidApplicationInputNameException.class)
-	public void testInvalidInputNameException() {
-		Application application = mock(Application.class);
-
-		//application inputs
-		ApplicationInput inputOne = mock(ApplicationInput.class);
-		when(inputOne.getName()).thenReturn("inputOne");
-		List<ApplicationInput> inputs = new ArrayList();
-		when(application.getInputs()).thenReturn(inputs);
-		inputs.add(inputOne);
-
-		//actual chosen inputs
-		List<DeploymentAssignedInputResource> assignedInputs = new ArrayList();
-		DeploymentAssignedInputResource assignedInput = mock(DeploymentAssignedInputResource.class);
-		when(assignedInput.getInputName()).thenReturn("inputNameDoesNotExist");
-		assignedInputs.add(assignedInput);
-		when(helper.validateInputNameandValues(assignedInputs, application)).thenCallRealMethod();
-		helper.validateInputNameandValues(assignedInputs, application);
 	}
 	
 	@Test(expected = InvalidApplicationInputValueException.class)

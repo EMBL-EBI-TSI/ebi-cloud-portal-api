@@ -59,7 +59,6 @@ import uk.ac.ebi.tsc.aap.client.repo.DomainService;
 import uk.ac.ebi.tsc.portal.api.account.repo.Account;
 import uk.ac.ebi.tsc.portal.api.account.service.AccountService;
 import uk.ac.ebi.tsc.portal.api.application.controller.InvalidApplicationInputException;
-import uk.ac.ebi.tsc.portal.api.application.controller.InvalidApplicationInputNameException;
 import uk.ac.ebi.tsc.portal.api.application.controller.InvalidApplicationInputValueException;
 import uk.ac.ebi.tsc.portal.api.application.repo.Application;
 import uk.ac.ebi.tsc.portal.api.application.repo.ApplicationCloudProvider;
@@ -236,7 +235,7 @@ public class DeploymentRestController {
 			throws IOException, NoSuchPaddingException, InvalidKeyException,
 			NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException,
 			InvalidAlgorithmParameterException, InvalidKeySpecException, NoSuchProviderException,
-			ApplicationDeployerException, InvalidApplicationInputNameException, InvalidApplicationInputValueException {
+			ApplicationDeployerException, InvalidApplicationInputValueException {
 
 		logger.info("Adding new " + input.applicationName +
 				" deployment by user " + principal.getName() +

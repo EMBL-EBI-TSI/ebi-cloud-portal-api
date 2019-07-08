@@ -16,7 +16,6 @@ import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.springframework.stereotype.Component;
 
-import uk.ac.ebi.tsc.portal.api.application.controller.InvalidApplicationInputNameException;
 import uk.ac.ebi.tsc.portal.api.application.controller.InvalidApplicationInputValueException;
 import uk.ac.ebi.tsc.portal.api.application.repo.Application;
 import uk.ac.ebi.tsc.portal.api.application.repo.ApplicationInput;
@@ -214,7 +213,7 @@ public class ApplicationDeployerHelper {
 
 	public Map<String, String> validateInputNameandValues(
 			Collection<DeploymentAssignedInputResource> assignedInputs,
-			Application application) throws InvalidApplicationInputNameException, InvalidApplicationInputValueException  {
+			Application application) throws InvalidApplicationInputValueException  {
 
 		Collection<ApplicationInput> applicationInputs = application.getInputs();
 		
@@ -222,19 +221,17 @@ public class ApplicationDeployerHelper {
 		
 		assignedInputs.stream().forEach(assignedInput -> {
 			
-			//check if the input name is valid for application
-			if(!applicationInputNames.contains(assignedInput.getInputName())) {
-				throw new InvalidApplicationInputNameException(assignedInput.getInputName());
-			}
-			
 			//if the input value is valid for the application input
-			ApplicationInput applicationInput = applicationInputs.
+			applicationInputs.
 					stream().
 					filter(a -> a.getName().equals(assignedInput.getInputName()))
-					.findFirst().get();
-			if(!applicationInput.getValues().isEmpty() && !applicationInput.getValues().contains(assignedInput.getAssignedValue())){
-				throw new InvalidApplicationInputValueException(assignedInput.getInputName(), assignedInput.getAssignedValue());
-			}
+					.findFirst()
+					.ifPresent(applicationInput -> {
+						if(!applicationInput.getValues().isEmpty() && !applicationInput.getValues().contains(assignedInput.getAssignedValue())){
+							throw new InvalidApplicationInputValueException(assignedInput.getInputName(), assignedInput.getAssignedValue());
+						}
+					});
+			
 		});
 		
 		//if inputs are all valid, then return them
