@@ -737,7 +737,7 @@ public class DeploymentRestControllerTest {
 		given(configurationService.findByNameAndAccountUsername(configurationName, sharedWithUsername)).willThrow(ConfigurationNotFoundException.class);
 		given(configurationService.findByNameAndAccountUsername(configurationName, configurationOwnerAccountUsername)).willReturn(configuration);
 		given(configurationService.isConfigurationSharedWithAccount(account, configuration)).willReturn(true);
-		given(configurationService.canConfigurationBeUsedForApplication(configuration, application)).willThrow(ConfigurationNotUsableForApplicationException.class);
+		given(configurationService.canConfigurationBeUsedForApplication(configuration, application, account)).willThrow(ConfigurationNotUsableForApplicationException.class);
 	
 		
 		HttpServletRequest request = new MockHttpServletRequest();
@@ -803,7 +803,7 @@ public class DeploymentRestControllerTest {
 		given(cloudProviderParametersService
 				.isCloudProviderParametersSharedWithAccount(account, cloudProviderParameters)).willReturn(true);
 		given(cloudProviderParametersService
-				.canCredentialBeUsedForApplication(cloudProviderParameters, application)).willReturn(false);
+				.canCredentialBeUsedForApplication(cloudProviderParameters, application, account)).willReturn(false);
 		HttpServletRequest request = new MockHttpServletRequest();
 		when(subject.addDeployment(request, principal, input)).thenCallRealMethod();
 		subject.addDeployment(request, principal, input);

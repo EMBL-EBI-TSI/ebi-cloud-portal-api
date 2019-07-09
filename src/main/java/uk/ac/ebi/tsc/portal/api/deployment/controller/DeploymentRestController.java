@@ -308,7 +308,7 @@ public class DeploymentRestController {
 			if(!configurationService.isConfigurationSharedWithAccount(account, configuration)){
 				throw new ConfigurationNotSharedException(account.getGivenName(), configuration.getName());
 			}
-			if(!configurationService.canConfigurationBeUsedForApplication(configuration, theApplication)) {
+			if(!configurationService.canConfigurationBeUsedForApplication(configuration, theApplication, account)) {
 				throw new ConfigurationNotUsableForApplicationException(configuration.getName(), theApplication.getName());
 			}
 		}
@@ -340,7 +340,7 @@ public class DeploymentRestController {
 							throw new CloudProviderParametersNotSharedException(account.getGivenName(), selectedCloudProviderParameters.getName());
 						}else{
 							//if it has been shared, check if it is shared in the samee team the application was shared
-							if(!cloudProviderParametersService.canCredentialBeUsedForApplication(selectedCloudProviderParameters, theApplication)) {
+							if(!cloudProviderParametersService.canCredentialBeUsedForApplication(selectedCloudProviderParameters, theApplication, account)) {
 								throw new CloudCredentialNotUsableForApplicationException(selectedCloudProviderParameters.getName(), theApplication.getName());
 							}
 							logger.debug("Cloud provider parameters" + selectedCloudProviderParameters.getName() + " has been shared with " + account.getGivenName());

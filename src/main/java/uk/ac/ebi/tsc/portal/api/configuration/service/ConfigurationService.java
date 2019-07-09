@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.Map.Entry;
+import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
@@ -718,29 +719,26 @@ public class ConfigurationService {
 		}
 	}
 
-	public boolean canConfigurationBeUsedForApplication(Configuration configuration, Application application) {
-		
-		Map<String, String> configurationSharedWithTeams  = new HashMap<String, String>();
-		configuration.getSharedWithTeams().stream().forEach(t -> {
-			configurationSharedWithTeams.put(t.getName(), t.getAccount().getUsername());
-		});
-		
-		Map<String, String> applicationSharedWithTeams  = new HashMap<String, String>();
-		application.getSharedWithTeams().stream().forEach(t -> {
-			applicationSharedWithTeams.put(t.getName(), t.getAccount().getUsername());
-		});
-		
-		for(Entry<String, String> team: configurationSharedWithTeams.entrySet()) {
-			//find matching team name
-			if(applicationSharedWithTeams.keySet().contains(team.getKey())){
-				//if found check if username matches
-				if(applicationSharedWithTeams.get(team.getKey()).equals(team.getValue())){
-					//if team name and team account username is same
+	public boolean canConfigurationBeUsedForApplication(Configuration configuration, Application application, Account account) {
+
+		logger.info("Looking if shared configuration " + configuration.getName()
+		+ " is usable for application " + application.getName());
+
+		try{//for team which user belongs to
+			for(Team team: account.getMemberOfTeams()) {
+				Team configurationSharedWithUser = configuration.getSharedWithTeams()
+						.stream().filter(t -> t.getDomainReference().equals(team.getDomainReference()))
+						.findAny().get();
+				//so configuration is shared with the team, check if application is also shared
+				if(application.getSharedWithTeams().stream()
+						.anyMatch(t -> t.getDomainReference().equals(configurationSharedWithUser.getDomainReference()))){
+					logger.info("Matching team has been found " + team.getName());
 					return true;
 				}
 			}
+		}catch(NoSuchElementException e) {
+			logger.info("No matching team found " + e.getMessage());
 		}
-		
 		return false;
 	}
 

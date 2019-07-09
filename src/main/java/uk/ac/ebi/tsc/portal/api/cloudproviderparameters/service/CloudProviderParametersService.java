@@ -13,6 +13,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -394,29 +395,26 @@ public class CloudProviderParametersService {
 	}
 
 	public boolean canCredentialBeUsedForApplication(CloudProviderParameters cloudProviderParameters,
-			Application application) {
+			Application application, Account account) {
 		
-		Map<String, String> cloudProviderParametersSharedWithTeams  = new HashMap<String, String>();
-		cloudProviderParameters.getSharedWithTeams().stream().forEach(t -> {
-			cloudProviderParametersSharedWithTeams.put(t.getName(), t.getAccount().getUsername());
-		});
-		
-		Map<String, String> applicationSharedWithTeams  = new HashMap<String, String>();
-		application.getSharedWithTeams().stream().forEach(t -> {
-			applicationSharedWithTeams.put(t.getName(), t.getAccount().getUsername());
-		});
-		
-		for(Entry<String, String> team: cloudProviderParametersSharedWithTeams.entrySet()) {
-			//find matching team name
-			if(applicationSharedWithTeams.keySet().contains(team.getKey())){
-				//if found check if username matches
-				if(applicationSharedWithTeams.get(team.getKey()).equals(team.getValue())){
-					//if team name and team account username is same
+		logger.info("Looking if shared cloudProviderParameters " + cloudProviderParameters.getName()
+		+ " is usable for application " + application.getName());
+
+		try{//for team which user belongs to
+			for(Team team: account.getMemberOfTeams()) {
+				Team cloudProviderParametersSharedWithUser = cloudProviderParameters.getSharedWithTeams()
+						.stream().filter(t -> t.getDomainReference().equals(team.getDomainReference()))
+						.findAny().get();
+				//so cloudProviderParameters is shared with the team, check if application is also shared
+				if(application.getSharedWithTeams().stream()
+						.anyMatch(t -> t.getDomainReference().equals(cloudProviderParametersSharedWithUser.getDomainReference()))){
+					logger.info("Matching team has been found " + team.getName());
 					return true;
 				}
 			}
+		}catch(NoSuchElementException e) {
+			logger.info("No matching team found " + e.getMessage());
 		}
-		
 		return false;
 	}
 
