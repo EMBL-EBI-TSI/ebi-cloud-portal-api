@@ -305,10 +305,12 @@ public class DeploymentRestController {
 					configurationOwnerAccount.getUsername());
 			configuration = this.configurationService.findByNameAndAccountUsername(
 					input.getConfigurationName(), configurationOwnerAccount.getUsername());
-			if(!configurationService.isConfigurationSharedWithAccount(account, configuration)){
+			List<String> configSharedWithTeams = configurationService.isConfigurationSharedWithAccount(account, configuration);
+			
+			if(configSharedWithTeams == null){
 				throw new ConfigurationNotSharedException(account.getGivenName(), configuration.getName());
 			}
-			if(!configurationService.canConfigurationBeUsedForApplication(configuration, theApplication, account)) {
+			if(!configurationService.canConfigurationBeUsedForApplication(configSharedWithTeams, theApplication, account)) {
 				throw new ConfigurationNotUsableForApplicationException(configuration.getName(), theApplication.getName());
 			}
 		}
@@ -336,11 +338,12 @@ public class DeploymentRestController {
 
 					}else{
 						//the current user is not the owner of the credential, check if it has been shared with him
-						if(!cloudProviderParametersService.isCloudProviderParametersSharedWithAccount(account, selectedCloudProviderParameters)){
+						List<String> cppSharedWithTeams = cloudProviderParametersService.isCloudProviderParametersSharedWithAccount(account, selectedCloudProviderParameters);
+						if(cppSharedWithTeams == null){
 							throw new CloudProviderParametersNotSharedException(account.getGivenName(), selectedCloudProviderParameters.getName());
 						}else{
 							//if it has been shared, check if it is shared in the samee team the application was shared
-							if(!cloudProviderParametersService.canCredentialBeUsedForApplication(selectedCloudProviderParameters, theApplication, account)) {
+							if(!cloudProviderParametersService.canCredentialBeUsedForApplication(cppSharedWithTeams, theApplication, account)) {
 								throw new CloudCredentialNotUsableForApplicationException(selectedCloudProviderParameters.getName(), theApplication.getName());
 							}
 							logger.debug("Cloud provider parameters" + selectedCloudProviderParameters.getName() + " has been shared with " + account.getGivenName());

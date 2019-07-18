@@ -707,39 +707,57 @@ public class ConfigurationService {
 		}).sum();
 	}
 
-	public boolean isConfigurationSharedWithAccount(Account account, Configuration configuration){
-
+	public List<String> isConfigurationSharedWithAccount(Account account, Configuration configuration){
+		
+		//get the list of teams with which config is shared, if the user is a member of any of those teams
+		
 		logger.info("Looking for shared configuration " + configuration.getName()
 		+ " belonging to " + account.getGivenName());
 		if(account.getMemberOfTeams().stream().anyMatch(team ->
 		configuration.getSharedWithTeams().stream().anyMatch(t -> t.getDomainReference().equals(team.getDomainReference())))){
-			return true;
+			return configuration.getSharedWithTeams()
+					.stream()
+					.map(Team::getDomainReference)
+					.collect(Collectors.toList());
 		}else{
-			return false;
+			return null;
 		}
 	}
 
-	public boolean canConfigurationBeUsedForApplication(Configuration configuration, Application application, Account account) {
+	public boolean canConfigurationBeUsedForApplication(List<String> configSharedWithTeams, Application application, Account account) {
 
-		logger.info("Looking if shared configuration " + configuration.getName()
-		+ " is usable for application " + application.getName());
-
+		//we know config has been shared with user
+		//we also want to check if cpp and app are shared across same team
+		logger.info("Looking if shared configuration "
+				+ " is usable for application " + application.getName());
+		
+		List<String> accountMemberOfTeams = account.getMemberOfTeams().stream().map(Team::getDomainReference)
+				.collect(Collectors.toList());
+		
+		List<String> appSharedWithTeams = application.getSharedWithTeams().stream().map(Team::getDomainReference)
+				.collect(Collectors.toList());
+		
+		//check if config and app don't have any team in common else exit early
+		if(!configSharedWithTeams.stream().anyMatch(appSharedWithTeams::contains)) {
+			return false;
+		}
+		
+		//get config and app common teams
+		List<String> commonTeams = configSharedWithTeams.stream().filter(appSharedWithTeams::contains).collect(Collectors.toList());
+		
 		try{//for team which user belongs to
-			for(Team team: account.getMemberOfTeams()) {
-				Team configurationSharedWithUser = configuration.getSharedWithTeams()
-						.stream().filter(t -> t.getDomainReference().equals(team.getDomainReference()))
-						.findAny().get();
-				//so configuration is shared with the team, check if application is also shared
-				if(application.getSharedWithTeams().stream()
-						.anyMatch(t -> t.getDomainReference().equals(configurationSharedWithUser.getDomainReference()))){
-					logger.info("Matching team has been found " + team.getName());
-					return true;
-				}
+			//check if the account is a part of the common team
+			String matchingTeam = accountMemberOfTeams.stream().filter(commonTeams::contains).findAny().get(); 
+			if(matchingTeam != null) {
+				logger.info("Matching team found " + matchingTeam);
+				return true;
 			}
 		}catch(NoSuchElementException e) {
 			logger.info("No matching team found " + e.getMessage());
 		}
+		
 		return false;
 	}
+
 
 }

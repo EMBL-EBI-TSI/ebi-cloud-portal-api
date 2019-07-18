@@ -386,35 +386,53 @@ public class CloudProviderParametersService {
 		}
 	}
 	
-	public boolean isCloudProviderParametersSharedWithAccount(Account account, CloudProviderParameters cloudParameters){
+	public List<String> isCloudProviderParametersSharedWithAccount(Account account, CloudProviderParameters cloudParameters){
+		//get the list of teams with which cpp is shared, if the user is a member of any of those teams
+		
 		if(account.getMemberOfTeams().stream().anyMatch(t ->
 		t.getCppBelongingToTeam().stream().anyMatch(c -> c.getReference().equals(cloudParameters.getReference())))){
-			return true;
+			return cloudParameters.getSharedWithTeams()
+					.stream()
+					.map(Team::getDomainReference)
+					.collect(Collectors.toList());
 		}
-		return false;
+					
+		return null;
 	}
 
-	public boolean canCredentialBeUsedForApplication(CloudProviderParameters cloudProviderParameters,
+	public boolean canCredentialBeUsedForApplication(List<String> cppSharedWithTeams,
 			Application application, Account account) {
 		
-		logger.info("Looking if shared cloudProviderParameters " + cloudProviderParameters.getName()
+		//we know cpp has been shared with user
+		//we also want to check if cpp and app are shared across same team
+		logger.info("Looking if shared cloudProviderParameters "
 		+ " is usable for application " + application.getName());
-
+		
+		List<String> accountMemberOfTeams = account.getMemberOfTeams().stream().map(Team::getDomainReference)
+				.collect(Collectors.toList());
+		
+		List<String> appSharedWithTeams = application.getSharedWithTeams().stream().map(Team::getDomainReference)
+				.collect(Collectors.toList());
+		
+		//check if cpp and app don't have any team in common else exit early
+		if(!cppSharedWithTeams.stream().anyMatch(appSharedWithTeams::contains)) {
+			return false;
+		}
+		
+		//get cpp and app common teams
+		List<String> commonTeams = cppSharedWithTeams.stream().filter(appSharedWithTeams::contains).collect(Collectors.toList());
+		
 		try{//for team which user belongs to
-			for(Team team: account.getMemberOfTeams()) {
-				Team cloudProviderParametersSharedWithUser = cloudProviderParameters.getSharedWithTeams()
-						.stream().filter(t -> t.getDomainReference().equals(team.getDomainReference()))
-						.findAny().get();
-				//so cloudProviderParameters is shared with the team, check if application is also shared
-				if(application.getSharedWithTeams().stream()
-						.anyMatch(t -> t.getDomainReference().equals(cloudProviderParametersSharedWithUser.getDomainReference()))){
-					logger.info("Matching team has been found " + team.getName());
-					return true;
-				}
+			//check if the account is a part of the common team
+			String matchingTeam = accountMemberOfTeams.stream().filter(commonTeams::contains).findAny().get(); 
+			if(matchingTeam != null) {
+				logger.info("Matching team found " + matchingTeam);
+				return true;
 			}
 		}catch(NoSuchElementException e) {
 			logger.info("No matching team found " + e.getMessage());
 		}
+		
 		return false;
 	}
 
