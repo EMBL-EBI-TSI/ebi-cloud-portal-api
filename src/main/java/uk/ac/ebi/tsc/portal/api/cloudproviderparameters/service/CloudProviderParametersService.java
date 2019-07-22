@@ -386,18 +386,12 @@ public class CloudProviderParametersService {
 		}
 	}
 	
-	public List<String> isCloudProviderParametersSharedWithAccount(Account account, CloudProviderParameters cloudParameters){
-		//get the list of teams with which cpp is shared, if the user is a member of any of those teams
-		
+	public boolean isCloudProviderParametersSharedWithAccount(Account account, CloudProviderParameters cloudParameters){
 		if(account.getMemberOfTeams().stream().anyMatch(t ->
 		t.getCppBelongingToTeam().stream().anyMatch(c -> c.getReference().equals(cloudParameters.getReference())))){
-			return cloudParameters.getSharedWithTeams()
-					.stream()
-					.map(Team::getDomainReference)
-					.collect(Collectors.toList());
+			return true;
 		}
-					
-		return null;
+		return false;
 	}
 
 	public boolean canCredentialBeUsedForApplication(List<String> cppSharedWithTeams,

@@ -26,6 +26,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
@@ -100,7 +101,8 @@ import uk.ac.ebi.tsc.portal.usage.tracker.DeploymentStatusTracker;
  */
 @RunWith(SpringRunner.class)
 @WebAppConfiguration
-public class DeploymentRestControllerTest {
+public class DeploymentRestControllerTest
+ {
 
 	private static final String A_CLOUD_PROVIDER_PARAMS_NAME = "OS TEST";
 	public final String A_USER_NAME = "A User Name";
@@ -738,10 +740,12 @@ public class DeploymentRestControllerTest {
 		given(configurationOwner.getUsername()).willReturn(configurationOwnerAccountUsername);
 		given(configurationService.findByNameAndAccountUsername(configurationName, sharedWithUsername)).willThrow(ConfigurationNotFoundException.class);
 		given(configurationService.findByNameAndAccountUsername(configurationName, configurationOwnerAccountUsername)).willReturn(configuration);
-		List<String> configTeamList = new ArrayList();
-		given(configurationService.isConfigurationSharedWithAccount(account, configuration)).willReturn(configTeamList);	
-		given(configurationService.canConfigurationBeUsedForApplication(configTeamList, application, account)).willThrow(ConfigurationNotUsableForApplicationException.class);
-	
+		given(configurationService.isConfigurationSharedWithAccount(account, configuration)).willReturn(true);	
+		given(configurationService
+				.canConfigurationBeUsedForApplication(
+						isA(List.class),
+						isA(Application.class),
+						isA(Account.class))).willReturn(false);
 		
 		HttpServletRequest request = new MockHttpServletRequest();
 		when(subject.addDeployment(request, principal, input)).thenCallRealMethod();
@@ -791,7 +795,7 @@ public class DeploymentRestControllerTest {
 		given(configurationOwner.getUsername()).willReturn(configurationOwnerAccountUsername);
 		given(configurationService.findByNameAndAccountUsername(configurationName, sharedWithUsername)).willThrow(ConfigurationNotFoundException.class);
 		given(configurationService.findByNameAndAccountUsername(configurationName, configurationOwnerAccountUsername)).willReturn(configuration);
-		given(configurationService.isConfigurationSharedWithAccount(account, configuration)).willReturn(null);	
+		given(configurationService.isConfigurationSharedWithAccount(account, configuration)).willReturn(false);	
 		HttpServletRequest request = new MockHttpServletRequest();
 		when(subject.addDeployment(request, principal, input)).thenCallRealMethod();
 		subject.addDeployment(request, principal, input);
@@ -852,11 +856,13 @@ public class DeploymentRestControllerTest {
 		given(cppOwner.getUsername()).willReturn(cppOwnerName);
 		given(cloudProviderParameters.getAccount()).willReturn(cppOwner);
 		given(accountService.findByUsername(cppOwnerName)).willReturn(cppOwner);
-		List<String> cppTeamList = new ArrayList();
 		given(cloudProviderParametersService
-				.isCloudProviderParametersSharedWithAccount(account, cloudProviderParameters)).willReturn(cppTeamList);	
+				.isCloudProviderParametersSharedWithAccount(account, cloudProviderParameters)).willReturn(true);	
 		given(cloudProviderParametersService
-				.canCredentialBeUsedForApplication(cppTeamList, application, account)).willReturn(false);
+				.canCredentialBeUsedForApplication(
+						isA(List.class),
+						isA(Application.class),
+						isA(Account.class))).willReturn(false);
 		HttpServletRequest request = new MockHttpServletRequest();
 		when(subject.addDeployment(request, principal, input)).thenCallRealMethod();
 		subject.addDeployment(request, principal, input);
@@ -917,11 +923,11 @@ public class DeploymentRestControllerTest {
 		given(cppOwner.getUsername()).willReturn(cppOwnerName);
 		given(cloudProviderParameters.getAccount()).willReturn(cppOwner);
 		given(accountService.findByUsername(cppOwnerName)).willReturn(cppOwner);
-		List<String> cppTeamList = new ArrayList();
 		given(cloudProviderParametersService
-				.isCloudProviderParametersSharedWithAccount(account, cloudProviderParameters)).willReturn(cppTeamList);	
-		given(cloudProviderParametersService
-				.canCredentialBeUsedForApplication(cppTeamList, application, account)).willReturn(false);
+				.canCredentialBeUsedForApplication(
+						isA(List.class),
+						isA(Application.class),
+						isA(Account.class))).willReturn(false);
 		HttpServletRequest request = new MockHttpServletRequest();
 		when(subject.addDeployment(request, principal, input)).thenCallRealMethod();
 		subject.addDeployment(request, principal, input);

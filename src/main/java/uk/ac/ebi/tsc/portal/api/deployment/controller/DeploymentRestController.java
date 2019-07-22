@@ -107,6 +107,7 @@ import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentService;
 import uk.ac.ebi.tsc.portal.api.encryptdecrypt.security.EncryptionService;
 import uk.ac.ebi.tsc.portal.api.error.ErrorMessage;
 import uk.ac.ebi.tsc.portal.api.error.MissingParameterException;
+import uk.ac.ebi.tsc.portal.api.team.repo.Team;
 import uk.ac.ebi.tsc.portal.api.team.service.TeamService;
 import uk.ac.ebi.tsc.portal.api.volumeinstance.repo.VolumeInstance;
 import uk.ac.ebi.tsc.portal.api.volumeinstance.service.VolumeInstanceService;
@@ -305,12 +306,15 @@ public class DeploymentRestController {
 					configurationOwnerAccount.getUsername());
 			configuration = this.configurationService.findByNameAndAccountUsername(
 					input.getConfigurationName(), configurationOwnerAccount.getUsername());
-			List<String> configSharedWithTeams = configurationService.isConfigurationSharedWithAccount(account, configuration);
 			
-			if(configSharedWithTeams == null){
+			if(!configurationService.isConfigurationSharedWithAccount(account, configuration)){
 				throw new ConfigurationNotSharedException(account.getGivenName(), configuration.getName());
 			}
-			if(!configurationService.canConfigurationBeUsedForApplication(configSharedWithTeams, theApplication, account)) {
+			if(!configurationService.canConfigurationBeUsedForApplication(
+					//get list of domainreference from configuration shared with teams
+					configuration.getSharedWithTeams().stream().map(Team::getDomainReference).collect(Collectors.toList()), 
+					theApplication, 
+					account)) {
 				throw new ConfigurationNotUsableForApplicationException(configuration.getName(), theApplication.getName());
 			}
 		}
@@ -338,12 +342,14 @@ public class DeploymentRestController {
 
 					}else{
 						//the current user is not the owner of the credential, check if it has been shared with him
-						List<String> cppSharedWithTeams = cloudProviderParametersService.isCloudProviderParametersSharedWithAccount(account, selectedCloudProviderParameters);
-						if(cppSharedWithTeams == null){
+						if(!cloudProviderParametersService.isCloudProviderParametersSharedWithAccount(account, selectedCloudProviderParameters)){
 							throw new CloudProviderParametersNotSharedException(account.getGivenName(), selectedCloudProviderParameters.getName());
 						}else{
 							//if it has been shared, check if it is shared in the samee team the application was shared
-							if(!cloudProviderParametersService.canCredentialBeUsedForApplication(cppSharedWithTeams, theApplication, account)) {
+							if(!cloudProviderParametersService.canCredentialBeUsedForApplication(
+									selectedCloudProviderParameters.getSharedWithTeams().stream().map(Team::getDomainReference).collect(Collectors.toList()), 
+									theApplication, 
+									account)) {
 								throw new CloudCredentialNotUsableForApplicationException(selectedCloudProviderParameters.getName(), theApplication.getName());
 							}
 							logger.debug("Cloud provider parameters" + selectedCloudProviderParameters.getName() + " has been shared with " + account.getGivenName());

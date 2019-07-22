@@ -707,7 +707,7 @@ public class ConfigurationService {
 		}).sum();
 	}
 
-	public List<String> isConfigurationSharedWithAccount(Account account, Configuration configuration){
+	public boolean isConfigurationSharedWithAccount(Account account, Configuration configuration){
 		
 		//get the list of teams with which config is shared, if the user is a member of any of those teams
 		
@@ -715,12 +715,9 @@ public class ConfigurationService {
 		+ " belonging to " + account.getGivenName());
 		if(account.getMemberOfTeams().stream().anyMatch(team ->
 		configuration.getSharedWithTeams().stream().anyMatch(t -> t.getDomainReference().equals(team.getDomainReference())))){
-			return configuration.getSharedWithTeams()
-					.stream()
-					.map(Team::getDomainReference)
-					.collect(Collectors.toList());
+			return true;
 		}else{
-			return null;
+			return false;
 		}
 	}
 
