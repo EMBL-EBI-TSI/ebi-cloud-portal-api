@@ -95,6 +95,8 @@ import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentAttachedVolume;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentConfiguration;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentConfigurationParameter;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentStatusEnum;
+import uk.ac.ebi.tsc.portal.api.deployment.service.CloudCredentialNotUsableForApplicationException;
+import uk.ac.ebi.tsc.portal.api.deployment.service.ConfigurationNotUsableForApplicationException;
 import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentApplicationService;
 import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentConfigurationService;
 import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentGeneratedOutputService;
@@ -104,6 +106,7 @@ import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentService;
 import uk.ac.ebi.tsc.portal.api.encryptdecrypt.security.EncryptionService;
 import uk.ac.ebi.tsc.portal.api.error.ErrorMessage;
 import uk.ac.ebi.tsc.portal.api.error.MissingParameterException;
+import uk.ac.ebi.tsc.portal.api.team.repo.Team;
 import uk.ac.ebi.tsc.portal.api.team.service.TeamService;
 import uk.ac.ebi.tsc.portal.api.volumeinstance.repo.VolumeInstance;
 import uk.ac.ebi.tsc.portal.api.volumeinstance.service.VolumeInstanceService;
@@ -235,11 +238,12 @@ public class DeploymentRestController {
 			throws IOException, NoSuchPaddingException, InvalidKeyException,
 			NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException,
 			InvalidAlgorithmParameterException, InvalidKeySpecException, NoSuchProviderException,
-			ApplicationDeployerException, InvalidApplicationInputValueException {
+			ApplicationDeployerException, InvalidApplicationInputValueException,
+			ConfigurationNotUsableForApplicationException, CloudCredentialNotUsableForApplicationException {
 
-		logger.info("Adding new " + input.applicationName +
+		logger.info("Adding new " + input.getApplicationName() +
 				" deployment by user " + principal.getName() +
-				" config " + input.configurationName);
+				" config " + input.getConfigurationName());
 
 		//check if inputs to find an application is specified
 		if((input.getApplicationName() == null) || (input.getApplicationAccountUsername() == null)){
@@ -301,31 +305,58 @@ public class DeploymentRestController {
 					configurationOwnerAccount.getUsername());
 			configuration = this.configurationService.findByNameAndAccountUsername(
 					input.getConfigurationName(), configurationOwnerAccount.getUsername());
+			
 			if(!configurationService.isConfigurationSharedWithAccount(account, configuration)){
 				throw new ConfigurationNotSharedException(account.getGivenName(), configuration.getName());
 			}
+			if(!configurationService.canConfigurationBeUsedForApplication(
+					//get list of domainreference from configuration shared with teams
+					configuration.getSharedWithTeams().stream().map(Team::getDomainReference).collect(Collectors.toList()), 
+					theApplication, 
+					account)) {
+				throw new ConfigurationNotUsableForApplicationException(configuration.getName(), theApplication.getName());
+			}
 		}
-		// Find the cloud provider parameters
+		
 		CloudProviderParameters selectedCloudProviderParameters;
 		if(configuration != null) {
-			Account credentialOwnerAccount = this.accountService.findByUsername(input.getConfigurationAccountUsername());
 			try{
-				//both configuration and cloud owner are same
-				logger.info("Looking for CONFIGURATION cloud provider params '{}' by username '{}'", configuration.cloudProviderParametersName, credentialOwnerAccount.getUsername());
+				//looking for the cloud credential based on the configuration.Credetial will be found if user owns both the 
+				//configuration and the cloud credential
+				logger.info("Looking for CONFIGURATION cloud provider params '{}' by username '{}'", configuration.getCloudProviderParametersName(), configurationOwnerAccount.getUsername());
 				selectedCloudProviderParameters = this.cloudProviderParametersService.findByNameAndAccountUsername(
-						configuration.cloudProviderParametersName, credentialOwnerAccount.getUsername());
+						configuration.getCloudProviderParametersName(), configurationOwnerAccount.getUsername());
 			}catch(CloudProviderParametersNotFoundException e){
 				//configuration and cloud owner are different
-				logger.info("Looking for CONFIGURATION cloud provider params(shared) '{}' by username '{}'", configuration.cloudProviderParametersName, credentialOwnerAccount.getUsername());
+				logger.info("Looking for CONFIGURATION cloud provider params(shared) '{}' by username '{}'", configuration.cloudProviderParametersName, configurationOwnerAccount.getUsername());
 				try{
+					//now find the cloud credential
 					selectedCloudProviderParameters = this.cloudProviderParametersService.findByReference(
 							configuration.getCloudProviderParametersReference());
-					if(!cloudProviderParametersService.isCloudProviderParametersSharedWithAccount(account, selectedCloudProviderParameters)){
-						throw new CloudProviderParametersNotSharedException(account.getGivenName(), selectedCloudProviderParameters.getName());
+					//find the credential owner
+					Account cppOwnerAccount = this.accountService.findByUsername(selectedCloudProviderParameters.getAccount().getUsername());
+					//if the current user is the owner of the credential
+					if(cppOwnerAccount.getUsername().equals(account.getUsername())){
+						logger.debug("Cloud provider parameters" + selectedCloudProviderParameters.getName() + " is owned by " + account.getGivenName());
+
+					}else{
+						//the current user is not the owner of the credential, check if it has been shared with him
+						if(!cloudProviderParametersService.isCloudProviderParametersSharedWithAccount(account, selectedCloudProviderParameters)){
+							throw new CloudProviderParametersNotSharedException(account.getGivenName(), selectedCloudProviderParameters.getName());
+						}else{
+							//if it has been shared, check if it is shared in the samee team the application was shared
+							if(!cloudProviderParametersService.canCredentialBeUsedForApplication(
+									selectedCloudProviderParameters.getSharedWithTeams().stream().map(Team::getDomainReference).collect(Collectors.toList()), 
+									theApplication, 
+									account)) {
+								throw new CloudCredentialNotUsableForApplicationException(selectedCloudProviderParameters.getName(), theApplication.getName());
+							}
+							logger.debug("Cloud provider parameters" + selectedCloudProviderParameters.getName() + " has been shared with " + account.getGivenName());
+
+						}
 					}
-					logger.debug("Cloud provider parameters" + selectedCloudProviderParameters.getName() + " has been shared with " + account.getGivenName());
 				}catch(CloudProviderParametersNotFoundException ex){
-					throw new CloudProviderParametersNotFoundException(credentialOwnerAccount.getUsername(), configuration.cloudProviderParametersName);
+					throw new CloudProviderParametersNotFoundException(account.getUsername(), configuration.cloudProviderParametersName);
 				}
 			}
 		} else { // TODO: At some point we shouldn't allow to pass specific cloud provider parameters and use just those in a configuration
@@ -336,7 +367,7 @@ public class DeploymentRestController {
 			selectedCloudProviderParameters = this.cloudProviderParametersService.findByNameAndAccountUsername(
 					cpp.getName(), credentialOwnerAccount.getUsername());
 		}
-
+		
 		DeploymentIndexService deploymentIndexService = new DeploymentIndexService(
 				new RestTemplate(),
 				this.elasticSearchUrl + "/" + this.elasticSearchIndex,

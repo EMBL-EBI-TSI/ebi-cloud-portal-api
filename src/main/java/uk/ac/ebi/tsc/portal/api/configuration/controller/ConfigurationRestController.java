@@ -557,7 +557,7 @@ public class ConfigurationRestController {
 
 	@RequestMapping(value = "/{configurationReference:.+}/usage", method = { RequestMethod.GET } )
 	public ResponseEntity<?> getConfigurationUsageByReference(Principal principal, @PathVariable("configurationReference") String configurationReference)  {
-		logger.info("Total usage requested for configuration " + configurationReference);
+		//logger.info("Total usage requested for configuration " + configurationReference);
 
 		String userId = principal.getName();
 

@@ -8,10 +8,12 @@ import java.security.Principal;
 import java.security.spec.InvalidKeySpecException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -29,6 +31,7 @@ import uk.ac.ebi.tsc.aap.client.model.Domain;
 import uk.ac.ebi.tsc.aap.client.model.User;
 import uk.ac.ebi.tsc.aap.client.repo.DomainService;
 import uk.ac.ebi.tsc.portal.api.account.repo.Account;
+import uk.ac.ebi.tsc.portal.api.application.repo.Application;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.controller.CloudProviderParametersResource;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParameters;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParametersField;
@@ -388,6 +391,42 @@ public class CloudProviderParametersService {
 		t.getCppBelongingToTeam().stream().anyMatch(c -> c.getReference().equals(cloudParameters.getReference())))){
 			return true;
 		}
+		return false;
+	}
+
+	public boolean canCredentialBeUsedForApplication(List<String> cppSharedWithTeams,
+			Application application, Account account) {
+		
+		//we know cpp has been shared with user
+		//we also want to check if cpp and app are shared across same team
+		logger.info("Looking if shared cloudProviderParameters "
+		+ " is usable for application " + application.getName());
+		
+		List<String> accountMemberOfTeams = account.getMemberOfTeams().stream().map(Team::getDomainReference)
+				.collect(Collectors.toList());
+		
+		List<String> appSharedWithTeams = application.getSharedWithTeams().stream().map(Team::getDomainReference)
+				.collect(Collectors.toList());
+		
+		//check if cpp and app don't have any team in common else exit early
+		if(!cppSharedWithTeams.stream().anyMatch(appSharedWithTeams::contains)) {
+			return false;
+		}
+		
+		//get cpp and app common teams
+		List<String> commonTeams = cppSharedWithTeams.stream().filter(appSharedWithTeams::contains).collect(Collectors.toList());
+		
+		try{//for team which user belongs to
+			//check if the account is a part of the common team
+			String matchingTeam = accountMemberOfTeams.stream().filter(commonTeams::contains).findAny().get(); 
+			if(matchingTeam != null) {
+				logger.info("Matching team found " + matchingTeam);
+				return true;
+			}
+		}catch(NoSuchElementException e) {
+			logger.info("No matching team found " + e.getMessage());
+		}
+		
 		return false;
 	}
 
