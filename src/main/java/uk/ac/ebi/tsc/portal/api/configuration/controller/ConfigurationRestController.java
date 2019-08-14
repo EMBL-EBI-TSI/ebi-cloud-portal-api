@@ -152,8 +152,12 @@ public class ConfigurationRestController {
 					input.getCloudProviderParametersName(), principal.getName());
 		}catch(CloudProviderParametersNotFoundException e){
 			cloudProviderParameters = this.cloudProviderParametersService.findByName(input.getCloudProviderParametersName());
-			Set<Team> sharedWithTeams = cloudProviderParameters.getSharedWithTeams();
-			if(account.getMemberOfTeams().stream().filter(t -> sharedWithTeams.contains(t)).collect(Collectors.toList()).isEmpty()){
+			Set<String> sharedWithTeamsDomainReferences = cloudProviderParameters.getSharedWithTeams()
+					.stream().map(Team::getDomainReference).collect(Collectors.toSet());
+			if(account.getMemberOfTeams().stream()
+					.map(Team::getDomainReference)
+					.filter(t -> sharedWithTeamsDomainReferences.contains(t))
+					.collect(Collectors.toList()).isEmpty()){
 				cloudProviderParameters = null;
 			}
 		}
