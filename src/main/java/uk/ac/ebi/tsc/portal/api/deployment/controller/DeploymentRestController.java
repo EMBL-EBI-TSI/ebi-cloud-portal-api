@@ -107,6 +107,8 @@ import uk.ac.ebi.tsc.portal.api.encryptdecrypt.security.EncryptionService;
 import uk.ac.ebi.tsc.portal.api.error.ErrorMessage;
 import uk.ac.ebi.tsc.portal.api.error.MissingParameterException;
 import uk.ac.ebi.tsc.portal.api.team.repo.Team;
+import uk.ac.ebi.tsc.portal.api.team.service.TeamMembershipNotFoundException;
+import uk.ac.ebi.tsc.portal.api.team.service.TeamNameInvalidInputException;
 import uk.ac.ebi.tsc.portal.api.team.service.TeamService;
 import uk.ac.ebi.tsc.portal.api.volumeinstance.repo.VolumeInstance;
 import uk.ac.ebi.tsc.portal.api.volumeinstance.service.VolumeInstanceService;
@@ -235,11 +237,7 @@ public class DeploymentRestController {
 
 	@RequestMapping(method = RequestMethod.POST)
 	public ResponseEntity<?> addDeployment(HttpServletRequest request, Principal principal, @RequestBody DeploymentResource input)
-			throws IOException, NoSuchPaddingException, InvalidKeyException,
-			NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException,
-			InvalidAlgorithmParameterException, InvalidKeySpecException, NoSuchProviderException,
-			ApplicationDeployerException, InvalidApplicationInputValueException,
-			ConfigurationNotUsableForApplicationException, CloudCredentialNotUsableForApplicationException {
+			throws IOException, InvalidApplicationInputValueException,ConfigurationNotUsableForApplicationException, CloudCredentialNotUsableForApplicationException {
 
 		logger.info("Adding new " + input.getApplicationName() +
 				" deployment by user " + principal.getName() +
@@ -535,6 +533,24 @@ public class DeploymentRestController {
 		httpHeaders.setLocation(URI.create(forOneDeployment.getHref()));
 
 		return new ResponseEntity<>(deploymentResource, httpHeaders, HttpStatus.CREATED);
+	}
+
+	@RequestMapping(value = "/bioexcel", method = RequestMethod.POST)
+	public ResponseEntity<?> deployBioexcelTool(HttpServletRequest request, Principal principal, @RequestBody DeploymentResource deploymentResource) throws CloudCredentialNotUsableForApplicationException, IOException, ConfigurationNotUsableForApplicationException {
+		logger.info("Team name  " + deploymentResource.getAccountGivenName());
+		String teamName = deploymentResource.getAccountGivenName();
+		if (teamName == null || teamName.isEmpty()) {
+			throw new TeamNameInvalidInputException(deploymentResource.getAccountGivenName());
+		}
+		Team team = teamService.findByName(deploymentResource.getAccountGivenName());
+		deploymentResource.setApplicationAccountUsername(team.getAccount().getUsername());
+		deploymentResource.setConfigurationAccountUsername(team.getAccount().getUsername());
+		try {
+			return addDeployment(request, principal, deploymentResource);
+		} catch (ApplicationNotSharedException ae) {
+			throw new TeamMembershipNotFoundException(teamName);
+		}
+
 	}
 
 	String baseURL(HttpServletRequest request) throws MalformedURLException {
