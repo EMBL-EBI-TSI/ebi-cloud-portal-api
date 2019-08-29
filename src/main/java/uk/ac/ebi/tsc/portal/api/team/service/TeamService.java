@@ -12,12 +12,15 @@ import uk.ac.ebi.tsc.aap.client.repo.DomainService;
 import uk.ac.ebi.tsc.portal.api.account.repo.Account;
 import uk.ac.ebi.tsc.portal.api.account.service.AccountService;
 import uk.ac.ebi.tsc.portal.api.account.service.UserNotFoundException;
+import uk.ac.ebi.tsc.portal.api.application.repo.Application;
+import uk.ac.ebi.tsc.portal.api.application.service.ApplicationNotFoundUnderTeamException;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParameters;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParamsCopy;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.service.CloudProviderParametersNotFoundException;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.service.CloudProviderParamsCopyService;
 import uk.ac.ebi.tsc.portal.api.configuration.repo.Configuration;
 import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigurationNotFoundException;
+import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigurationNotFoundUnderTeamException;
 import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigurationService;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.Deployment;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentApplication;
@@ -102,6 +105,24 @@ public class TeamService {
 
 	public Team findByDomainReference(String domainReference) {
 		return this.teamRepository.findByDomainReference(domainReference).orElseThrow(() -> new TeamNotFoundException("with domain reference " + domainReference));
+	}
+
+	public Application findSharedApplicationWitinTeam(Team team, String applicationName){
+		Set<Application> applications = team.getApplicationsBelongingToTeam();
+		for (Application application: applications){
+			if(application.getName().equals(applicationName))
+				return application;
+		}
+		throw new ApplicationNotFoundUnderTeamException(applicationName, team.getName());
+	}
+
+	public Configuration findSharedConfigurationWitinTeam(Team team, String configurationName){
+		Set<Configuration> configurations = team.getConfigurationsBelongingToTeam();
+		for (Configuration configuration: configurations){
+			if(configuration.getName().equals(configurationName))
+				return configuration;
+		}
+		throw new ConfigurationNotFoundUnderTeamException(configurationName, team.getName());
 	}
 
 	/**

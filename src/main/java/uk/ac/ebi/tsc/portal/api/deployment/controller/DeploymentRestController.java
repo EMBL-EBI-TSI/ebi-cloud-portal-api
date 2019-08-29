@@ -45,14 +45,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.ResponseStatus;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 
 import uk.ac.ebi.tsc.aap.client.repo.DomainService;
@@ -535,16 +528,21 @@ public class DeploymentRestController {
 		return new ResponseEntity<>(deploymentResource, httpHeaders, HttpStatus.CREATED);
 	}
 
-	@RequestMapping(value = "/bioexcel", method = RequestMethod.POST)
-	public ResponseEntity<?> deployBioexcelTool(HttpServletRequest request, Principal principal, @RequestBody DeploymentResource deploymentResource) throws CloudCredentialNotUsableForApplicationException, IOException, ConfigurationNotUsableForApplicationException {
-		logger.info("Team name  " + deploymentResource.getAccountGivenName());
-		String teamName = deploymentResource.getAccountGivenName();
+	@RequestMapping(method = RequestMethod.POST, params = "teamName")
+	public ResponseEntity<?> deployForTeamShared(HttpServletRequest request, Principal principal, @RequestParam(name = "teamName") String teamName,
+												 @RequestBody DeploymentResource deploymentResource) throws CloudCredentialNotUsableForApplicationException, IOException, ConfigurationNotUsableForApplicationException {
+		logger.info("Adding deployment for the application [" + deploymentResource.applicationName + "] shared within team [" + teamName + "]");
 		if (teamName == null || teamName.isEmpty()) {
-			throw new TeamNameInvalidInputException(deploymentResource.getAccountGivenName());
+			throw new TeamNameInvalidInputException(teamName);
 		}
-		Team team = teamService.findByName(deploymentResource.getAccountGivenName());
-		deploymentResource.setApplicationAccountUsername(team.getAccount().getUsername());
-		deploymentResource.setConfigurationAccountUsername(team.getAccount().getUsername());
+		Team team = teamService.findByName(teamName);
+		Application application = teamService.findSharedApplicationWitinTeam(team, deploymentResource.getApplicationName());
+		logger.info("Found shared application within team : " + application);
+		deploymentResource.setApplicationAccountUsername(application.getAccount().getUsername());
+
+		logger.info("Found shared configuration within team : " + application);
+		Configuration configuration = teamService.findSharedConfigurationWitinTeam(team, deploymentResource.getConfigurationName());
+		deploymentResource.setConfigurationAccountUsername(configuration.getAccount().getUsername());
 		try {
 			return addDeployment(request, principal, deploymentResource);
 		} catch (ApplicationNotSharedException ae) {
