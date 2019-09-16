@@ -50,6 +50,8 @@ public class Application {
 
     public String version;
 
+    private String reference;
+
     @OneToMany(mappedBy = "application", cascade = CascadeType.ALL)
     public Collection<ApplicationCloudProvider> cloudProviders;
 
@@ -78,10 +80,11 @@ public class Application {
     Application() { // jpa only
     }
 
-    public Application(String repoUri, String repoPath, String name, Account account) {
+    public Application(String repoUri, String repoPath, String name, String reference, Account account) {
         this.repoUri = repoUri;
         this.repoPath = repoPath;
         this.name = name;
+        this.reference = reference;
         this.account = account;
         this.cloudProviders = new LinkedList<>();
         this.inputs = new LinkedList<>();
@@ -179,7 +182,11 @@ public class Application {
 		this.repoUri = repoUri;
 	}
 
-	@PreRemove
+    public String getReference() {
+        return reference;
+    }
+
+    @PreRemove
 	private void removeApplicationFromTeam(){
 		for(Team team: sharedWithTeams ){
 			team.getApplicationsBelongingToTeam().remove(this);

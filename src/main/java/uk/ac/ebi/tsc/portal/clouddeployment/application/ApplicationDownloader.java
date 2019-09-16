@@ -4,6 +4,7 @@ import static java.lang.String.format;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
@@ -191,8 +192,16 @@ public class ApplicationDownloader {
 		return p.exitValue();
 	}
 
+	private String generateAppReference(){
+		String s[] = UUID.randomUUID().toString().split("-");
+		StringBuilder reference = new StringBuilder("app-");
+		reference.append(s[0], 0, 5).append("-").append(System.currentTimeMillis());
+		return reference.toString();
+	}
+
 	public Application fromManifestToApplication(String repoUri, String path, Account account, ApplicationManifest applicationManifest) {
-		Application application = new Application(repoUri, path, applicationManifest.applicationName, account);
+
+		Application application = new Application(repoUri, path, applicationManifest.applicationName, generateAppReference(), account);
 		if (applicationManifest.cloudProviders != null) {
 			application.getCloudProviders().addAll(
 					applicationManifest.cloudProviders.stream().map(

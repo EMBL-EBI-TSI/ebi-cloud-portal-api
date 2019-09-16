@@ -36,6 +36,7 @@ public class ApplicationResource extends ResourceSupport {
     private String about;
     private String contact;
     private String version;
+    private String reference;
     private Collection<ApplicationCloudProviderResource> cloudProviders;
     private Collection<ApplicationInputResource> inputs;
     private Collection<String> deploymentParameters;
@@ -104,6 +105,7 @@ public class ApplicationResource extends ResourceSupport {
             ).withSelfRel()
         );
         this.add(new Link(application.getRepoUri(), "application-repo-uri"));
+        this.reference = application.getReference();
 
     }
 
@@ -161,6 +163,10 @@ public class ApplicationResource extends ResourceSupport {
 
     public String getAccountEmail() {
         return accountEmail;
+    }
+
+    public String getReference() {
+        return reference;
     }
 
 	public Collection<ApplicationInputResource> getInputs() {
