@@ -835,7 +835,7 @@ public class DeploymentRestControllerTest
 		given(configurationService.isConfigurationSharedWithAccount(account, configuration)).willReturn(true);	
 		given(configurationService
 				.canConfigurationBeUsedForApplication(
-						isA(List.class),
+						isA(Configuration.class),
 						isA(Application.class),
 						isA(Account.class))).willReturn(false);
 		

@@ -1,24 +1,9 @@
 package uk.ac.ebi.tsc.portal.api.configuration.service;
 
-import java.io.IOException;
-import java.security.Principal;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.Map.Entry;
-import java.util.NoSuchElementException;
-import java.util.stream.Collectors;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
 import uk.ac.ebi.tsc.aap.client.model.Domain;
 import uk.ac.ebi.tsc.aap.client.model.User;
 import uk.ac.ebi.tsc.aap.client.repo.DomainService;
@@ -33,21 +18,20 @@ import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.service.CloudProviderPar
 import uk.ac.ebi.tsc.portal.api.configuration.controller.ConfigurationDeploymentParametersResource;
 import uk.ac.ebi.tsc.portal.api.configuration.controller.ConfigurationResource;
 import uk.ac.ebi.tsc.portal.api.configuration.controller.InvalidConfigurationInputException;
-import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigDeploymentParamCopy;
-import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigDeploymentParamsCopy;
-import uk.ac.ebi.tsc.portal.api.configuration.repo.Configuration;
-import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigurationDeploymentParameter;
-import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigurationDeploymentParameters;
-import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigurationRepository;
+import uk.ac.ebi.tsc.portal.api.configuration.repo.*;
 import uk.ac.ebi.tsc.portal.api.deployment.controller.DeploymentRestController;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.Deployment;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentStatusEnum;
 import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentService;
 import uk.ac.ebi.tsc.portal.api.team.repo.Team;
-import uk.ac.ebi.tsc.portal.api.team.service.TeamNotFoundException;
 import uk.ac.ebi.tsc.portal.api.utils.SendMail;
 import uk.ac.ebi.tsc.portal.usage.deployment.model.DeploymentDocument;
 import uk.ac.ebi.tsc.portal.usage.deployment.service.DeploymentIndexService;
+
+import java.io.IOException;
+import java.security.Principal;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * @author Jose A. Dianes <jdianes@ebi.ac.uk>
@@ -721,13 +705,15 @@ public class ConfigurationService {
 		}
 	}
 
-	public boolean canConfigurationBeUsedForApplication(List<String> configSharedWithTeams, Application application, Account account) {
+	public boolean canConfigurationBeUsedForApplication(Configuration configuration, Application application, Account account) {
 
 		//we know config has been shared with user
 		//we also want to check if cpp and app are shared across same team
 		logger.info("Looking if shared configuration "
 				+ " is usable for application " + application.getName());
-		
+		//get list of domainreference from configuration shared with teams
+		List<String> configSharedWithTeams = 	configuration.getSharedWithTeams().stream().map(Team::getDomainReference).collect(Collectors.toList());
+
 		List<String> accountMemberOfTeams = account.getMemberOfTeams().stream().map(Team::getDomainReference)
 				.collect(Collectors.toList());
 		

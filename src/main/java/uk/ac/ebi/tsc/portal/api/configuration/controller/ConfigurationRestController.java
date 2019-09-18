@@ -14,23 +14,22 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 import uk.ac.ebi.tsc.aap.client.repo.DomainService;
 import uk.ac.ebi.tsc.portal.api.account.repo.Account;
-import uk.ac.ebi.tsc.portal.api.account.repo.AccountRepository;
 import uk.ac.ebi.tsc.portal.api.account.service.AccountService;
+import uk.ac.ebi.tsc.portal.api.application.repo.Application;
+import uk.ac.ebi.tsc.portal.api.application.service.ApplicationService;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParameters;
-import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParametersRepository;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParamsCopy;
-import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParamsCopyRepository;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.service.CloudProviderParametersNotFoundException;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.service.CloudProviderParametersService;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.service.CloudProviderParamsCopyNotFoundException;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.service.CloudProviderParamsCopyService;
-import uk.ac.ebi.tsc.portal.api.configuration.repo.*;
+import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigDeploymentParamsCopy;
+import uk.ac.ebi.tsc.portal.api.configuration.repo.Configuration;
+import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigurationDeploymentParameters;
 import uk.ac.ebi.tsc.portal.api.configuration.service.*;
 import uk.ac.ebi.tsc.portal.api.deployment.controller.DeploymentResource;
 import uk.ac.ebi.tsc.portal.api.deployment.controller.DeploymentRestController;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.Deployment;
-import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentRepository;
-import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentStatusRepository;
 import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentService;
 import uk.ac.ebi.tsc.portal.api.encryptdecrypt.security.EncryptionService;
 import uk.ac.ebi.tsc.portal.api.team.repo.Team;
@@ -57,6 +56,7 @@ public class ConfigurationRestController {
 
 	private final ConfigurationService configurationService;
 	private final AccountService accountService;
+	private final ApplicationService applicationService;
 	private final CloudProviderParametersService cloudProviderParametersService;
 	private final ConfigurationDeploymentParametersService configurationDeploymentParametersService;
 	private final ConfigurationDeploymentParameterService configurationDeploymentParameterService;
@@ -92,7 +92,8 @@ public class ConfigurationRestController {
 			CloudProviderParamsCopyService cloudProviderParametersCopyService,
 			ConfigDeploymentParamsCopyService configDeploymentParamsCopyService,
 			ConfigDeploymentParamCopyService configDeploymentParamCopyService,
-			EncryptionService encryptionService
+			EncryptionService encryptionService,
+			ApplicationService applicationService
 			) {
 		this.accountService = accountService;
 		this.cloudProviderParametersCopyService = cloudProviderParametersCopyService;
@@ -105,27 +106,43 @@ public class ConfigurationRestController {
 		this.deploymentRestController = deploymentRestController;
 		this.configDeploymentParamsCopyService = configDeploymentParamsCopyService;
 		this.configDeploymentParamCopyService = configDeploymentParamCopyService;
+		this.applicationService = applicationService;
 	}
 
 
 
 	@RequestMapping(method = {RequestMethod.GET, RequestMethod.OPTIONS} )
-	public Resources<ConfigurationResource> getCurrentUserConfigurations(Principal principal) {
+	public Resources<ConfigurationResource> getCurrentUserConfigurations(@RequestParam(name = "applicationReference",
+			required = false) String applicationReference,Principal principal) {
 
-		logger.info("Account " + principal.getName() + " configurations requested");
+		logger.info("Account " + principal.getName() + " configurations requested; Filter applicationReference : "+applicationReference);
 
 		Account account = this.accountService.findByUsername(principal.getName());
 
 		Collection<Configuration> configurations = this.configurationService.findByAccountUsername(account.getUsername());
 		logger.info(configurations.size() + " User configuration resources found ");
-
-		List<ConfigurationResource> configurationResourceList = this.configurationService.createConfigurationResource(configurations);
-
-		logger.info(configurationResourceList.size() + " User configuration resources found ");
+		List<ConfigurationResource> configurationResourceList;
+		//Filter configuration, send only configuration that is applicable if applicationReference is passed
+		if (applicationReference != null && !applicationReference.equals("")) {
+			configurations = filterConfigurationByApplication(configurations, applicationReference, account);
+		}
+		configurationResourceList = this.configurationService.createConfigurationResource(configurations);
 		configurationResourceList = configurationService.checkObsoleteConfigurations(configurationResourceList, account, this.configDeploymentParamsCopyService);
 		logger.info("Got current user configurations  " + configurationResourceList.size());
 		return new Resources<>(configurationResourceList);
 
+	}
+
+
+	private Set<Configuration> filterConfigurationByApplication(Collection<Configuration> configurations, String applicationReference, Account account){
+		Application theApplication = applicationService.findByReference(applicationReference);
+		Set<Configuration> configurationSet = new HashSet<>();
+		for (Configuration configuration : configurations) {
+			if (configurationService.canConfigurationBeUsedForApplication(configuration, theApplication, account)) {
+				configurationSet.add(configuration);
+			}
+		}
+		return configurationSet;
 	}
 
 	@RequestMapping(method = { RequestMethod.POST, RequestMethod.OPTIONS } )
@@ -412,15 +429,19 @@ public class ConfigurationRestController {
 	}
 
 	@RequestMapping(value = "/shared", method = {RequestMethod.GET})
-	public Resources<ConfigurationResource> getSharedConfigurationsByAccount(HttpServletRequest request, Principal principal) {
-
+	public Resources<ConfigurationResource> getSharedConfigurationsByAccount(@RequestParam(name = "applicationReference"
+			, required = false) String applicationReference, HttpServletRequest request, Principal principal) {
 		logger.info("List of shared configurations of account requested " + principal.getName() + "  requested");
+		logger.info("Filter based application,  reference :- " + applicationReference);
 		Account account = this.accountService.findByUsername(principal.getName());
 		String token = request.getHeader(HttpHeaders.AUTHORIZATION).split(" ")[1];
-
-		List<ConfigurationResource> configurationResourceList = this.configurationService.createConfigurationResource(
-				configurationService.getSharedConfigurationsByAccount(account, token, tokenHandler.parseUserFromToken(token)));
-
+		Set<Configuration> configurations = configurationService.getSharedConfigurationsByAccount(account, token, tokenHandler.parseUserFromToken(token));
+		List<ConfigurationResource> configurationResourceList;
+		//Filter configuration, send only configuration that is applicable if applicationReference is passed
+		if (applicationReference != null && !applicationReference.equals("")) {
+			configurations = filterConfigurationByApplication(configurations, applicationReference, account);
+		}
+		configurationResourceList = this.configurationService.createConfigurationResource(configurations);
 		configurationResourceList = configurationService.checkObsoleteConfigurations(configurationResourceList, account, this.configDeploymentParamsCopyService);
 		logger.info("Got shared user configurations  " + configurationResourceList.size());
 		return new Resources<>(configurationResourceList);

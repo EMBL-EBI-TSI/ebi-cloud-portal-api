@@ -301,8 +301,7 @@ public class DeploymentRestController {
 				throw new ConfigurationNotSharedException(account.getGivenName(), configuration.getName());
 			}
 			if(!configurationService.canConfigurationBeUsedForApplication(
-					//get list of domainreference from configuration shared with teams
-					configuration.getSharedWithTeams().stream().map(Team::getDomainReference).collect(Collectors.toList()), 
+					configuration,
 					theApplication, 
 					account)) {
 				throw new ConfigurationNotUsableForApplicationException(configuration.getName(), theApplication.getName());
