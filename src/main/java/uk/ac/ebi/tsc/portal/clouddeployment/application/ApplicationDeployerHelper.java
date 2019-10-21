@@ -102,10 +102,11 @@ public class ApplicationDeployerHelper {
 
 	public static void getOutputs(String[] lines, Map<String, String> outputs, Logger logger) {
 		for (int i = 0; i<lines.length; i++) {
-			String line = lines[i].replaceAll(" ","");
+			String line = lines[i];
 			String[] lineSplit = line.split("=");
-			if ( outputs.containsKey(lineSplit[0]) ) {
-				outputs.put(lineSplit[0], lineSplit[1].replaceAll("\n", "").replaceAll("\r", "").replaceAll("\\[0m","").trim());
+			String key = lineSplit[0].trim();
+			if ( outputs.containsKey(key) ) {
+				outputs.put(key, lineSplit[1].replaceAll("\n", "").replaceAll("\r", "").replaceAll("\\[0m","").trim());
 				logger.debug("There is a match. " + lineSplit[0] + " = " + outputs.get(lineSplit[0]));
 			}
 		}
