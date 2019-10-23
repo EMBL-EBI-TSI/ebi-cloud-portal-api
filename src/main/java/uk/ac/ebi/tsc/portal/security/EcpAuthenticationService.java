@@ -190,13 +190,13 @@ public class EcpAuthenticationService {
         List<DefaultTeamMap> defaultTeamMaps = this.defaultTeamsMap.get(emailDomain);
         if (defaultTeamMaps!=null) defaultTeamMaps.forEach(defaultTeamMap -> {
             // Get ECP AAP account token
-            String ecpAapToken = this.tokenService.getAAPToken(this.ecpAapUsername, this.ecpAapPassword);
             try {
                 // Get associated team
                 Team defaultTeam = this.teamService.findByName(defaultTeamMap.getTeamName());
                 if (!defaultTeam.getAccountsBelongingToTeam().stream().anyMatch(anotherAccount -> anotherAccount.getUsername().equals(account.getUsername()))) {
                     logger.info("Adding '" + account.getGivenName() + "' to team " + defaultTeam.getName());
                     // Add member to team
+                    String ecpAapToken = this.tokenService.getAAPToken(this.ecpAapUsername, this.ecpAapPassword);
                     teamService.addMemberToTeamByAccountNoNotification(ecpAapToken, defaultTeam.getName(), account);
                 }
             } catch (TeamNotFoundException tnfe) {
