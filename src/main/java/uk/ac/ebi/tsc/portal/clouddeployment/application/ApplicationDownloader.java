@@ -193,9 +193,8 @@ public class ApplicationDownloader {
 	}
 
 	private String generateAppReference(){
-		String s[] = UUID.randomUUID().toString().split("-");
 		StringBuilder reference = new StringBuilder("app-");
-		reference.append(s[0], 0, 5).append("-").append(System.currentTimeMillis());
+		reference.append(UUID.randomUUID());
 		return reference.toString();
 	}
 
