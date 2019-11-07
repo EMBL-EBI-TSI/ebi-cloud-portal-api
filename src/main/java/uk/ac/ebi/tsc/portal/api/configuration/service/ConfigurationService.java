@@ -1,24 +1,9 @@
 package uk.ac.ebi.tsc.portal.api.configuration.service;
 
-import java.io.IOException;
-import java.security.Principal;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.Map.Entry;
-import java.util.NoSuchElementException;
-import java.util.stream.Collectors;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
 import uk.ac.ebi.tsc.aap.client.model.Domain;
 import uk.ac.ebi.tsc.aap.client.model.User;
 import uk.ac.ebi.tsc.aap.client.repo.DomainService;
@@ -26,28 +11,24 @@ import uk.ac.ebi.tsc.portal.api.account.repo.Account;
 import uk.ac.ebi.tsc.portal.api.application.repo.Application;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParameters;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParamsCopy;
-import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.service.CloudProviderParametersNotFoundException;
-import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.service.CloudProviderParametersService;
-import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.service.CloudProviderParamsCopyNotFoundException;
-import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.service.CloudProviderParamsCopyService;
+import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.service.*;
 import uk.ac.ebi.tsc.portal.api.configuration.controller.ConfigurationDeploymentParametersResource;
 import uk.ac.ebi.tsc.portal.api.configuration.controller.ConfigurationResource;
 import uk.ac.ebi.tsc.portal.api.configuration.controller.InvalidConfigurationInputException;
-import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigDeploymentParamCopy;
-import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigDeploymentParamsCopy;
-import uk.ac.ebi.tsc.portal.api.configuration.repo.Configuration;
-import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigurationDeploymentParameter;
-import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigurationDeploymentParameters;
-import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigurationRepository;
+import uk.ac.ebi.tsc.portal.api.configuration.repo.*;
 import uk.ac.ebi.tsc.portal.api.deployment.controller.DeploymentRestController;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.Deployment;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentStatusEnum;
 import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentService;
 import uk.ac.ebi.tsc.portal.api.team.repo.Team;
-import uk.ac.ebi.tsc.portal.api.team.service.TeamNotFoundException;
 import uk.ac.ebi.tsc.portal.api.utils.SendMail;
 import uk.ac.ebi.tsc.portal.usage.deployment.model.DeploymentDocument;
 import uk.ac.ebi.tsc.portal.usage.deployment.service.DeploymentIndexService;
+
+import java.io.IOException;
+import java.security.Principal;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * @author Jose A. Dianes <jdianes@ebi.ac.uk>
@@ -710,9 +691,7 @@ public class ConfigurationService {
 	public boolean isConfigurationSharedWithAccount(Account account, Configuration configuration){
 		
 		//get the list of teams with which config is shared, if the user is a member of any of those teams
-		
-		logger.info("Looking for shared configuration " + configuration.getName()
-		+ " belonging to " + account.getGivenName());
+		logger.debug("Looking for shared configuration " + configuration.getName()	+ " belonging to " + account.getGivenName());
 		if(account.getMemberOfTeams().stream().anyMatch(team ->
 		configuration.getSharedWithTeams().stream().anyMatch(t -> t.getDomainReference().equals(team.getDomainReference())))){
 			return true;
@@ -721,38 +700,33 @@ public class ConfigurationService {
 		}
 	}
 
-	public boolean canConfigurationBeUsedForApplication(List<String> configSharedWithTeams, Application application, Account account) {
+	public boolean canConfigurationBeUsedForApplication(Configuration configuration, Application application, Account account) {
+		//Check configuration is owned by user
+		if (configuration.getAccount().equals(account)) {
+			//Checking credentials is can be used on any application
+			CloudProviderParameters cloudProviderParameters = cppService.findByReference(configuration.getCloudProviderParametersReference());
+			return cppService.canCredentialBeUsedForApplication(cloudProviderParameters, application, account);
+		} else {
+			//Check configuration is shared with user
+			if (isConfigurationSharedWithAccount(account, configuration)) {
+				//get all teams shared
+				List<String> configSharedWithTeams = configuration.getSharedWithTeams().stream().map(Team::getDomainReference).collect(Collectors.toList());
 
-		//we know config has been shared with user
-		//we also want to check if cpp and app are shared across same team
-		logger.info("Looking if shared configuration "
-				+ " is usable for application " + application.getName());
-		
-		List<String> accountMemberOfTeams = account.getMemberOfTeams().stream().map(Team::getDomainReference)
-				.collect(Collectors.toList());
-		
-		List<String> appSharedWithTeams = application.getSharedWithTeams().stream().map(Team::getDomainReference)
-				.collect(Collectors.toList());
-		
-		//check if config and app don't have any team in common else exit early
-		if(!configSharedWithTeams.stream().anyMatch(appSharedWithTeams::contains)) {
-			return false;
-		}
-		
-		//get config and app common teams
-		List<String> commonTeams = configSharedWithTeams.stream().filter(appSharedWithTeams::contains).collect(Collectors.toList());
-		
-		try{//for team which user belongs to
-			//check if the account is a part of the common team
-			String matchingTeam = accountMemberOfTeams.stream().filter(commonTeams::contains).findAny().get(); 
-			if(matchingTeam != null) {
-				logger.info("Matching team found " + matchingTeam);
-				return true;
+				List<String> accountMemberOfTeams = account.getMemberOfTeams().stream().map(Team::getDomainReference)
+						.collect(Collectors.toList());
+
+				List<String> appSharedWithTeams = application.getSharedWithTeams().stream().map(Team::getDomainReference)
+						.collect(Collectors.toList());
+
+				//check if config and app have any team in common
+				if (configSharedWithTeams.stream().anyMatch(appSharedWithTeams::contains)) {
+					List<String> commonTeams = configSharedWithTeams.stream().filter(appSharedWithTeams::contains).collect(Collectors.toList());
+					//Check for matching with user's teams
+					return cppService.checkForMatchingTeam(commonTeams, accountMemberOfTeams);
+				}
+
 			}
-		}catch(NoSuchElementException e) {
-			logger.info("No matching team found " + e.getMessage());
 		}
-		
 		return false;
 	}
 

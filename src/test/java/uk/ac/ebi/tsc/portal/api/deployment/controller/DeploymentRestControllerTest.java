@@ -835,7 +835,7 @@ public class DeploymentRestControllerTest
 		given(configurationService.isConfigurationSharedWithAccount(account, configuration)).willReturn(true);	
 		given(configurationService
 				.canConfigurationBeUsedForApplication(
-						isA(List.class),
+						isA(Configuration.class),
 						isA(Application.class),
 						isA(Account.class))).willReturn(false);
 		
@@ -951,7 +951,7 @@ public class DeploymentRestControllerTest
 				.isCloudProviderParametersSharedWithAccount(account, cloudProviderParameters)).willReturn(true);	
 		given(cloudProviderParametersService
 				.canCredentialBeUsedForApplication(
-						isA(List.class),
+						isA(CloudProviderParameters.class),
 						isA(Application.class),
 						isA(Account.class))).willReturn(false);
 		HttpServletRequest request = new MockHttpServletRequest();
@@ -1016,7 +1016,7 @@ public class DeploymentRestControllerTest
 		given(accountService.findByUsername(cppOwnerName)).willReturn(cppOwner);
 		given(cloudProviderParametersService
 				.canCredentialBeUsedForApplication(
-						isA(List.class),
+						isA(CloudProviderParameters.class),
 						isA(Application.class),
 						isA(Account.class))).willReturn(false);
 		HttpServletRequest request = new MockHttpServletRequest();

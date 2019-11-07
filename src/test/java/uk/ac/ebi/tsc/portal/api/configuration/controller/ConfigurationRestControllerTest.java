@@ -34,6 +34,7 @@ import uk.ac.ebi.tsc.aap.client.model.User;
 import uk.ac.ebi.tsc.aap.client.repo.DomainService;
 import uk.ac.ebi.tsc.portal.api.account.repo.Account;
 import uk.ac.ebi.tsc.portal.api.account.service.AccountService;
+import uk.ac.ebi.tsc.portal.api.application.service.ApplicationService;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParameters;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParamsCopy;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.service.CloudProviderParametersService;
@@ -67,6 +68,9 @@ public class ConfigurationRestControllerTest {
 
 	@MockBean
 	private AccountService accountService;
+
+	@MockBean
+	private ApplicationService applicationService;
 
 	@MockBean
 	private ConfigurationDeploymentParametersService cdpsService;
@@ -111,6 +115,7 @@ public class ConfigurationRestControllerTest {
 
 		ReflectionTestUtils.setField(subject, "configurationService", configurationService);
 		ReflectionTestUtils.setField(subject, "accountService", accountService);
+		ReflectionTestUtils.setField(subject, "applicationService", applicationService);
 		ReflectionTestUtils.setField(subject, "configurationDeploymentParametersService", cdpsService);
 		ReflectionTestUtils.setField(cdpsService, "domainService", domainService);
 		ReflectionTestUtils.setField(subject, "cloudProviderParametersService", cppService);
@@ -137,8 +142,8 @@ public class ConfigurationRestControllerTest {
 		List<Configuration> configurations = new ArrayList<>();
 		configurations.add(configuration);
 		given(configurationService.checkObsoleteConfigurations(configurationResources, account, cdpsCopyService)).willReturn(configurationResources);
-		given(subject.getCurrentUserConfigurations(principal)).willCallRealMethod();
-		Resources<ConfigurationResource> cdpsResourcesReturned = subject.getCurrentUserConfigurations(principal);
+		given(subject.getCurrentUserConfigurations(null, principal)).willCallRealMethod();
+		Resources<ConfigurationResource> cdpsResourcesReturned = subject.getCurrentUserConfigurations(null, principal);
 		assertNotNull(cdpsResourcesReturned);
 	}	
 
@@ -380,8 +385,8 @@ public class ConfigurationRestControllerTest {
 		given(tokenHandler.parseUserFromToken(Mockito.anyString())).willReturn(null);
 		given(this.configurationService.getSharedConfigurationsByAccount(Mockito.any(Account.class), Mockito.anyString(),Mockito.any(User.class)))
 		.willCallRealMethod();
-		Mockito.when(subject.getSharedConfigurationsByAccount(request, principal)).thenCallRealMethod();
-		Resources resources = subject.getSharedConfigurationsByAccount(request, principal);
+		Mockito.when(subject.getSharedConfigurationsByAccount(null, request,principal)).thenCallRealMethod();
+		Resources resources = subject.getSharedConfigurationsByAccount(null, request, principal);
 		assertEquals(0, resources.getContent().size());
 	}
 
@@ -402,8 +407,8 @@ public class ConfigurationRestControllerTest {
 		given(this.configurationService.checkObsoleteConfigurations(configurationResourceList, account, cdpsCopyService))
 		.willReturn(configurationResourceList);
 		given(configurationService.createConfigurationResource(configurations)).willReturn(configurationResourceList);
-		Mockito.when(subject.getSharedConfigurationsByAccount(request, principal)).thenCallRealMethod();
-		Resources resources = subject.getSharedConfigurationsByAccount(request, principal);
+		Mockito.when(subject.getSharedConfigurationsByAccount(null, request, principal)).thenCallRealMethod();
+		Resources resources = subject.getSharedConfigurationsByAccount(null, request, principal);
 		assertEquals(1, resources.getContent().size());
 	}
 
