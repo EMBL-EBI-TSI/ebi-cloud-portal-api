@@ -191,6 +191,8 @@ public class DeploymentRestControllerTest
 		ReflectionTestUtils.setField(subject, "configurationService", configurationService);
 		ReflectionTestUtils.setField(subject, "teamService", teamService);
 		ReflectionTestUtils.setField(subject, "cloudProviderParametersService", cloudProviderParametersService);
+		ReflectionTestUtils.setField(subject, "configDeploymentParamsCopyService", configurationDeploymentParamsCopyService);
+		ReflectionTestUtils.setField(configurationService, "cppService", cloudProviderParametersService);
 		ReflectionTestUtils.setField(subject, "applicationDeployer", applicationDeployer);
 		ReflectionTestUtils.setField(subject, "applicationDeployerHelper", applicationDeployerHelper);
 		Properties props = new Properties();
@@ -509,6 +511,7 @@ public class DeploymentRestControllerTest
 		//configuration
 		String configurationName = "config";
 		Configuration config = mock(Configuration.class);
+		when(config.getAccount()).thenReturn(owner);
 		when(config.getSharedWithTeams()).thenReturn(sharedWithTeams);
 		when(input.getConfigurationAccountUsername()).thenReturn(username);
 		when(input.getConfigurationName()).thenReturn(configurationName);
@@ -517,6 +520,7 @@ public class DeploymentRestControllerTest
 		.thenReturn(config);
 		when(config.getHardUsageLimit()).thenReturn(1.0);
 		when(configurationService.getTotalConsumption(config, deploymentIndexService)).thenReturn(0.5);
+		when(configurationService.canConfigurationBeUsedForApplication(config, application, account)).thenCallRealMethod();
 
 		//cdp
 		String cdpReference = "cdpReference";
@@ -536,18 +540,20 @@ public class DeploymentRestControllerTest
 
 		//assigned cloud provider parameters
 		String cloudProviderParametersName = "cppName";
+		String cloudProviderParametersReference= "cppReference";
 		config.cloudProviderParametersName = cloudProviderParametersName;
 		config.setCloudProviderParametersName(cloudProviderParametersName);
 		when(config.getCloudProviderParametersName()).thenReturn(cloudProviderParametersName);
+		when(config.getCloudProviderParametersReference()).thenReturn(cloudProviderParametersReference);
 		when(cloudProviderParameters.getName()).thenReturn(cloudProviderParametersName);
 		CloudProviderParameters selectedCloudProviderParameters = mock(CloudProviderParameters.class);
-		given(cloudProviderParametersService.findByNameAndAccountUsername(cloudProviderParametersName,
-				owner.getUsername())).willReturn(selectedCloudProviderParameters);
-		String cloudProviderParametersReference = "cppReference";
+
 		given(selectedCloudProviderParameters.getReference()).willReturn(cloudProviderParametersReference);
 		String cloudProvider = "ostack";
 		given(selectedCloudProviderParameters.getCloudProvider()).willReturn(cloudProvider);
 		given(cloudProviderParametersService.isCloudProviderParametersSharedWithAccount(account, selectedCloudProviderParameters)).willCallRealMethod();
+		given(cloudProviderParametersService.findByReference(cloudProviderParametersReference)).willReturn(selectedCloudProviderParameters);
+		given(cloudProviderParametersService.checkForMatchingTeam(isA(List.class),isA(List.class))).willCallRealMethod();
 		given(selectedCloudProviderParameters.getAccount()).willReturn(owner);
 		//application cloud providers
 		Collection<ApplicationCloudProvider> acpList = new ArrayList<>();
@@ -845,7 +851,7 @@ public class DeploymentRestControllerTest
 
 	}
 	
-	@Test(expected = ConfigurationNotSharedException.class)
+	@Test(expected = ConfigurationNotUsableForApplicationException.class)
 	public void testIfConfigurationisNotShared() throws InvalidApplicationInputValueException,
 	IOException, ConfigurationNotUsableForApplicationException, CloudCredentialNotUsableForApplicationException {
 
@@ -894,7 +900,7 @@ public class DeploymentRestControllerTest
 
 	}
 	
-	@Test(expected = CloudCredentialNotUsableForApplicationException.class)
+	@Test(expected = ConfigurationNotUsableForApplicationException.class)
 	public void testIfCredentialisNotUsable() throws ConfigurationNotUsableForApplicationException, CloudCredentialNotUsableForApplicationException, IOException {
 
 		DeploymentResource input = mock(DeploymentResource.class);
@@ -960,7 +966,7 @@ public class DeploymentRestControllerTest
 
 	}
 	
-	@Test(expected = CloudProviderParametersNotSharedException.class)
+	@Test(expected = ConfigurationNotUsableForApplicationException.class)
 	public void testIfCredentialisNotShared() throws InvalidApplicationInputValueException, IOException,
 	ConfigurationNotUsableForApplicationException, CloudCredentialNotUsableForApplicationException {
 
