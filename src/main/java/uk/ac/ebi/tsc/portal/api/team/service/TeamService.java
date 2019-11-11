@@ -807,12 +807,14 @@ public class TeamService {
 		 * the one who creates a domain is its manager(AAP) and called
 		 * 	team owner in ECP. For others it will throw 403
 		 */
-
-		domainService.getAllManagersFromDomain(team.getDomainReference(), token)
-		.parallelStream()
-		.filter(manager -> manager.getUsername().equals(principal.getName()))
-		.findAny()
-		.orElseThrow(() -> new TeamNotFoundException(team.getName() + " is not found/not accessible buy user"));
+		try {
+			domainService.getAllManagersFromDomain(team.getDomainReference(), token);
+		}catch(HTTPException e) {
+			//more readability we are not expecting any other exceptions to be thrown
+			if(e.getStatusCode() == 403) {
+				new TeamNotFoundException(team.getName() + " is not found/not accessible buy user");
+			}
+		}
 
 		//if owner or manager of team return team
 		return team;
