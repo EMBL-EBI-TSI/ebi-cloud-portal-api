@@ -778,7 +778,7 @@ public class TeamService {
 				a -> !memberAccountEmails.contains(a)).collect(Collectors.toSet());
 		Account yetToBeMember = yetToBeMemberEmails.stream().map(
 				email -> accountService.findByEmail(email)).collect(Collectors.toList()).get(0);
-	
+
 		List<String> toNotify = new ArrayList();
 		toNotify.add(team.getAccount().getEmail());
 
@@ -800,66 +800,64 @@ public class TeamService {
 			Principal principal, 
 			String token ) throws TeamNotFoundException {	
 
-	Team team = this.findByName(teamName);
-	
-	/*
-	 * only manager of the team, will be able to access a domain
-	 * the one who creates a domain is its manager(AAP) and called
-	 * 	team owner in ECP. For others it will throw 403
-	 */
-	
-	try {
-		domainService.getDomainByReference(team.getDomainReference(), token);
-	}catch(HTTPException e) {
-		if(e.getStatusCode() == 403) {
-			throw new TeamNotFoundException(team.getName() + " is not found/not accessible buy user");
-		}
-	}
-	
-	//if owner or manager of team return team
-	return team;
-}
+		Team team = this.findByName(teamName);
 
-private void stopDeployment(Deployment deployment) throws IOException, ApplicationDeployerException {
+		/*
+		 * only manager of the team, will be able to access a domain
+		 * the one who creates a domain is its manager(AAP) and called
+		 * 	team owner in ECP. For others it will throw 403
+		 */
 
-	logger.info("Stopping deployment '" + deployment.getReference() + "'");
+		domainService.getAllManagersFromDomain(team.getDomainReference(), token)
+		.parallelStream()
+		.filter(manager -> manager.getUsername().equals(principal.getName()))
+		.findAny()
+		.orElseThrow(() -> new TeamNotFoundException(team.getName() + " is not found/not accessible buy user"));
 
-	// get credentials decrypted through the service layer
-	CloudProviderParamsCopy theCloudProviderParametersCopy;
-	theCloudProviderParametersCopy = this.cloudProviderParametersCopyService.findByCloudProviderParametersReference(deployment.getCloudProviderParametersReference());
-
-	// Update status
-	deployment.getDeploymentStatus().setStatus(DeploymentStatusEnum.DESTROYING);
-	this.deploymentService.save(deployment);
-
-	// Proceed to destroy
-	this.applicationDeployer.destroy(
-			deployment.getDeploymentApplication().getRepoPath(),
-			deployment.getReference(),
-			this.getCloudProviderPathFromDeploymentApplication(
-					deployment.getDeploymentApplication(), theCloudProviderParametersCopy.getCloudProvider()),
-			deployment.getAssignedInputs(),
-			deployment.getAssignedParameters(),
-			deployment.getAttachedVolumes(),
-			deployment.getDeploymentConfiguration(),
-			theCloudProviderParametersCopy
-			);
-
-}
-
-private static String getCloudProviderPathFromDeploymentApplication(DeploymentApplication deploymentApplication, String cloudProvider) {
-
-	logger.debug("Getting the path of the cloud provider from deploymentApplication");
-	Iterator<DeploymentApplicationCloudProvider> it = deploymentApplication.getCloudProviders().iterator();
-
-	while ( it.hasNext() ) {
-		DeploymentApplicationCloudProvider cp = it.next();
-		if (cloudProvider.equals(cp.getName())) {
-			return cp.getPath();
-		}
+		//if owner or manager of team return team
+		return team;
 	}
 
-	return null;
-}
+	private void stopDeployment(Deployment deployment) throws IOException, ApplicationDeployerException {
+
+		logger.info("Stopping deployment '" + deployment.getReference() + "'");
+
+		// get credentials decrypted through the service layer
+		CloudProviderParamsCopy theCloudProviderParametersCopy;
+		theCloudProviderParametersCopy = this.cloudProviderParametersCopyService.findByCloudProviderParametersReference(deployment.getCloudProviderParametersReference());
+
+		// Update status
+		deployment.getDeploymentStatus().setStatus(DeploymentStatusEnum.DESTROYING);
+		this.deploymentService.save(deployment);
+
+		// Proceed to destroy
+		this.applicationDeployer.destroy(
+				deployment.getDeploymentApplication().getRepoPath(),
+				deployment.getReference(),
+				this.getCloudProviderPathFromDeploymentApplication(
+						deployment.getDeploymentApplication(), theCloudProviderParametersCopy.getCloudProvider()),
+				deployment.getAssignedInputs(),
+				deployment.getAssignedParameters(),
+				deployment.getAttachedVolumes(),
+				deployment.getDeploymentConfiguration(),
+				theCloudProviderParametersCopy
+				);
+
+	}
+
+	private static String getCloudProviderPathFromDeploymentApplication(DeploymentApplication deploymentApplication, String cloudProvider) {
+
+		logger.debug("Getting the path of the cloud provider from deploymentApplication");
+		Iterator<DeploymentApplicationCloudProvider> it = deploymentApplication.getCloudProviders().iterator();
+
+		while ( it.hasNext() ) {
+			DeploymentApplicationCloudProvider cp = it.next();
+			if (cloudProvider.equals(cp.getName())) {
+				return cp.getPath();
+			}
+		}
+
+		return null;
+	}
 
 }
