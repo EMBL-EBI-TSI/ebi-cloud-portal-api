@@ -36,7 +36,10 @@ import uk.ac.ebi.tsc.portal.clouddeployment.application.ApplicationDeployer;
 import uk.ac.ebi.tsc.portal.clouddeployment.exceptions.ApplicationDeployerException;
 
 import javax.security.auth.login.AccountNotFoundException;
+import javax.xml.ws.http.HTTPException;
+
 import java.io.IOException;
+import java.security.Principal;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -55,18 +58,18 @@ public class TeamService {
 	private final CloudProviderParamsCopyService cloudProviderParametersCopyService;
 	private final ApplicationDeployer applicationDeployer;
 	private final SendMail sendMail;
-	
+
 	private static final Logger logger = LoggerFactory.getLogger(TeamService.class);
 
 	@Autowired
 	public TeamService(TeamRepository teamRepository,
-                       AccountService accountService,
-                       DomainService domainService,
-                       DeploymentService deploymentService,
-                       CloudProviderParamsCopyService cloudProviderParametersCopyService,
-                       DeploymentConfigurationService deploymentConfigurationService,
-                       ApplicationDeployer applicationDeployer,
-                       SendMail sendMail
+			AccountService accountService,
+			DomainService domainService,
+			DeploymentService deploymentService,
+			CloudProviderParamsCopyService cloudProviderParametersCopyService,
+			DeploymentConfigurationService deploymentConfigurationService,
+			ApplicationDeployer applicationDeployer,
+			SendMail sendMail
 			){
 		this.teamRepository = teamRepository;
 		this.accountService = accountService;
@@ -373,53 +376,53 @@ public class TeamService {
 	}
 
 	public Team addMemberToTeamByAccountNoNotification(
-	        String token,
-            String teamName,
-            Account account) {
+			String token,
+			String teamName,
+			Account account) {
 
 		logger.info("Adding " + account.getReference() + " (" + account.getEmail() + ") to team " + teamName);
 
-        // Get team
-        Team team = this.findByName(teamName);
-        if (team==null) {
-            throw new TeamNotFoundException(teamName);
-        }
+		// Get team
+		Team team = this.findByName(teamName);
+		if (team==null) {
+			throw new TeamNotFoundException(teamName);
+		}
 
-        // Update domain if needed
-        if (team.getDomainReference() != null) {
-            logger.info("Team has associated domain " + team.getDomainReference() + ". Updating...");
-            logger.info("Getting domain");
-            Domain domain = domainService.getDomainByReference(
-                    team.getDomainReference(),
-                    token);
-            if (domain != null) {
-                domainService.addUserToDomain(
-                        domain,
-                        new User(null, account.getEmail(), account.getUsername(), account.getGivenName() , null),
-                        token
-                );
+		// Update domain if needed
+		if (team.getDomainReference() != null) {
+			logger.info("Team has associated domain " + team.getDomainReference() + ". Updating...");
+			logger.info("Getting domain");
+			Domain domain = domainService.getDomainByReference(
+					team.getDomainReference(),
+					token);
+			if (domain != null) {
+				domainService.addUserToDomain(
+						domain,
+						new User(null, account.getEmail(), account.getUsername(), account.getGivenName() , null),
+						token
+						);
 
-            } else {
-                throw new TeamMemberNotAddedException(teamName, "cannot find associated domain " + team.getDomainReference());
-            }
-        }
+			} else {
+				throw new TeamMemberNotAddedException(teamName, "cannot find associated domain " + team.getDomainReference());
+			}
+		}
 
-        //update account
-        account.getMemberOfTeams().add(team);
-        account = this.accountService.save(account);
+		//update account
+		account.getMemberOfTeams().add(team);
+		account = this.accountService.save(account);
 
-        // update team
-        team.getAccountsBelongingToTeam().add(account);
-        this.save(team);
+		// update team
+		team.getAccountsBelongingToTeam().add(account);
+		this.save(team);
 
-        return team;
+		return team;
 	}
 
-    /**
-     * Deletes a team after stopping all the associated deployments.
-     *
-     * @param team the team to delete
-     */
+	/**
+	 * Deletes a team after stopping all the associated deployments.
+	 *
+	 * @param team the team to delete
+	 */
 	public void deleteTeam(
 			Team team, 
 			String token, 
@@ -427,87 +430,87 @@ public class TeamService {
 			CloudProviderParamsCopyService cloudProviderParametersCopyService, 
 			ConfigurationService configurationService) {
 
-        logger.info("Deleting team " + team.getName());
+		logger.info("Deleting team " + team.getName());
 
-        // TODO for @navis: this is not the right thing to do!!
-        // If we do this, we could be stopping deployments started with these credentials and configurations that have
-        // been started using them but belonging to other teams!! A way of solving this could be by keeping a list of
-        // all the deployments associated with a team, and then going through this list only.
+		// TODO for @navis: this is not the right thing to do!!
+		// If we do this, we could be stopping deployments started with these credentials and configurations that have
+		// been started using them but belonging to other teams!! A way of solving this could be by keeping a list of
+		// all the deployments associated with a team, and then going through this list only.
 		this.stopAllDeploymentsUsingTeamSharedCloudProviders(team);
 		this.stopDeploymentsUsingTeamSharedConfigurations(team);
 
 		if (team.getDomainReference() != null) {
-            logger.info("- with domain reference " + team.getDomainReference());
-            try {
-                logger.info("Deleting team which has domain reference, getting domain");
-                Domain domain = domainService.getDomainByReference(team.getDomainReference(), token);
-                if (domain != null) {
-                    logger.info("Deleting domain");
-                    domain.setDomainReference(domain.getDomainReference());
-                    domainService.deleteDomain(domain, token);
-                }
+			logger.info("- with domain reference " + team.getDomainReference());
+			try {
+				logger.info("Deleting team which has domain reference, getting domain");
+				Domain domain = domainService.getDomainByReference(team.getDomainReference(), token);
+				if (domain != null) {
+					logger.info("Deleting domain");
+					domain.setDomainReference(domain.getDomainReference());
+					domainService.deleteDomain(domain, token);
+				}
 
-            } catch (HttpClientErrorException e) {
-                if (e.getStatusCode().equals(HttpStatus.NOT_FOUND)) {
-                    logger.error("Domain was not found" + e.getMessage());
-                } else {
-                    logger.error("HTTP client exception: " + e.getMessage());
-                    throw new TeamNotDeletedException(team.getName(), "AAP client problem - " + e.getMessage());
-                }
-            } catch (Exception e) {
-                logger.error("Unknown exception: " + e.getMessage());
-                throw new TeamNotDeletedException(team.getName(), e.getMessage());
-            }
-        }
+			} catch (HttpClientErrorException e) {
+				if (e.getStatusCode().equals(HttpStatus.NOT_FOUND)) {
+					logger.error("Domain was not found" + e.getMessage());
+				} else {
+					logger.error("HTTP client exception: " + e.getMessage());
+					throw new TeamNotDeletedException(team.getName(), "AAP client problem - " + e.getMessage());
+				}
+			} catch (Exception e) {
+				logger.error("Unknown exception: " + e.getMessage());
+				throw new TeamNotDeletedException(team.getName(), e.getMessage());
+			}
+		}
 
-        this.delete(team);
+		this.delete(team);
 	}
 
-    /**
-     * Stop all the deployments associated with cloud credentials shared in this team - TODO: please read the comment
-     * in the delete team function cause using this method will potentially stop deployments associated with the shared
-     * credentials that might have been started independently of them being shared within the given team.
-     *
-     * @param team
-     */
+	/**
+	 * Stop all the deployments associated with cloud credentials shared in this team - TODO: please read the comment
+	 * in the delete team function cause using this method will potentially stop deployments associated with the shared
+	 * credentials that might have been started independently of them being shared within the given team.
+	 *
+	 * @param team
+	 */
 	public void stopAllDeploymentsUsingTeamSharedCloudProviders(Team team) {
 
 		logger.info("Stopping deployments of team members (not team owner's), using team's shared cloud parameters");
 
 		// Get all accounts but the owner's
 		Set<Account> accounts = team.getAccountsBelongingToTeam().stream().filter(
-		        account -> account!=team.getAccount()).collect(Collectors.toSet());
+				account -> account!=team.getAccount()).collect(Collectors.toSet());
 		// Get all the CPP references
 		Set<String> cloudProviderParameterReferences = team.getCppBelongingToTeam().stream().map(
-		        cpp -> cpp.getReference()).collect(Collectors.toSet());
+				cpp -> cpp.getReference()).collect(Collectors.toSet());
 		// To keep track who to notify
 		List<String> toNotify = new ArrayList<>();
 		// For each team member...
 		accounts.forEach(memberAccount -> {
-            // For each member running deployment associated with one of the team cpp...
-            memberAccount.getDeployments().forEach(deployment -> {
-                if ((deployment.deploymentStatus.getStatus().equals(DeploymentStatusEnum.RUNNING)
-                        || deployment.deploymentStatus.getStatus().equals(DeploymentStatusEnum.STARTING))) {
-                    try {
-                        // Get the reference of the CPP copy associated with this deployment
-                        CloudProviderParamsCopy cppCopy =
-                                this.cloudProviderParametersCopyService.findByCloudProviderParametersReference(
-                                        deployment.getCloudProviderParametersReference()
-                                );
-                        // If the original CPP associated with this copy is part of the shared ones...
-                        if (cloudProviderParameterReferences.contains(cppCopy.getCloudProviderParametersReference())) {
-                            this.stopDeployment(deployment);
-                            toNotify.add(deployment.getAccount().getEmail());
-                        }
-                    } catch (Exception e) {
-                        logger.error("Failed to stop deployment " + deployment.getReference()
-                                + ", using team's shared cloud credentials "
-                                + deployment.getCloudProviderParametersReference());
-                        e.printStackTrace();
-                    }
-                }
-            });
-        });
+			// For each member running deployment associated with one of the team cpp...
+			memberAccount.getDeployments().forEach(deployment -> {
+				if ((deployment.deploymentStatus.getStatus().equals(DeploymentStatusEnum.RUNNING)
+						|| deployment.deploymentStatus.getStatus().equals(DeploymentStatusEnum.STARTING))) {
+					try {
+						// Get the reference of the CPP copy associated with this deployment
+						CloudProviderParamsCopy cppCopy =
+								this.cloudProviderParametersCopyService.findByCloudProviderParametersReference(
+										deployment.getCloudProviderParametersReference()
+										);
+						// If the original CPP associated with this copy is part of the shared ones...
+						if (cloudProviderParameterReferences.contains(cppCopy.getCloudProviderParametersReference())) {
+							this.stopDeployment(deployment);
+							toNotify.add(deployment.getAccount().getEmail());
+						}
+					} catch (Exception e) {
+						logger.error("Failed to stop deployment " + deployment.getReference()
+						+ ", using team's shared cloud credentials "
+						+ deployment.getCloudProviderParametersReference());
+						e.printStackTrace();
+					}
+				}
+			});
+		});
 
 		if (!toNotify.isEmpty()) {
 			logger.info("There are users who are to be notified, regarding deployments destruction");
@@ -522,249 +525,250 @@ public class TeamService {
 		}
 	}
 
-    /**
-     * Stop all the deployments associated with configurations shared in this team - TODO: please read the comment
-     * in the delete team function cause using this method will potentially stop deployments associated with the shared
-     * configurations that might have been started independently of them being shared within the given team.
-     *
-     * @param team
-     */
+	/**
+	 * Stop all the deployments associated with configurations shared in this team - TODO: please read the comment
+	 * in the delete team function cause using this method will potentially stop deployments associated with the shared
+	 * configurations that might have been started independently of them being shared within the given team.
+	 *
+	 * @param team
+	 */
 	public void stopDeploymentsUsingTeamSharedConfigurations(Team team) {
 
 		logger.info("Stopping deployments of team members (not owner's), using team's shared configurations.");
 
-        // Get all accounts but the owner's
-        Set<Account> accounts = team.getAccountsBelongingToTeam().stream().filter(
-                account -> account!=team.getAccount()).collect(Collectors.toSet());
-        // Get all the config references
-        Set<String> configurationReferences = team.getConfigurationsBelongingToTeam().stream().map(
-                configuration -> configuration.getReference()).collect(Collectors.toSet());
-        // To keep track who to notify
-        List<String> toNotify = new ArrayList<>();
-        // For each team member...
-        accounts.forEach(memberAccount -> {
-            // For each member running deployment associated with one of the team cpp...
-            memberAccount.getDeployments().forEach(deployment -> {
-                if (configurationReferences.contains(deployment.getDeploymentConfiguration().getConfigurationReference())
-                        && (deployment.deploymentStatus.getStatus().equals(DeploymentStatusEnum.RUNNING)
-                        || deployment.deploymentStatus.getStatus().equals(DeploymentStatusEnum.STARTING))) {
-                    try {
-                        this.stopDeployment(deployment);
-                        toNotify.add(deployment.getAccount().getEmail());
-                    } catch (Exception e) {
-                        logger.error("Failed to stop deployment " + deployment.getReference()
-                                + ", using team's shared configuration "
-                                + deployment.getDeploymentConfiguration().getConfigurationReference());
-                        e.printStackTrace();
-                    }
-                }
-            });
+		// Get all accounts but the owner's
+		Set<Account> accounts = team.getAccountsBelongingToTeam().stream().filter(
+				account -> account!=team.getAccount()).collect(Collectors.toSet());
+		// Get all the config references
+		Set<String> configurationReferences = team.getConfigurationsBelongingToTeam().stream().map(
+				configuration -> configuration.getReference()).collect(Collectors.toSet());
+		// To keep track who to notify
+		List<String> toNotify = new ArrayList<>();
+		// For each team member...
+		accounts.forEach(memberAccount -> {
+			// For each member running deployment associated with one of the team cpp...
+			memberAccount.getDeployments().forEach(deployment -> {
+				if (configurationReferences.contains(deployment.getDeploymentConfiguration().getConfigurationReference())
+						&& (deployment.deploymentStatus.getStatus().equals(DeploymentStatusEnum.RUNNING)
+								|| deployment.deploymentStatus.getStatus().equals(DeploymentStatusEnum.STARTING))) {
+					try {
+						this.stopDeployment(deployment);
+						toNotify.add(deployment.getAccount().getEmail());
+					} catch (Exception e) {
+						logger.error("Failed to stop deployment " + deployment.getReference()
+						+ ", using team's shared configuration "
+						+ deployment.getDeploymentConfiguration().getConfigurationReference());
+						e.printStackTrace();
+					}
+				}
+			});
 		});
 
-        if (!toNotify.isEmpty()) {
-            logger.info("There are users who are to be notified, regarding deployments destruction");
-            String message = "Your deployments were destroyed. \n"
-                    + "This was because the associated configurations are not available anymore in team " + "'" + team.getName() + "'.\nYou had used team"
-                    + " shared configurations for these deployments." ;
-            try {
-                sendMail.send(toNotify, "Deployments destroyed", message );
-            } catch (IOException e) {
-                logger.error("Failed to send, deployments destroyed notification to the members of the team " + team.getName());
-            }
-        }
+		if (!toNotify.isEmpty()) {
+			logger.info("There are users who are to be notified, regarding deployments destruction");
+			String message = "Your deployments were destroyed. \n"
+					+ "This was because the associated configurations are not available anymore in team " + "'" + team.getName() + "'.\nYou had used team"
+					+ " shared configurations for these deployments." ;
+			try {
+				sendMail.send(toNotify, "Deployments destroyed", message );
+			} catch (IOException e) {
+				logger.error("Failed to send, deployments destroyed notification to the members of the team " + team.getName());
+			}
+		}
 	}
 
-    /**
-     * Stop all deployments associated with an account given by email.
-     * TODO: this method has the same problem as all the previous stop ones - it needs to separate what has been
-     * deployed with something shared withing this team from everything else.
-     *
-     * @param team
-     * @param userEmail
-     */
+	/**
+	 * Stop all deployments associated with an account given by email.
+	 * TODO: this method has the same problem as all the previous stop ones - it needs to separate what has been
+	 * deployed with something shared withing this team from everything else.
+	 *
+	 * @param team
+	 * @param userEmail
+	 */
 	public void stopDeploymentsByMemberUserEmail(Team team, String userEmail) {
 
-        logger.info("Stopping all deployments associated with team " + team.getName() + " for user " + userEmail);
+		logger.info("Stopping all deployments associated with team " + team.getName() + " for user " + userEmail);
 
-        // Get the account
+		// Get the account
 		Account account  = accountService.findByEmail(userEmail);
 		// Get the running or starting deployments
 		Collection<Deployment> deployments = deploymentService.findByAccountUsername(account.getUsername()).stream()
 				.filter(deployment -> deployment.getDeploymentStatus().getStatus().equals(DeploymentStatusEnum.RUNNING) ||
 						deployment.getDeploymentStatus().getStatus().equals(DeploymentStatusEnum.STARTING)).collect(Collectors.toList());
 
-        // Get all the config references
-        Set<String> configurationReferences = team.getConfigurationsBelongingToTeam().stream().map(
-                configuration -> configuration.getReference()).collect(Collectors.toSet());
-        // To keep track who to notify
-        List<String> toNotify = new ArrayList<>();
+		// Get all the config references
+		Set<String> configurationReferences = team.getConfigurationsBelongingToTeam().stream().map(
+				configuration -> configuration.getReference()).collect(Collectors.toSet());
+		// To keep track who to notify
+		List<String> toNotify = new ArrayList<>();
 
-        account.getDeployments().forEach(deployment -> {
-            if (configurationReferences.contains(deployment.getDeploymentConfiguration().getConfigurationReference())
-                    && (deployment.deploymentStatus.getStatus().equals(DeploymentStatusEnum.RUNNING)
-                    || deployment.deploymentStatus.getStatus().equals(DeploymentStatusEnum.STARTING))) {
-                try {
-                    this.stopDeployment(deployment);
-                    toNotify.add(deployment.getAccount().getEmail());
-                } catch (Exception e) {
-                    logger.error("Failed to stop deployment " + deployment.getReference()
-                            + ", using team's shared configuration "
-                            + deployment.getDeploymentConfiguration().getConfigurationReference());
-                    e.printStackTrace();
-                }
-            }
-        });
+		account.getDeployments().forEach(deployment -> {
+			if (configurationReferences.contains(deployment.getDeploymentConfiguration().getConfigurationReference())
+					&& (deployment.deploymentStatus.getStatus().equals(DeploymentStatusEnum.RUNNING)
+							|| deployment.deploymentStatus.getStatus().equals(DeploymentStatusEnum.STARTING))) {
+				try {
+					this.stopDeployment(deployment);
+					toNotify.add(deployment.getAccount().getEmail());
+				} catch (Exception e) {
+					logger.error("Failed to stop deployment " + deployment.getReference()
+					+ ", using team's shared configuration "
+					+ deployment.getDeploymentConfiguration().getConfigurationReference());
+					e.printStackTrace();
+				}
+			}
+		});
 
 
-        if(!toNotify.isEmpty()){
-            logger.info("There are users who are to be notified, regarding deployments destruction");
-            String message = "Your deployments were destroyed. \n"
-                    + "This was because you were removed from the team " + "'" + team.getName() + "'." ;
-            try {
-                sendMail.send(toNotify, "Deployments destroyed", message );
-            } catch (IOException e) {
-                logger.error("Failed to send, deployments destroyed notification to " + account.getGivenName() + ".");
-            }
-        }
+		if(!toNotify.isEmpty()){
+			logger.info("There are users who are to be notified, regarding deployments destruction");
+			String message = "Your deployments were destroyed. \n"
+					+ "This was because you were removed from the team " + "'" + team.getName() + "'." ;
+			try {
+				sendMail.send(toNotify, "Deployments destroyed", message );
+			} catch (IOException e) {
+				logger.error("Failed to send, deployments destroyed notification to " + account.getGivenName() + ".");
+			}
+		}
 
 	}
 
-    /**
-     * Stop all deployments associated with a team shared cloud credential.
-     * TODO: this method has the same problem as all the previous stop ones - it needs to separate what has been
-     * deployed with something shared withing this team from everything else.
-     * @param team
-     * @param sharedCloudProviderParameters
-     */
+	/**
+	 * Stop all deployments associated with a team shared cloud credential.
+	 * TODO: this method has the same problem as all the previous stop ones - it needs to separate what has been
+	 * deployed with something shared withing this team from everything else.
+	 * @param team
+	 * @param sharedCloudProviderParameters
+	 */
 	public void stopDeploymentsUsingGivenTeamSharedCloudProvider(
-	        Team team,
-            CloudProviderParameters sharedCloudProviderParameters) {
+			Team team,
+			CloudProviderParameters sharedCloudProviderParameters) {
 
 		logger.info("Stopping deployments of team members (not owner's) using shared cloud credentials " + sharedCloudProviderParameters.getName());
 
-        // Get all accounts but the owner's
-        Set<Account> accounts = team.getAccountsBelongingToTeam().stream().filter(
-                account -> account!=team.getAccount()).collect(Collectors.toSet());
-        // Check the cloud credential is actually shared within the team
-        if (!team.getCppBelongingToTeam().stream().anyMatch(
-                cpp -> cpp.getReference().equals(sharedCloudProviderParameters.getReference()))) {
-            throw new CloudProviderParametersNotFoundException(sharedCloudProviderParameters.getReference());
-        }
+		// Get all accounts but the owner's
+		Set<Account> accounts = team.getAccountsBelongingToTeam().stream().filter(
+				account -> account!=team.getAccount()).collect(Collectors.toSet());
+		// Check the cloud credential is actually shared within the team
+		if (!team.getCppBelongingToTeam().stream().anyMatch(
+				cpp -> cpp.getReference().equals(sharedCloudProviderParameters.getReference()))) {
+			throw new CloudProviderParametersNotFoundException(sharedCloudProviderParameters.getReference());
+		}
 
-        // To keep track who to notify
-        List<String> toNotify = new ArrayList<>();
-        // For each team member...
-        accounts.forEach(memberAccount -> {
-            // For each member running deployment associated with the shared cpp...
-            memberAccount.getDeployments().forEach(deployment -> {
-                if ((deployment.deploymentStatus.getStatus().equals(DeploymentStatusEnum.RUNNING)
-                        || deployment.deploymentStatus.getStatus().equals(DeploymentStatusEnum.STARTING))) {
-                    try {
-                        // Get the reference of the CPP copy associated with this deployment
-                        CloudProviderParamsCopy cppCopy =
-                                this.cloudProviderParametersCopyService.findByCloudProviderParametersReference(
-                                        deployment.getCloudProviderParametersReference()
-                                );
-                        // If the original CPP associated with this copy is part of the shared ones...
-                        if (sharedCloudProviderParameters.getReference().equals(cppCopy.getCloudProviderParametersReference())) {
-                            this.stopDeployment(deployment);
-                            toNotify.add(deployment.getAccount().getEmail());
-                        }
-                    } catch (Exception e) {
-                        logger.error("Failed to stop deployment " + deployment.getReference()
-                                + ", using team's shared cloud credentials "
-                                + deployment.getCloudProviderParametersReference());
-                        e.printStackTrace();
-                    }
-                }
-            });
-        });
+		// To keep track who to notify
+		List<String> toNotify = new ArrayList<>();
+		// For each team member...
+		accounts.forEach(memberAccount -> {
+			// For each member running deployment associated with the shared cpp...
+			memberAccount.getDeployments().forEach(deployment -> {
+				if ((deployment.deploymentStatus.getStatus().equals(DeploymentStatusEnum.RUNNING)
+						|| deployment.deploymentStatus.getStatus().equals(DeploymentStatusEnum.STARTING))) {
+					try {
+						// Get the reference of the CPP copy associated with this deployment
+						CloudProviderParamsCopy cppCopy =
+								this.cloudProviderParametersCopyService.findByCloudProviderParametersReference(
+										deployment.getCloudProviderParametersReference()
+										);
+						// If the original CPP associated with this copy is part of the shared ones...
+						if (sharedCloudProviderParameters.getReference().equals(cppCopy.getCloudProviderParametersReference())) {
+							this.stopDeployment(deployment);
+							toNotify.add(deployment.getAccount().getEmail());
+						}
+					} catch (Exception e) {
+						logger.error("Failed to stop deployment " + deployment.getReference()
+						+ ", using team's shared cloud credentials "
+						+ deployment.getCloudProviderParametersReference());
+						e.printStackTrace();
+					}
+				}
+			});
+		});
 
-        if (!toNotify.isEmpty()) {
-            logger.info("There are users who are to be notified, regarding deployments destruction");
-            String message = "Your deployments were destroyed. \n"
-                    + "This was because the associated cloud credentials are not available anymore in team " + "'" + team.getName() + "'.\nYou had used team"
-                    + " shared cloud credential for these deployments." ;
-            try {
-                sendMail.send(toNotify, "Deployments destroyed", message );
-            } catch (IOException e) {
-                logger.error("Failed to send, deployments destroyed notification to the members of the team " + team.getName());
-            }
-        }
+		if (!toNotify.isEmpty()) {
+			logger.info("There are users who are to be notified, regarding deployments destruction");
+			String message = "Your deployments were destroyed. \n"
+					+ "This was because the associated cloud credentials are not available anymore in team " + "'" + team.getName() + "'.\nYou had used team"
+					+ " shared cloud credential for these deployments." ;
+			try {
+				sendMail.send(toNotify, "Deployments destroyed", message );
+			} catch (IOException e) {
+				logger.error("Failed to send, deployments destroyed notification to the members of the team " + team.getName());
+			}
+		}
 
 	}
 
-    /**
-     * Stop all deployments associated with a team shared configuration.
-     * TODO: this method has the same problem as all the previous stop ones - it needs to separate what has been
-     * deployed with something shared withing this team from everything else.
-     * @param team
-     * @param configuration
-     */
+	/**
+	 * Stop all deployments associated with a team shared configuration.
+	 * TODO: this method has the same problem as all the previous stop ones - it needs to separate what has been
+	 * deployed with something shared withing this team from everything else.
+	 * @param team
+	 * @param configuration
+	 */
 	public void stopDeploymentsUsingGivenTeamSharedConfiguration(
-	        Team team,
+			Team team,
 			Configuration configuration) {
 
 		logger.info("Stopping deployments of team " + team.getName() + " members (not owner's) " +
-                "for configuration " + configuration.getName());
+				"for configuration " + configuration.getName());
 
 
-        // Get all accounts but the owner's
-        Set<Account> accounts = team.getAccountsBelongingToTeam().stream().filter(
-                account -> account!=team.getAccount()).collect(Collectors.toSet());
-        // Check the configuration is actually shared within the team
-        if (!team.getConfigurationsBelongingToTeam().stream().anyMatch(
-                config -> config.getReference().equals(configuration.getReference()))) {
-            throw new ConfigurationNotFoundException(configuration.getReference());
-        }
+		// Get all accounts but the owner's
+		Set<Account> accounts = team.getAccountsBelongingToTeam().stream().filter(
+				account -> account!=team.getAccount()).collect(Collectors.toSet());
+		// Check the configuration is actually shared within the team
+		if (!team.getConfigurationsBelongingToTeam().stream().anyMatch(
+				config -> config.getReference().equals(configuration.getReference()))) {
+			throw new ConfigurationNotFoundException(configuration.getReference());
+		}
 
-        // To keep track who to notify
-        List<String> toNotify = new ArrayList<>();
-        // For each team member...
-        accounts.forEach(memberAccount -> {
-            // For each member running deployment associated with the shared configuration...
-            memberAccount.getDeployments().forEach(deployment -> {
-                if ((deployment.deploymentStatus.getStatus().equals(DeploymentStatusEnum.RUNNING)
-                        || deployment.deploymentStatus.getStatus().equals(DeploymentStatusEnum.STARTING))) {
-                    try {
-                        // Get the reference of the CPP copy associated with this deployment
-                        CloudProviderParamsCopy cppCopy =
-                                this.cloudProviderParametersCopyService.findByCloudProviderParametersReference(
-                                        deployment.getCloudProviderParametersReference()
-                                );
-                        // If the original CPP associated with this copy is part of the shared ones...
-                        if (configuration.getCloudProviderParametersReference().equals(cppCopy.getCloudProviderParametersReference())) {
-                            this.stopDeployment(deployment);
-                            toNotify.add(deployment.getAccount().getEmail());
-                        }
-                    } catch (Exception e) {
-                        logger.error("Failed to stop deployment " + deployment.getReference()
-                                + ", using team's shared cloud credentials "
-                                + deployment.getCloudProviderParametersReference());
-                        e.printStackTrace();
-                    }
-                }
-            });
-        });
+		// To keep track who to notify
+		List<String> toNotify = new ArrayList<>();
+		// For each team member...
+		accounts.forEach(memberAccount -> {
+			// For each member running deployment associated with the shared configuration...
+			memberAccount.getDeployments().forEach(deployment -> {
+				if ((deployment.deploymentStatus.getStatus().equals(DeploymentStatusEnum.RUNNING)
+						|| deployment.deploymentStatus.getStatus().equals(DeploymentStatusEnum.STARTING))) {
+					try {
+						// Get the reference of the CPP copy associated with this deployment
+						CloudProviderParamsCopy cppCopy =
+								this.cloudProviderParametersCopyService.findByCloudProviderParametersReference(
+										deployment.getCloudProviderParametersReference()
+										);
+						// If the original CPP associated with this copy is part of the shared ones...
+						if (configuration.getCloudProviderParametersReference().equals(cppCopy.getCloudProviderParametersReference())) {
+							this.stopDeployment(deployment);
+							toNotify.add(deployment.getAccount().getEmail());
+						}
+					} catch (Exception e) {
+						logger.error("Failed to stop deployment " + deployment.getReference()
+						+ ", using team's shared cloud credentials "
+						+ deployment.getCloudProviderParametersReference());
+						e.printStackTrace();
+					}
+				}
+			});
+		});
 
-        if (!toNotify.isEmpty()) {
-            logger.info("There are users who are to be notified, regarding deployments destruction");
-            String message = "Your deployments were destroyed. \n"
-                    + "This was because the associated cloud credentials are not available anymore in team " + "'" + team.getName() + "'.\nYou had used team"
-                    + " shared cloud credential for these deployments." ;
-            try {
-                sendMail.send(toNotify, "Deployments destroyed", message );
-            } catch (IOException e) {
-                logger.error("Failed to send, deployments destroyed notification to the members of the team " + team.getName());
-            }
-        }
+		if (!toNotify.isEmpty()) {
+			logger.info("There are users who are to be notified, regarding deployments destruction");
+			String message = "Your deployments were destroyed. \n"
+					+ "This was because the associated cloud credentials are not available anymore in team " + "'" + team.getName() + "'.\nYou had used team"
+					+ " shared cloud credential for these deployments." ;
+			try {
+				sendMail.send(toNotify, "Deployments destroyed", message );
+			} catch (IOException e) {
+				logger.error("Failed to send, deployments destroyed notification to the members of the team " + team.getName());
+			}
+		}
 
 
 	}
 
 	public void addMemberOnRequest(
 			String baseURL,
-			TeamResource teamResource) throws IOException {
+			TeamResource teamResource,
+			String token) throws IOException {
 
 		Team team = this.findByName(teamResource.getName());
 
@@ -774,7 +778,7 @@ public class TeamService {
 				a -> !memberAccountEmails.contains(a)).collect(Collectors.toSet());
 		Account yetToBeMember = yetToBeMemberEmails.stream().map(
 				email -> accountService.findByEmail(email)).collect(Collectors.toList()).get(0);
-
+	
 		List<String> toNotify = new ArrayList();
 		toNotify.add(team.getAccount().getEmail());
 
@@ -792,46 +796,70 @@ public class TeamService {
 
 	}
 
-	private void stopDeployment(Deployment deployment) throws IOException, ApplicationDeployerException {
+	public Team checkIfOwnerOrManagerOfTeam(String teamName, 
+			Principal principal, 
+			String token ) throws TeamNotFoundException {	
 
-		logger.info("Stopping deployment '" + deployment.getReference() + "'");
-
-		// get credentials decrypted through the service layer
-		CloudProviderParamsCopy theCloudProviderParametersCopy;
-		theCloudProviderParametersCopy = this.cloudProviderParametersCopyService.findByCloudProviderParametersReference(deployment.getCloudProviderParametersReference());
-
-		// Update status
-		deployment.getDeploymentStatus().setStatus(DeploymentStatusEnum.DESTROYING);
-		this.deploymentService.save(deployment);
-
-		// Proceed to destroy
-		this.applicationDeployer.destroy(
-				deployment.getDeploymentApplication().getRepoPath(),
-				deployment.getReference(),
-				this.getCloudProviderPathFromDeploymentApplication(
-						deployment.getDeploymentApplication(), theCloudProviderParametersCopy.getCloudProvider()),
-				deployment.getAssignedInputs(),
-				deployment.getAssignedParameters(),
-				deployment.getAttachedVolumes(),
-                deployment.getDeploymentConfiguration(),
-				theCloudProviderParametersCopy
-				);
-
-	}
-
-	private static String getCloudProviderPathFromDeploymentApplication(DeploymentApplication deploymentApplication, String cloudProvider) {
-
-		logger.debug("Getting the path of the cloud provider from deploymentApplication");
-		Iterator<DeploymentApplicationCloudProvider> it = deploymentApplication.getCloudProviders().iterator();
-
-		while ( it.hasNext() ) {
-			DeploymentApplicationCloudProvider cp = it.next();
-			if (cloudProvider.equals(cp.getName())) {
-				return cp.getPath();
-			}
+	Team team = this.findByName(teamName);
+	
+	/*
+	 * only manager of the team, will be able to access a domain
+	 * the one who creates a domain is its manager(AAP) and called
+	 * 	team owner in ECP. For others it will throw 403
+	 */
+	
+	try {
+		domainService.getDomainByReference(team.getDomainReference(), token);
+	}catch(HTTPException e) {
+		if(e.getStatusCode() == 403) {
+			throw new TeamNotFoundException(team.getName() + " is not found/not accessible buy user");
 		}
-
-		return null;
 	}
+	
+	//if owner or manager of team return team
+	return team;
+}
+
+private void stopDeployment(Deployment deployment) throws IOException, ApplicationDeployerException {
+
+	logger.info("Stopping deployment '" + deployment.getReference() + "'");
+
+	// get credentials decrypted through the service layer
+	CloudProviderParamsCopy theCloudProviderParametersCopy;
+	theCloudProviderParametersCopy = this.cloudProviderParametersCopyService.findByCloudProviderParametersReference(deployment.getCloudProviderParametersReference());
+
+	// Update status
+	deployment.getDeploymentStatus().setStatus(DeploymentStatusEnum.DESTROYING);
+	this.deploymentService.save(deployment);
+
+	// Proceed to destroy
+	this.applicationDeployer.destroy(
+			deployment.getDeploymentApplication().getRepoPath(),
+			deployment.getReference(),
+			this.getCloudProviderPathFromDeploymentApplication(
+					deployment.getDeploymentApplication(), theCloudProviderParametersCopy.getCloudProvider()),
+			deployment.getAssignedInputs(),
+			deployment.getAssignedParameters(),
+			deployment.getAttachedVolumes(),
+			deployment.getDeploymentConfiguration(),
+			theCloudProviderParametersCopy
+			);
+
+}
+
+private static String getCloudProviderPathFromDeploymentApplication(DeploymentApplication deploymentApplication, String cloudProvider) {
+
+	logger.debug("Getting the path of the cloud provider from deploymentApplication");
+	Iterator<DeploymentApplicationCloudProvider> it = deploymentApplication.getCloudProviders().iterator();
+
+	while ( it.hasNext() ) {
+		DeploymentApplicationCloudProvider cp = it.next();
+		if (cloudProvider.equals(cp.getName())) {
+			return cp.getPath();
+		}
+	}
+
+	return null;
+}
 
 }

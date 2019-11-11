@@ -230,8 +230,9 @@ public class TeamRestController {
   
 
 		logger.info("Checking if user is team owner");
-		this.teamService.findByNameAndAccountUsername(teamResource.getName(), principal.getName());
+		//this.teamService.findByNameAndAccountUsername(teamResource.getName(), principal.getName());
 		String token = request.getHeader(HttpHeaders.AUTHORIZATION).split(" ")[1];
+		this.teamService.checkIfOwnerOrManagerOfTeam(teamResource.getName(), principal, token);
 		String baseURL = this.composeBaseURL(request);
 		teamService.addMemberToTeam(
 				token,
@@ -276,7 +277,9 @@ public class TeamRestController {
 			throw new TeamNameInvalidInputException("Team name should not be empty");
 		}
 
-		Team team = this.teamService.findByNameAndAccountUsername(teamName, principal.getName());
+		//Team team = this.teamService.findByNameAndAccountUsername(teamName, principal.getName());
+		String token = request.getHeader(HttpHeaders.AUTHORIZATION).split(" ")[1];
+		Team team = this.teamService.checkIfOwnerOrManagerOfTeam(teamName, principal, token);
 		teamService.removeMemberFromTeam(
 				request.getHeader(HttpHeaders.AUTHORIZATION).split(" ")[1], teamName, userEmail);
 
@@ -661,9 +664,10 @@ public class TeamRestController {
 		if(teamResource.getName() == null || teamResource.getName().isEmpty()){
 			throw new TeamNameInvalidInputException("Team name should not be empty");
 		}
-
+		
 		try{
-			this.teamService.addMemberOnRequest(this.composeBaseURL(request), teamResource);
+			String token = request.getHeader(HttpHeaders.AUTHORIZATION).split(" ")[1];
+			this.teamService.addMemberOnRequest(this.composeBaseURL(request), teamResource, token);
 		}catch(IndexOutOfBoundsException e){
 			throw new RuntimeException("User is already a member of the team");
 		}

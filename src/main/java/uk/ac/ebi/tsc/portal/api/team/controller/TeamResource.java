@@ -22,6 +22,7 @@ public class TeamResource {
 	private Collection<String> configurationNames;
 	private Collection<String> configurationDeploymentParameterNames;
 	private String domainReference;
+	private boolean isOwner;
 	
 	public TeamResource() {
 	}
