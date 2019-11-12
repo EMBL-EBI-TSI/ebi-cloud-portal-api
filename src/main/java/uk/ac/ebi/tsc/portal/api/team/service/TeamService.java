@@ -1,8 +1,10 @@
 package uk.ac.ebi.tsc.portal.api.team.service;
 
+import org.apache.http.HttpException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.hateoas.Resources;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
@@ -860,6 +862,41 @@ public class TeamService {
 		}
 
 		return null;
+	}
+
+	public List<TeamResource> setManagerEmails(List<TeamResource> teams, String token) {
+		logger.info("In Team Service: Setting team manager emails");
+
+		for(TeamResource team: teams) {
+			try {
+				List<String> managerEmails = this.domainService.getAllManagersFromDomain(team.getDomainReference(), token)
+						.parallelStream().map(manager -> manager.getEmail()).collect(Collectors.toList());
+				logger.info("User is one of the managers of team " + team.getName());
+				team.setManagerEmails(managerEmails);
+			}catch(Exception e){
+				logger.info("Not the team manager of " + team.getName());
+				team.setManagerEmails(new ArrayList<String>());
+				e.printStackTrace();
+			}
+		}	
+
+		return teams;
+	}
+
+	public TeamResource setManagerEmails(TeamResource team, String token) {
+
+		try {
+			List<String> managerEmails = this.domainService.getAllManagersFromDomain(team.getDomainReference(), token)
+					.parallelStream().map(manager -> manager.getEmail()).collect(Collectors.toList());
+			logger.info("User is one of the managers of team " + team.getName());
+			team.setManagerEmails(managerEmails);
+		}catch(Exception e){
+			logger.info("Not the team manager of " + team.getName());
+			team.setManagerEmails(new ArrayList<String>());
+			e.printStackTrace();
+		}
+
+		return team;
 	}
 
 }

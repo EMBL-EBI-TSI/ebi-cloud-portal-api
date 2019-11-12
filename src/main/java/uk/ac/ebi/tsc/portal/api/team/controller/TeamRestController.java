@@ -125,23 +125,29 @@ public class TeamRestController {
 	}
 
 	@RequestMapping(method=RequestMethod.GET)
-	public Resources<TeamResource> getAllTeamsForCurrentUser(Principal principal){
+	public Resources<TeamResource> getAllTeamsForCurrentUser(HttpServletRequest request, Principal principal){
 
 		Collection<Team> teams = teamService.findByAccountUsername(principal.getName());
-		return new Resources<>(teams.stream().map(
+		String token = request.getHeader(HttpHeaders.AUTHORIZATION).split(" ")[1];
+		List<TeamResource> teamResources = teams.stream().map(
 				TeamResource::new
-				).collect(Collectors.toList())
-				);
+				).collect(Collectors.toList());
+
+		teamResources = teamService.setManagerEmails(teamResources, token );
+		return new Resources<>(teamResources);
 	}
 
 	@RequestMapping(value="/all",method=RequestMethod.GET)
-	public Resources<TeamResource> getAllTeams(Principal principal){
+	public Resources<TeamResource> getAllTeams(HttpServletRequest request, Principal principal){
 
 		Collection<Team> teams = teamService.findAll();
-		return new Resources<>(teams.stream().map(
+		String token = request.getHeader(HttpHeaders.AUTHORIZATION).split(" ")[1];
+		List<TeamResource> teamResources = teams.stream().map(
 				TeamResource::new
-				).collect(Collectors.toList())
-				);
+				).collect(Collectors.toList());
+
+		teamResources = teamService.setManagerEmails(teamResources, token );
+		return new Resources<>(teamResources);
 	}
 
 	@RequestMapping(method=RequestMethod.POST)
@@ -175,7 +181,7 @@ public class TeamRestController {
 	}
 
 	@RequestMapping(value="/{teamName:.+}", method=RequestMethod.GET)
-	public TeamResource getTeamByName(Principal principal, @PathVariable String teamName){
+	public TeamResource getTeamByName(HttpServletRequest request, Principal principal, @PathVariable String teamName){
 		logger.info("User " + principal.getName() + " requested team " + teamName);
 
 		if(teamName == null || teamName.isEmpty()){
@@ -195,7 +201,8 @@ public class TeamRestController {
 		if(team == null){
 			throw new TeamNotFoundException(teamName);
 		}
-		return new TeamResource(team);
+		String token = request.getHeader(HttpHeaders.AUTHORIZATION).split(" ")[1];
+		return teamService.setManagerEmails(new TeamResource(team), token);
 	}
 
 	@RequestMapping(value="/{teamName}", method=RequestMethod.DELETE)
@@ -239,12 +246,13 @@ public class TeamRestController {
 				teamResource.getName(),
 				teamResource.getMemberAccountEmails(),
 				baseURL);
+		
 		return new ResponseEntity<>("User  was added to team and domain " + teamResource.getName(), HttpStatus.OK);
 
 	}
 
 	@RequestMapping(value="/member", method=RequestMethod.GET)
-	public Resources<TeamResource> getMemberTeams(Principal principal){
+	public Resources<TeamResource> getMemberTeams(HttpServletRequest request, Principal principal){
 		logger.info("User " + principal.getName() + " requested all teams she is a member");
 
 		List<Team> teams = teamService.findByAccountUsername(principal.getName()).stream().collect(Collectors.toList());
