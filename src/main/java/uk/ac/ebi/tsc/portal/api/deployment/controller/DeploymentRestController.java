@@ -374,7 +374,7 @@ public class DeploymentRestController {
 				selectedCloudProviderParameters.getReference(),
 				input.getUserSshKey()
 		);
-		Deployment resDeployment;
+		Deployment resDeployment = this.deploymentService.save(deployment);
 
 		//Deploy
 		this.applicationDeployer.deploy(
