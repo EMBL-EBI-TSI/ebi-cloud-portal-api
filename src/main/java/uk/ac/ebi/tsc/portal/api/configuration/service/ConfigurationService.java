@@ -709,21 +709,11 @@ public class ConfigurationService {
 		} else {
 			//Check configuration is shared with user
 			if (isConfigurationSharedWithAccount(account, configuration)) {
-				//get all teams shared
-				List<String> configSharedWithTeams = configuration.getSharedWithTeams().stream().map(Team::getDomainReference).collect(Collectors.toList());
-
-				List<String> accountMemberOfTeams = account.getMemberOfTeams().stream().map(Team::getDomainReference)
-						.collect(Collectors.toList());
-
-				List<String> appSharedWithTeams = application.getSharedWithTeams().stream().map(Team::getDomainReference)
-						.collect(Collectors.toList());
-
-				//check if config and app have any team in common
-				if (configSharedWithTeams.stream().anyMatch(appSharedWithTeams::contains)) {
-					List<String> commonTeams = configSharedWithTeams.stream().filter(appSharedWithTeams::contains).collect(Collectors.toList());
-					//Check for matching with user's teams
-					return cppService.checkForMatchingTeam(commonTeams, accountMemberOfTeams);
-				}
+				//Getting corresponding teams
+				Set<String> configSharedWithTeams = configuration.getSharedTeamNames();
+				Set<String> accountMemberOfTeams = account.getMembershipTeamNames();
+				Set<String> appSharedWithTeams = application.getSharedTeamNames();
+				return cppService.checkForOverlapingAmongTeams(configSharedWithTeams,appSharedWithTeams, accountMemberOfTeams);
 
 			}
 		}

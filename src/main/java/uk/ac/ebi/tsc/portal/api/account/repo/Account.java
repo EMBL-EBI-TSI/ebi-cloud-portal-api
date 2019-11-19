@@ -15,6 +15,7 @@ import javax.persistence.*;
 import java.sql.Date;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * @author Jose A. Dianes <jdianes@ebi.ac.uk>
@@ -167,6 +168,11 @@ public class Account {
 		return memberOfTeams;
 	}
 
+    @Transient
+    public Set<String> getMembershipTeamNames(){
+        return  getMemberOfTeams().stream().map(Team::getName).collect(Collectors.toSet());
+    }
+
 	public void setMemberOfTeams(Set<Team> memberOfTeams) {
 		this.memberOfTeams = memberOfTeams;
 	}
@@ -178,4 +184,13 @@ public class Account {
 	public void setDeploymentParameters(Set<ConfigurationDeploymentParameters> deploymentParameters) {
 		this.deploymentParameters = deploymentParameters;
 	}
+
+    @Override
+    public boolean equals(Object obj) {
+        Account account = (Account)obj;
+        if(this.reference == account.reference)
+            return true;
+        else
+            return false;
+    }
 }

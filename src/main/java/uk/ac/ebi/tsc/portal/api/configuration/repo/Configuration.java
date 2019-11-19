@@ -7,6 +7,7 @@ import javax.persistence.*;
 import javax.validation.constraints.NotNull;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * @author Jose A. Dianes <jdianes@ebi.ac.uk>
@@ -32,7 +33,7 @@ public class Configuration {
 
 	@ManyToMany(mappedBy="configurationsBelongingToTeam")
 	private Set<Team> sharedWithTeams = new HashSet<>();
-	
+
 	private String reference;
 
 	private Double softUsageLimit;
@@ -146,7 +147,12 @@ public class Configuration {
 		}
 	}
 
-    public Double getSoftUsageLimit() {
+	@Transient
+	public Set<String> getSharedTeamNames(){
+		return  getSharedWithTeams().stream().map(Team::getName).collect(Collectors.toSet());
+	}
+
+	public Double getSoftUsageLimit() {
         return softUsageLimit;
     }
 

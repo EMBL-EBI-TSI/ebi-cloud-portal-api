@@ -402,35 +402,25 @@ public class CloudProviderParametersService {
 		} else {
 			//User is not the owner of the credential, check credential it has been shared user's team
 			if (isCloudProviderParametersSharedWithAccount(account, cloudProviderParameters)) {
-				//Get all teams shared
-				List<String> cppSharedWithTeams = cloudProviderParameters.getSharedWithTeams().stream().map(Team::getDomainReference).collect(Collectors.toList());
-				logger.info("Looking if shared cloudProviderParameters "
+				logger.debug("Checking if shared cloudProviderParameters "
 						+ " is usable for application " + application.getName());
-				List<String> accountMemberOfTeams = account.getMemberOfTeams().stream().map(Team::getDomainReference)
-						.collect(Collectors.toList());
-				List<String> appSharedWithTeams = application.getSharedWithTeams().stream().map(Team::getDomainReference)
-						.collect(Collectors.toList());
-
-				//check if cpp and app have any team in common
-				if (cppSharedWithTeams.stream().anyMatch(appSharedWithTeams::contains)) {
-					//Check that common team matches with User's team
-					List<String> commonTeams = cppSharedWithTeams.stream().filter(appSharedWithTeams::contains).collect(Collectors.toList());
-					return checkForMatchingTeam(commonTeams, accountMemberOfTeams);
-				}
+				//Getting corresponding teams
+				Set<String> cppSharedWithTeams = cloudProviderParameters.getSharedTeamNames();
+				Set<String> accountMemberOfTeams = account.getMembershipTeamNames();
+				Set<String> appSharedWithTeams = application.getSharedTeamNames();
+				return checkForOverlapingAmongTeams(cppSharedWithTeams, appSharedWithTeams, accountMemberOfTeams);
 			}
 		}
 		return false;
 	}
 
-	public boolean checkForMatchingTeam(List<String> commonTeams, List<String> accountMemberOfTeams) {
-		try {//check teams which user belongs,match with common teams
-			String matchingTeam = accountMemberOfTeams.stream().filter(commonTeams::contains).findAny().get();
-			if (matchingTeam != null) {
-				logger.debug("Matching team found " + matchingTeam);
+	public boolean checkForOverlapingAmongTeams(Set<String> cppSharedWithTeams, Set<String> appSharedWithTeams, Set<String> accountMemberOfTeams) {
+		//Retain teams of Cloud Provider Parameters intersect with Application
+		cppSharedWithTeams.retainAll(appSharedWithTeams);
+		if(!cppSharedWithTeams.isEmpty()){
+			cppSharedWithTeams.retainAll(accountMemberOfTeams);
+			if(!cppSharedWithTeams.isEmpty())
 				return true;
-			}
-		} catch (NoSuchElementException e) {
-			logger.debug("No matching team found " + e.getMessage());
 		}
 		return false;
 	}

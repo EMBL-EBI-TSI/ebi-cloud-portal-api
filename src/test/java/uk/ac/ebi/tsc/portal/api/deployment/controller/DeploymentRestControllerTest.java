@@ -486,7 +486,8 @@ public class DeploymentRestControllerTest
 		String applicationName = "applicationName";
 		given(input.getApplicationName()).willReturn(applicationName);
 		Application application = mock(Application.class);
-		given(application.getName()).willReturn(applicationName);given(applicationService.findByAccountUsernameAndName(username,applicationName)).willReturn(application);
+		given(application.getName()).willReturn(applicationName);
+		given(applicationService.findByAccountUsernameAndName(username,applicationName)).willReturn(application);
 
 		//set up teams, sharedwith user is a member of only one of these teams
 		Set<Account> teamAccounts = new HashSet<>();
@@ -504,8 +505,10 @@ public class DeploymentRestControllerTest
 		applications.add(application);
 		given(team.getApplicationsBelongingToTeam()).willReturn(applications);
 		when(application.getSharedWithTeams()).thenReturn(sharedWithTeams);
+		when(application.getSharedTeamNames()).thenCallRealMethod();
 
 		given(account.getMemberOfTeams()).willReturn(sharedWithTeams);
+		given(account.getMembershipTeamNames()).willCallRealMethod();
 		given(applicationService.isApplicationSharedWithAccount(account, application)).willCallRealMethod();
 
 		//configuration
@@ -513,6 +516,7 @@ public class DeploymentRestControllerTest
 		Configuration config = mock(Configuration.class);
 		when(config.getAccount()).thenReturn(owner);
 		when(config.getSharedWithTeams()).thenReturn(sharedWithTeams);
+		when(config.getSharedTeamNames()).thenCallRealMethod();
 		when(input.getConfigurationAccountUsername()).thenReturn(username);
 		when(input.getConfigurationName()).thenReturn(configurationName);
 		when(config.getName()).thenReturn(configurationName);
@@ -553,7 +557,7 @@ public class DeploymentRestControllerTest
 		given(selectedCloudProviderParameters.getCloudProvider()).willReturn(cloudProvider);
 		given(cloudProviderParametersService.isCloudProviderParametersSharedWithAccount(account, selectedCloudProviderParameters)).willCallRealMethod();
 		given(cloudProviderParametersService.findByReference(cloudProviderParametersReference)).willReturn(selectedCloudProviderParameters);
-		given(cloudProviderParametersService.checkForMatchingTeam(isA(List.class),isA(List.class))).willCallRealMethod();
+		given(cloudProviderParametersService.checkForOverlapingAmongTeams(isA(Set.class),isA(Set.class),isA(Set.class))).willCallRealMethod();
 		given(selectedCloudProviderParameters.getAccount()).willReturn(owner);
 		//application cloud providers
 		Collection<ApplicationCloudProvider> acpList = new ArrayList<>();
