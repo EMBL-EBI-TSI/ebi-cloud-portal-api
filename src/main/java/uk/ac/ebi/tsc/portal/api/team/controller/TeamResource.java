@@ -21,7 +21,7 @@ public class TeamResource {
 	private Collection<String> configurationNames;
 	private Collection<String> configurationDeploymentParameterNames;
 	private String domainReference;
-	private List<String> managerEmails;
+	private List<String> managerUserNames;
 	
 	public TeamResource() {
 	}
@@ -107,11 +107,13 @@ public class TeamResource {
 		this.configurationDeploymentParameterNames = configurationDeploymentParameterNames;
 	}
 
-	public List<String> getManagerEmails() {
-		return managerEmails;
+	public List<String> getManagerUserNames() {
+		return managerUserNames;
 	}
 
-	public void setManagerEmails(List<String> managerEmails) {
-		this.managerEmails = managerEmails;
+	public void setManagerUserNames(List<String> managerUserNames) {
+		this.managerUserNames = managerUserNames;
 	}
+
+	
 }

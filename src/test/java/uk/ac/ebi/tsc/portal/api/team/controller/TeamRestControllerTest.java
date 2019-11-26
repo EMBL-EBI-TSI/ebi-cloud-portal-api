@@ -209,7 +209,6 @@ public class TeamRestControllerTest {
 		given(teamService.findByAccountUsername(principalName)).willReturn(teams);
 		getTeamResoure(team);
 		given(subject.getAllTeamsForCurrentUser(request, principal)).willCallRealMethod();
-		given(teamService.setManagerEmails(isA(List.class), isA(String.class))).willCallRealMethod();
 		Resources<TeamResource> teamResource = subject.getAllTeamsForCurrentUser(request, principal);
 		
 		assertTrue(teamResource != null);
@@ -224,7 +223,7 @@ public class TeamRestControllerTest {
 		getTeamResoure(team);
 		given(teamService.findByName(teamName)).willReturn(team);
 		given(subject.getTeamByName(request, principal, teamName)).willCallRealMethod();
-		given(teamService.setManagerEmails(isA(TeamResource.class), isA(String.class))).willCallRealMethod();
+		given(teamService.setManagerUserNames(isA(TeamResource.class), isA(String.class))).willCallRealMethod();
 		TeamResource teamResource = subject.getTeamByName(request, principal, teamName);
 		assertTrue(teamResource.getName().equals(teamName));
 	}

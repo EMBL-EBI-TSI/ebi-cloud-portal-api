@@ -128,12 +128,10 @@ public class TeamRestController {
 	public Resources<TeamResource> getAllTeamsForCurrentUser(HttpServletRequest request, Principal principal){
 
 		Collection<Team> teams = teamService.findByAccountUsername(principal.getName());
-		String token = request.getHeader(HttpHeaders.AUTHORIZATION).split(" ")[1];
 		List<TeamResource> teamResources = teams.stream().map(
 				TeamResource::new
 				).collect(Collectors.toList());
 
-		teamResources = teamService.setManagerEmails(teamResources, token );
 		return new Resources<>(teamResources);
 	}
 
@@ -141,12 +139,10 @@ public class TeamRestController {
 	public Resources<TeamResource> getAllTeams(HttpServletRequest request, Principal principal){
 
 		Collection<Team> teams = teamService.findAll();
-		String token = request.getHeader(HttpHeaders.AUTHORIZATION).split(" ")[1];
 		List<TeamResource> teamResources = teams.stream().map(
 				TeamResource::new
 				).collect(Collectors.toList());
-
-		teamResources = teamService.setManagerEmails(teamResources, token );
+		
 		return new Resources<>(teamResources);
 	}
 
@@ -202,7 +198,7 @@ public class TeamRestController {
 			throw new TeamNotFoundException(teamName);
 		}
 		String token = request.getHeader(HttpHeaders.AUTHORIZATION).split(" ")[1];
-		return teamService.setManagerEmails(new TeamResource(team), token);
+		return teamService.setManagerUserNames(new TeamResource(team), token);
 	}
 
 	@RequestMapping(value="/{teamName}", method=RequestMethod.DELETE)
@@ -237,7 +233,6 @@ public class TeamRestController {
   
 
 		logger.info("Checking if user is team owner");
-		//this.teamService.findByNameAndAccountUsername(teamResource.getName(), principal.getName());
 		String token = request.getHeader(HttpHeaders.AUTHORIZATION).split(" ")[1];
 		this.teamService.checkIfOwnerOrManagerOfTeam(teamResource.getName(), principal, token);
 		String baseURL = this.composeBaseURL(request);
@@ -284,8 +279,7 @@ public class TeamRestController {
 		if(teamName == null || teamName.isEmpty()){
 			throw new TeamNameInvalidInputException("Team name should not be empty");
 		}
-
-		//Team team = this.teamService.findByNameAndAccountUsername(teamName, principal.getName());
+		
 		String token = request.getHeader(HttpHeaders.AUTHORIZATION).split(" ")[1];
 		Team team = this.teamService.checkIfOwnerOrManagerOfTeam(teamName, principal, token);
 		teamService.removeMemberFromTeam(
