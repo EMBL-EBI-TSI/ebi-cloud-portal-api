@@ -1,4 +1,3 @@
-
 package uk.ac.ebi.tsc.portal.api.team.controller;
 
 import org.apache.http.MethodNotSupportedException;
@@ -125,25 +124,23 @@ public class TeamRestController {
 	}
 
 	@RequestMapping(method=RequestMethod.GET)
-	public Resources<TeamResource> getAllTeamsForCurrentUser(HttpServletRequest request, Principal principal){
+	public Resources<TeamResource> getAllTeamsForCurrentUser(Principal principal){
 
 		Collection<Team> teams = teamService.findByAccountUsername(principal.getName());
-		List<TeamResource> teamResources = teams.stream().map(
+		return new Resources<>(teams.stream().map(
 				TeamResource::new
-				).collect(Collectors.toList());
-
-		return new Resources<>(teamResources);
+				).collect(Collectors.toList())
+				);
 	}
 
 	@RequestMapping(value="/all",method=RequestMethod.GET)
-	public Resources<TeamResource> getAllTeams(HttpServletRequest request, Principal principal){
+	public Resources<TeamResource> getAllTeams(Principal principal){
 
 		Collection<Team> teams = teamService.findAll();
-		List<TeamResource> teamResources = teams.stream().map(
+		return new Resources<>(teams.stream().map(
 				TeamResource::new
-				).collect(Collectors.toList());
-		
-		return new Resources<>(teamResources);
+				).collect(Collectors.toList())
+				);
 	}
 
 	@RequestMapping(method=RequestMethod.POST)
@@ -197,8 +194,7 @@ public class TeamRestController {
 		if(team == null){
 			throw new TeamNotFoundException(teamName);
 		}
-		String token = request.getHeader(HttpHeaders.AUTHORIZATION).split(" ")[1];
-		return teamService.setManagerUserNames(new TeamResource(team), token);
+		return teamService.setManagerUserNames(new TeamResource(team), getToken(request));
 	}
 
 	@RequestMapping(value="/{teamName}", method=RequestMethod.DELETE)
@@ -233,21 +229,19 @@ public class TeamRestController {
   
 
 		logger.info("Checking if user is team owner");
-		String token = request.getHeader(HttpHeaders.AUTHORIZATION).split(" ")[1];
-		this.teamService.checkIfOwnerOrManagerOfTeam(teamResource.getName(), principal, token);
+		this.teamService.checkIfOwnerOrManagerOfTeam(teamResource.getName(), principal, getToken(request));
 		String baseURL = this.composeBaseURL(request);
 		teamService.addMemberToTeam(
-				token,
+				getToken(request),
 				teamResource.getName(),
 				teamResource.getMemberAccountEmails(),
 				baseURL);
-		
 		return new ResponseEntity<>("User  was added to team and domain " + teamResource.getName(), HttpStatus.OK);
 
 	}
 
 	@RequestMapping(value="/member", method=RequestMethod.GET)
-	public Resources<TeamResource> getMemberTeams(HttpServletRequest request, Principal principal){
+	public Resources<TeamResource> getMemberTeams(Principal principal){
 		logger.info("User " + principal.getName() + " requested all teams she is a member");
 
 		List<Team> teams = teamService.findByAccountUsername(principal.getName()).stream().collect(Collectors.toList());
@@ -279,11 +273,10 @@ public class TeamRestController {
 		if(teamName == null || teamName.isEmpty()){
 			throw new TeamNameInvalidInputException("Team name should not be empty");
 		}
-		
-		String token = request.getHeader(HttpHeaders.AUTHORIZATION).split(" ")[1];
-		Team team = this.teamService.checkIfOwnerOrManagerOfTeam(teamName, principal, token);
+
+		Team team = this.teamService.checkIfOwnerOrManagerOfTeam(teamName, principal, getToken(request));
 		teamService.removeMemberFromTeam(
-				request.getHeader(HttpHeaders.AUTHORIZATION).split(" ")[1], teamName, userEmail);
+				getToken(request), teamName, userEmail);
 
 		teamService.stopDeploymentsByMemberUserEmail(team, userEmail);
 		return new ResponseEntity<>("User " + userEmail + " was deleted from team " + teamName, HttpStatus.OK);
@@ -666,10 +659,9 @@ public class TeamRestController {
 		if(teamResource.getName() == null || teamResource.getName().isEmpty()){
 			throw new TeamNameInvalidInputException("Team name should not be empty");
 		}
-		
+
 		try{
-			String token = request.getHeader(HttpHeaders.AUTHORIZATION).split(" ")[1];
-			this.teamService.addMemberOnRequest(this.composeBaseURL(request), teamResource, token);
+			this.teamService.addMemberOnRequest(this.composeBaseURL(request), teamResource);
 		}catch(IndexOutOfBoundsException e){
 			throw new RuntimeException("User is already a member of the team");
 		}
@@ -704,6 +696,11 @@ public class TeamRestController {
 		return base;
 
 	}
+	
+	private static String getToken(HttpServletRequest request) {
+		return request.getHeader(HttpHeaders.AUTHORIZATION).split(" ")[1];
+	}
+
 	
 	//functionality to be included in aap side
 	/*@RequestMapping(value="/leave", method=RequestMethod.POST)
