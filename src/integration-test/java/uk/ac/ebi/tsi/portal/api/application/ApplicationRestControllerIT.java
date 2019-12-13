@@ -1,12 +1,9 @@
-package uk.ac.ebi.tsi.portal.api.team;
+package uk.ac.ebi.tsi.portal.api.application;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-
-import java.sql.Date;
 
 import org.apache.log4j.Logger;
 import org.junit.Before;
@@ -20,7 +17,6 @@ import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringRunner;
@@ -29,9 +25,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import uk.ac.ebi.tsc.portal.BePortalApiApplication;
-import uk.ac.ebi.tsc.portal.api.account.repo.Account;
-import uk.ac.ebi.tsc.portal.api.account.service.AccountService;
-import uk.ac.ebi.tsc.portal.api.team.repo.Team;
+import uk.ac.ebi.tsc.portal.api.application.controller.ApplicationResource;
 import uk.ac.ebi.tsc.portal.config.WebConfiguration;
 
 @RunWith(SpringRunner.class)
@@ -39,9 +33,9 @@ import uk.ac.ebi.tsc.portal.config.WebConfiguration;
 @ContextConfiguration(classes = {WebConfiguration.class, BePortalApiApplication.class})
 @TestPropertySource("classpath:integrationTest.properties")
 @AutoConfigureMockMvc
-public class TeamRestControllerIT {
+public class ApplicationRestControllerIT {
 	
-	 private static final Logger logger = Logger.getLogger(TeamRestControllerIT.class);
+	 private static final Logger logger = Logger.getLogger(ApplicationRestControllerIT.class);
 
 		@Autowired
 	    private TestRestTemplate restTemplate;
@@ -63,7 +57,7 @@ public class TeamRestControllerIT {
 		
 		private String token;
 		
-		String teamName = "SOME_TEAM_NAME";
+		static ApplicationResource applicationResource;
 		
 		@Before
 		public void setup() throws Exception{
@@ -74,74 +68,40 @@ public class TeamRestControllerIT {
 		}
 
 		@Test
-		public void can_get_a_team() throws Exception{
-			MockHttpServletResponse response = mockMvc.perform(
-					get("/team")
+		public void canGetAllApplications() throws Exception {
+			
+			mockMvc.perform(
+					get("/application")
 					.headers(createHeaders(token))
 					.contentType(MediaType.APPLICATION_JSON)
 					.accept(MediaType.APPLICATION_JSON)
 					)
-					.andExpect(status().isOk())
-					.andReturn().getResponse();
-
-			logger.info("Response "  +response);
-		}
-		
-		//@Test
-		public void can_create_a_team() throws Exception{
-			Team team = new Team();
-			team.setName(teamName);
-			String json = mapper.writeValueAsString(team);
-			mockMvc.perform(
-					post("/team")
-					.headers(createHeaders(token))
-					.contentType(MediaType.APPLICATION_JSON)
-					.content(json)
-					.accept(MediaType.APPLICATION_JSON))
-			.andExpect(jsonPath("name").value(teamName))
-			.andReturn();
-		}
-		
-		/*@Test
-		public void add_member_to_team() throws Exception{
-			
-			String json = "{\"name\":\"" + teamName + "\", \"memberAccountEmails\":[\""+ email + "\"]}";
-			logger.info("In add member to team " + json);
-			mockMvc.perform(
-					post("/team/member") 
-					.headers(createHeaders(token))
-					.contentType(MediaType.APPLICATION_JSON)
-					.content(json)
-					.accept(MediaType.APPLICATION_JSON))
-
 			.andExpect(status().isOk());
-
 		}
 		
-
 		@Test
-		public void canRemoveMemberFromTeam() throws Exception{
-
-			String uri = "/team/" + teamName + "/member/" + email;
-			mockMvc.perform(
-					delete(uri) 
+		public void testCreateAndDeleteApplication() throws Exception{
+			String json = "{\"repoUri\": \"https://github.com/EMBL-EBI-TSI/cpa-instance\"}";
+			logger.info("Application repo uri " + json);
+			String appResponse = mockMvc.perform(
+					post("/application")
 					.headers(createHeaders(token))
 					.contentType(MediaType.APPLICATION_JSON)
-					.accept(MediaType.APPLICATION_JSON))
-			.andExpect(status().isOk());
+					.content(json)
+					.accept(MediaType.APPLICATION_JSON)
+					)
+			.andExpect(status().is2xxSuccessful())
+			.andReturn().getResponse().getContentAsString();
 
-		}*/
-
-		
-		public void can_delete_a_team() throws Exception{
+			applicationResource = mapper.readValue(appResponse, ApplicationResource.class);
 			mockMvc.perform(
-					delete("/team/" , teamName)
+					delete("/application/{name}/" , applicationResource.getName())
 					.headers(createHeaders(token))
 					.contentType(MediaType.APPLICATION_JSON)
-					.accept(MediaType.APPLICATION_JSON))
+					.accept(MediaType.APPLICATION_JSON)
+					)
 			.andExpect(status().isOk());
 		}
-		
 		protected HttpHeaders createHeaders(String token) {
 			return new HttpHeaders() {
 				private static final long serialVersionUID = 1L;

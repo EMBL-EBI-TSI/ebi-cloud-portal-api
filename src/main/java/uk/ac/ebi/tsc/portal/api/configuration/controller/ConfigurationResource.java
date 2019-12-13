@@ -78,6 +78,10 @@ public class ConfigurationResource extends ResourceSupport {
     public String getName() {
         return name;
     }
+    
+	public void setName(String name) {
+		this.name = name;
+	}
 
     public String getSshKey() {
         return sshKey;
@@ -89,6 +93,10 @@ public class ConfigurationResource extends ResourceSupport {
 
 	public String getDeploymentParametersName() {
 		return deploymentParametersName;
+	}
+	
+	public void setDeploymentParametersName(String deploymentParametersName) {
+		this.deploymentParametersName = deploymentParametersName;
 	}
 
 	public Collection<String> getSharedWithTeamNames() {
@@ -177,5 +185,9 @@ public class ConfigurationResource extends ResourceSupport {
 
 	public void setSharedWithTeams(Collection<TeamResource> sharedWithTeams) {
 		this.sharedWithTeams = sharedWithTeams;
+	}
+
+	public void setSshKey(String sshKey) {
+		this.sshKey = sshKey;
 	}
 }
