@@ -87,7 +87,7 @@ public class TeamRestControllerIT {
 			logger.info("Response "  +response);
 		}
 		
-		//@Test
+		
 		public void can_create_a_team() throws Exception{
 			Team team = new Team();
 			team.setName(teamName);
