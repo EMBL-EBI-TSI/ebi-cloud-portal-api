@@ -396,27 +396,27 @@ public class CloudProviderParametersService {
 
 	public boolean canCredentialBeUsedForApplication(CloudProviderParameters cloudProviderParameters,
 													 Application application, Account account) {
-		logger.debug("Checking if cloudProviderParameters '" + cloudProviderParameters.getName() +
+		logger.info("Checking if cloudProviderParameters '" + cloudProviderParameters.getName() +
 				"' can be used for application '" + application.getName() + "'" +
 				"by user '" + account.getGivenName() + "'"
 				);
 		if (cloudProviderParameters.getAccount().equals(account)) {
 			//CloudProviderParameters is owned by user, so it can be used on any applications
-			logger.debug("The user is the credential owner ");
+			logger.info("The user is the credential owner ");
 			return true;
 		} else {
 			//User is not the owner of the credential, check credential it has been shared user's team
-			logger.debug("The user is not the credential owner ");
+			logger.info("The user is not the credential owner ");
 			if (isCloudProviderParametersSharedWithAccount(account, cloudProviderParameters)) {
 				logger.debug("Checking if shared cloudProviderParameters "
 						+ " is usable for application " + application.getName());
 				//Getting corresponding teams
 				Set<String> cppSharedWithTeams = cloudProviderParameters.getSharedTeamNames();
-				logger.debug("cppSharedWithTeams size " + cppSharedWithTeams.size());
+				logger.info("cppSharedWithTeams size " + cppSharedWithTeams.size());
 				Set<String> accountMemberOfTeams = account.getMembershipTeamNames();
-				logger.debug("accountMemberOfTeams size " + accountMemberOfTeams.size());
+				logger.info("accountMemberOfTeams size " + accountMemberOfTeams.size());
 				Set<String> appSharedWithTeams = application.getSharedTeamNames();
-				logger.debug("appSharedWithTeams size " + appSharedWithTeams.size());
+				logger.info("appSharedWithTeams size " + appSharedWithTeams.size());
 				return checkForOverlapingAmongTeams(cppSharedWithTeams, appSharedWithTeams, accountMemberOfTeams);
 			}
 		}
@@ -425,7 +425,7 @@ public class CloudProviderParametersService {
 
 	public boolean checkForOverlapingAmongTeams(Set<String> cppSharedWithTeams, Set<String> appSharedWithTeams, Set<String> accountMemberOfTeams) {
 		//Retain teams of Cloud Provider Parameters intersect with Application
-		logger.debug("Checking if shared cloudProviderParameters overlapping teams");
+		logger.info("Checking if shared cloudProviderParameters overlapping teams");
 		cppSharedWithTeams.retainAll(appSharedWithTeams);
 		if(!cppSharedWithTeams.isEmpty()){
 			cppSharedWithTeams.retainAll(accountMemberOfTeams);

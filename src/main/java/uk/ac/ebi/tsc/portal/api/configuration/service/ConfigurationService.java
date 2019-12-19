@@ -691,7 +691,7 @@ public class ConfigurationService {
 	public boolean isConfigurationSharedWithAccount(Account account, Configuration configuration){
 		
 		//get the list of teams with which config is shared, if the user is a member of any of those teams
-		logger.debug("Looking for shared configuration " + configuration.getName()	+ " belonging to " + account.getGivenName());
+		logger.info("Looking for shared configuration " + configuration.getName()	+ " belonging to " + account.getGivenName());
 		if(account.getMemberOfTeams().stream().anyMatch(team ->
 		configuration.getSharedWithTeams().stream().anyMatch(t -> t.getDomainReference().equals(team.getDomainReference())))){
 			return true;
@@ -702,18 +702,18 @@ public class ConfigurationService {
 
 	public boolean canConfigurationBeUsedForApplication(Configuration configuration, Application application, Account account) {
 		//Check configuration is owned by user
-		logger.debug("Checking if configuration '" + configuration.getName() +
+		logger.info("Checking if configuration '" + configuration.getName() +
 				"' can be used for application '" + application.getName() + "'" +
 				"by user '" + account.getGivenName() + "'"
 				);
 		if (configuration.getAccount().equals(account)) {
 			//Checking credentials is can be used on any application
-			logger.debug("The user is the configuration owner, so check if cloud credential is usable ");
+			logger.info("The user is the configuration owner, so check if cloud credential is usable ");
 			CloudProviderParameters cloudProviderParameters = cppService.findByReference(configuration.getCloudProviderParametersReference());
 			return cppService.canCredentialBeUsedForApplication(cloudProviderParameters, application, account);
 		} else {
 			//Check configuration is shared with user
-			logger.debug("Check if configuration is shared with the user");
+			logger.info("Check if configuration is shared with the user");
 			if (isConfigurationSharedWithAccount(account, configuration)) {
 				logger.info("Configuration is shared with account, check if it is from same team");
 				//Getting corresponding teams
