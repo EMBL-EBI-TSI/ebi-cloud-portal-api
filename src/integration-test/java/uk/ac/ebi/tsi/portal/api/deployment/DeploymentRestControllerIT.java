@@ -78,7 +78,7 @@ public class DeploymentRestControllerIT {
 	private String aapUrl;
 
 
-	@Test
+	//@Test
 	public void canCreateDeployment() throws Exception{
 
 

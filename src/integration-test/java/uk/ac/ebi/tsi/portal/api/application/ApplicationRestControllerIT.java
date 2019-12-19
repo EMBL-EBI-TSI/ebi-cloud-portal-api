@@ -79,7 +79,7 @@ public class ApplicationRestControllerIT {
 			.andExpect(status().isOk());
 		}
 		
-		@Test
+		//@Test
 		public void testCreateAndDeleteApplication() throws Exception{
 			String json = "{\"repoUri\": \"https://github.com/EMBL-EBI-TSI/cpa-tesk\"}";
 			logger.info("Application repo uri " + json);
