@@ -693,7 +693,7 @@ public class ConfigurationService {
 		//get the list of teams with which config is shared, if the user is a member of any of those teams
 		logger.info("Looking for shared configuration " + configuration.getName()	+ " belonging to " + account.getGivenName());
 		if(account.getMemberOfTeams().stream().anyMatch(team ->
-		configuration.getSharedWithTeams().stream().anyMatch(t -> t.getDomainReference().equals(team.getDomainReference())))){
+		configuration.getSharedWithTeams().stream().anyMatch(t -> (t.getDomainReference() != null) && (team.getDomainReference() != null) && t.getDomainReference().equals(team.getDomainReference())))){
 			return true;
 		}else{
 			return false;
