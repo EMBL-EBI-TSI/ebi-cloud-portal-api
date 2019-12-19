@@ -1,4 +1,3 @@
-
 package uk.ac.ebi.tsc.portal.api.team.controller;
 
 import org.apache.http.MethodNotSupportedException;
@@ -175,7 +174,7 @@ public class TeamRestController {
 	}
 
 	@RequestMapping(value="/{teamName:.+}", method=RequestMethod.GET)
-	public TeamResource getTeamByName(Principal principal, @PathVariable String teamName){
+	public TeamResource getTeamByName(HttpServletRequest request, Principal principal, @PathVariable String teamName){
 		logger.info("User " + principal.getName() + " requested team " + teamName);
 
 		if(teamName == null || teamName.isEmpty()){
@@ -195,7 +194,7 @@ public class TeamRestController {
 		if(team == null){
 			throw new TeamNotFoundException(teamName);
 		}
-		return new TeamResource(team);
+		return teamService.setManagerUserNames(new TeamResource(team), getToken(request));
 	}
 
 	@RequestMapping(value="/{teamName}", method=RequestMethod.DELETE)
@@ -230,11 +229,10 @@ public class TeamRestController {
   
 
 		logger.info("Checking if user is team owner");
-		this.teamService.findByNameAndAccountUsername(teamResource.getName(), principal.getName());
-		String token = request.getHeader(HttpHeaders.AUTHORIZATION).split(" ")[1];
+		this.teamService.checkIfOwnerOrManagerOfTeam(teamResource.getName(), principal, getToken(request));
 		String baseURL = this.composeBaseURL(request);
 		teamService.addMemberToTeam(
-				token,
+				getToken(request),
 				teamResource.getName(),
 				teamResource.getMemberAccountEmails(),
 				baseURL);
@@ -276,9 +274,9 @@ public class TeamRestController {
 			throw new TeamNameInvalidInputException("Team name should not be empty");
 		}
 
-		Team team = this.teamService.findByNameAndAccountUsername(teamName, principal.getName());
+		Team team = this.teamService.checkIfOwnerOrManagerOfTeam(teamName, principal, getToken(request));
 		teamService.removeMemberFromTeam(
-				request.getHeader(HttpHeaders.AUTHORIZATION).split(" ")[1], teamName, userEmail);
+				getToken(request), teamName, userEmail);
 
 		teamService.stopDeploymentsByMemberUserEmail(team, userEmail);
 		return new ResponseEntity<>("User " + userEmail + " was deleted from team " + teamName, HttpStatus.OK);
@@ -698,6 +696,11 @@ public class TeamRestController {
 		return base;
 
 	}
+	
+	private static String getToken(HttpServletRequest request) {
+		return request.getHeader(HttpHeaders.AUTHORIZATION).split(" ")[1];
+	}
+
 	
 	//functionality to be included in aap side
 	/*@RequestMapping(value="/leave", method=RequestMethod.POST)
