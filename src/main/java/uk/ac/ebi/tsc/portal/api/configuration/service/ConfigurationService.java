@@ -708,14 +708,13 @@ public class ConfigurationService {
 				);
 		if (configuration.getAccount().equals(account)) {
 			//Checking credentials is can be used on any application
-			logger.info("The user is the configuration owner, so check if cloud credential is usable ");
+			logger.debug("The user is the configuration owner, so check if cloud credential is usable ");
 			CloudProviderParameters cloudProviderParameters = cppService.findByReference(configuration.getCloudProviderParametersReference());
 			return cppService.canCredentialBeUsedForApplication(cloudProviderParameters, application, account);
 		} else {
 			//Check configuration is shared with user
-			logger.info("Check if configuration is shared with the user");
+			logger.debug("User, is not configuration owner, check if configuration is shared with the user");
 			if (isConfigurationSharedWithAccount(account, configuration)) {
-				logger.info("Configuration is shared with account, check if it is from same team");
 				//Getting corresponding teams
 				Set<String> configSharedWithTeams = configuration.getSharedTeamNames();
 				Set<String> accountMemberOfTeams = account.getMembershipTeamNames();
@@ -724,7 +723,6 @@ public class ConfigurationService {
 
 			}
 		}
-		logger.info("Configuration cannot be used for application");
 		return false;
 	}
 
