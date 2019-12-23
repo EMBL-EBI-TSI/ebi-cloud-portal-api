@@ -60,8 +60,6 @@ import uk.ac.ebi.tsc.portal.api.application.service.ApplicationNotSharedExceptio
 import uk.ac.ebi.tsc.portal.api.application.service.ApplicationService;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParameters;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParamsCopy;
-import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.service.CloudProviderParametersNotFoundException;
-import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.service.CloudProviderParametersNotSharedException;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.service.CloudProviderParametersService;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.service.CloudProviderParamsCopyNotFoundException;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.service.CloudProviderParamsCopyService;
@@ -72,7 +70,6 @@ import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigDeploymentParamsCopy
 import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigDeploymentParamsCopyService;
 import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigurationDeploymentParametersService;
 import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigurationNotFoundException;
-import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigurationNotSharedException;
 import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigurationService;
 import uk.ac.ebi.tsc.portal.api.configuration.service.UsageLimitsException;
 import uk.ac.ebi.tsc.portal.api.deployment.bean.DeploymentOutputsProcessResult;
@@ -283,82 +280,31 @@ public class DeploymentRestController {
 		Map<String, String> validatedInputs = applicationDeployerHelper.validateInputNameandValues(input.getAssignedInputs(), theApplication);
 
 		// Get the configuration
-		logger.info("Looking for configuration " + input.getConfigurationName() + " for user " + account.getGivenName());
+		logger.info("Get configuration - name: " + input.getConfigurationName() + "; owner: " + input.getConfigurationAccountUsername());
 		Configuration configuration = null;
-		try{
-			logger.info("Checking if the account user is the owner of the configuration");
-			configuration = this.configurationService.findByNameAndAccountUsername(
-					input.getConfigurationName(), account.getUsername());
-		}catch(ConfigurationNotFoundException e){
-			logger.debug("The user does not own the configuration, check if it has been shared with him");
-			logger.info("Checking if the configuration " +
-					input.getConfigurationName() + " has been shared with user by its owner " +
-					configurationOwnerAccount.getUsername());
-			configuration = this.configurationService.findByNameAndAccountUsername(
-					input.getConfigurationName(), configurationOwnerAccount.getUsername());
-			
-			if(!configurationService.isConfigurationSharedWithAccount(account, configuration)){
-				throw new ConfigurationNotSharedException(account.getGivenName(), configuration.getName());
-			}
-			if(!configurationService.canConfigurationBeUsedForApplication(
-					//get list of domainreference from configuration shared with teams
-					configuration.getSharedWithTeams().stream().map(Team::getDomainReference).collect(Collectors.toList()), 
-					theApplication, 
-					account)) {
+		CloudProviderParameters selectedCloudProviderParameters;
+		try {
+			configuration = this.configurationService.findByNameAndAccountUsername(input.getConfigurationName(), input.getConfigurationAccountUsername());
+			if (!configurationService.canConfigurationBeUsedForApplication(configuration, theApplication, account)) {
 				throw new ConfigurationNotUsableForApplicationException(configuration.getName(), theApplication.getName());
 			}
-		}
-		
-		CloudProviderParameters selectedCloudProviderParameters;
-		if(configuration != null) {
-			try{
-				//looking for the cloud credential based on the configuration.Credetial will be found if user owns both the 
-				//configuration and the cloud credential
-				logger.info("Looking for CONFIGURATION cloud provider params '{}' by username '{}'", configuration.getCloudProviderParametersName(), configurationOwnerAccount.getUsername());
+			selectedCloudProviderParameters = this.cloudProviderParametersService.findByReference(configuration.getCloudProviderParametersReference());
+
+		} catch (ConfigurationNotFoundException e) {
+			logger.error("Requested configuration not found!");
+			if (input.getCloudProviderParametersCopy() == null) {
+				throw new ConfigurationNotFoundException(input.getConfigurationAccountUsername(), input.getConfigurationName());
+			} else {
+				// TODO: At some point we shouldn't allow to pass specific cloud provider parameters and use just those in a configuration
+				CloudProviderParameters cpp = this.cloudProviderParametersService.findByReference(input.getCloudProviderParametersCopy().getCloudProviderParametersReference());
+				Account credentialOwnerAccount = this.accountService.findByUsername(cpp.getAccount().getUsername());
+
+				logger.info("Looking for EXPLICIT (legacy)cloud provider params '{}' by username '{}'", cpp.getName(), credentialOwnerAccount.getUsername());
 				selectedCloudProviderParameters = this.cloudProviderParametersService.findByNameAndAccountUsername(
-						configuration.getCloudProviderParametersName(), configurationOwnerAccount.getUsername());
-			}catch(CloudProviderParametersNotFoundException e){
-				//configuration and cloud owner are different
-				logger.info("Looking for CONFIGURATION cloud provider params(shared) '{}' by username '{}'", configuration.cloudProviderParametersName, configurationOwnerAccount.getUsername());
-				try{
-					//now find the cloud credential
-					selectedCloudProviderParameters = this.cloudProviderParametersService.findByReference(
-							configuration.getCloudProviderParametersReference());
-					//find the credential owner
-					Account cppOwnerAccount = this.accountService.findByUsername(selectedCloudProviderParameters.getAccount().getUsername());
-					//if the current user is the owner of the credential
-					if(cppOwnerAccount.getUsername().equals(account.getUsername())){
-						logger.debug("Cloud provider parameters" + selectedCloudProviderParameters.getName() + " is owned by " + account.getGivenName());
-
-					}else{
-						//the current user is not the owner of the credential, check if it has been shared with him
-						if(!cloudProviderParametersService.isCloudProviderParametersSharedWithAccount(account, selectedCloudProviderParameters)){
-							throw new CloudProviderParametersNotSharedException(account.getGivenName(), selectedCloudProviderParameters.getName());
-						}else{
-							//if it has been shared, check if it is shared in the samee team the application was shared
-							if(!cloudProviderParametersService.canCredentialBeUsedForApplication(
-									selectedCloudProviderParameters.getSharedWithTeams().stream().map(Team::getDomainReference).collect(Collectors.toList()), 
-									theApplication, 
-									account)) {
-								throw new CloudCredentialNotUsableForApplicationException(selectedCloudProviderParameters.getName(), theApplication.getName());
-							}
-							logger.debug("Cloud provider parameters" + selectedCloudProviderParameters.getName() + " has been shared with " + account.getGivenName());
-
-						}
-					}
-				}catch(CloudProviderParametersNotFoundException ex){
-					throw new CloudProviderParametersNotFoundException(account.getUsername(), configuration.cloudProviderParametersName);
-				}
+						cpp.getName(), credentialOwnerAccount.getUsername());
 			}
-		} else { // TODO: At some point we shouldn't allow to pass specific cloud provider parameters and use just those in a configuration
-			CloudProviderParameters cpp = this.cloudProviderParametersService.findByReference(input.getCloudProviderParametersCopy().getCloudProviderParametersReference());
-			Account credentialOwnerAccount = this.accountService.findByUsername(cpp.getAccount().getUsername());
-
-			logger.info("Looking for EXPLICIT (legacy)cloud provider params '{}' by username '{}'", cpp.getName(), credentialOwnerAccount.getUsername());
-			selectedCloudProviderParameters = this.cloudProviderParametersService.findByNameAndAccountUsername(
-					cpp.getName(), credentialOwnerAccount.getUsername());
 		}
-		
+
 		DeploymentIndexService deploymentIndexService = new DeploymentIndexService(
 				new RestTemplate(),
 				this.elasticSearchUrl + "/" + this.elasticSearchIndex,

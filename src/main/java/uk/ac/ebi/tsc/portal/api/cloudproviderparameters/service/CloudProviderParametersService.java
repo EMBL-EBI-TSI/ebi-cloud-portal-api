@@ -394,39 +394,34 @@ public class CloudProviderParametersService {
 		return false;
 	}
 
-	public boolean canCredentialBeUsedForApplication(List<String> cppSharedWithTeams,
-			Application application, Account account) {
-		
-		//we know cpp has been shared with user
-		//we also want to check if cpp and app are shared across same team
-		logger.info("Looking if shared cloudProviderParameters "
-		+ " is usable for application " + application.getName());
-		
-		List<String> accountMemberOfTeams = account.getMemberOfTeams().stream().map(Team::getDomainReference)
-				.collect(Collectors.toList());
-		
-		List<String> appSharedWithTeams = application.getSharedWithTeams().stream().map(Team::getDomainReference)
-				.collect(Collectors.toList());
-		
-		//check if cpp and app don't have any team in common else exit early
-		if(!cppSharedWithTeams.stream().anyMatch(appSharedWithTeams::contains)) {
-			return false;
-		}
-		
-		//get cpp and app common teams
-		List<String> commonTeams = cppSharedWithTeams.stream().filter(appSharedWithTeams::contains).collect(Collectors.toList());
-		
-		try{//for team which user belongs to
-			//check if the account is a part of the common team
-			String matchingTeam = accountMemberOfTeams.stream().filter(commonTeams::contains).findAny().get(); 
-			if(matchingTeam != null) {
-				logger.info("Matching team found " + matchingTeam);
-				return true;
+	public boolean canCredentialBeUsedForApplication(CloudProviderParameters cloudProviderParameters,
+													 Application application, Account account) {
+		if (cloudProviderParameters.getAccount().equals(account)) {
+			//CloudProviderParameters is owned by user, so it can be used on any applications
+			return true;
+		} else {
+			//User is not the owner of the credential, check credential it has been shared user's team
+			if (isCloudProviderParametersSharedWithAccount(account, cloudProviderParameters)) {
+				logger.debug("Checking if shared cloudProviderParameters "
+						+ " is usable for application " + application.getName());
+				//Getting corresponding teams
+				Set<String> cppSharedWithTeams = cloudProviderParameters.getSharedTeamNames();
+				Set<String> accountMemberOfTeams = account.getMembershipTeamNames();
+				Set<String> appSharedWithTeams = application.getSharedTeamNames();
+				return checkForOverlapingAmongTeams(cppSharedWithTeams, appSharedWithTeams, accountMemberOfTeams);
 			}
-		}catch(NoSuchElementException e) {
-			logger.info("No matching team found " + e.getMessage());
 		}
-		
+		return false;
+	}
+
+	public boolean checkForOverlapingAmongTeams(Set<String> cppSharedWithTeams, Set<String> appSharedWithTeams, Set<String> accountMemberOfTeams) {
+		//Retain teams of Cloud Provider Parameters intersect with Application
+		cppSharedWithTeams.retainAll(appSharedWithTeams);
+		if(!cppSharedWithTeams.isEmpty()){
+			cppSharedWithTeams.retainAll(accountMemberOfTeams);
+			if(!cppSharedWithTeams.isEmpty())
+				return true;
+		}
 		return false;
 	}
 

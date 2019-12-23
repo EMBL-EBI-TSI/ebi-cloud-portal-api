@@ -58,6 +58,11 @@ public class ApplicationService {
 				() -> new ApplicationNotFoundException(applicationId));
 	}
 
+	public Application findByReference(String reference) {
+		return this.applicationRepository.findByReference(reference).orElseThrow(
+				() -> new ApplicationNotFoundException(reference));
+	}
+
 	public void delete(Long applicationId) {
 		this.applicationRepository.findById(applicationId).orElseThrow(
 				() -> new ApplicationNotFoundException(applicationId));

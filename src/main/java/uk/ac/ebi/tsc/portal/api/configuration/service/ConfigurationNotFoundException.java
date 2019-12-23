@@ -16,7 +16,7 @@ public class ConfigurationNotFoundException extends RuntimeException {
     }
 
     public ConfigurationNotFoundException(String username, String name) {
-        super("Could not find configuration " + name + " for user '" + username + "'.");
+        super("Could not find configuration " + name + " with owner reference '" + username + "'.");
     }
 
     public ConfigurationNotFoundException(Long cloudCredentialsId) {
