@@ -63,6 +63,7 @@ import java.util.*;
 import static org.junit.Assert.*;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Matchers.*;
 
 @ContextConfiguration
 @RunWith(SpringJUnit4ClassRunner.class)
@@ -192,6 +193,7 @@ public class TeamRestControllerTest {
 	public void testGetAllTeamsWhenUserHasNoTeams(){
 		getPrincipal();
 		getAccount();
+		getRequest();
 		given(teamService.findByAccountUsername(principalName)).willReturn(null);
 		given(subject.getAllTeamsForCurrentUser(principal)).willCallRealMethod();
 		Resources<TeamResource> teamResource = subject.getAllTeamsForCurrentUser(principal);
@@ -202,11 +204,13 @@ public class TeamRestControllerTest {
 	public void testGetAllTeamsWhenUserIsAMemberOfTeam(){
 		getPrincipal();
 		getAccount();
+		getRequest();
 		Set<Team> teams = new HashSet<>();teams.add(team);
 		given(teamService.findByAccountUsername(principalName)).willReturn(teams);
 		getTeamResoure(team);
 		given(subject.getAllTeamsForCurrentUser(principal)).willCallRealMethod();
 		Resources<TeamResource> teamResource = subject.getAllTeamsForCurrentUser(principal);
+		
 		assertTrue(teamResource != null);
 		assertTrue(teamResource.getContent().size() == 1);
 	}
@@ -215,10 +219,12 @@ public class TeamRestControllerTest {
 	public void testGetTeamByName(){
 		getPrincipal();
 		getAccount();
+		getRequest();
 		getTeamResoure(team);
 		given(teamService.findByName(teamName)).willReturn(team);
-		given(subject.getTeamByName(principal, teamName)).willCallRealMethod();
-		TeamResource teamResource = subject.getTeamByName(principal, teamName);
+		given(subject.getTeamByName(request, principal, teamName)).willCallRealMethod();
+		given(teamService.setManagerUserNames(isA(TeamResource.class), isA(String.class))).willCallRealMethod();
+		TeamResource teamResource = subject.getTeamByName(request, principal, teamName);
 		assertTrue(teamResource.getName().equals(teamName));
 	}
 
@@ -226,8 +232,9 @@ public class TeamRestControllerTest {
 	public void testGetTeamByInvalidName(){
 		getPrincipal();
 		getAccount();
-		given(subject.getTeamByName(principal, null)).willCallRealMethod();
-		subject.getTeamByName(principal, null);
+		getRequest();
+		given(subject.getTeamByName(request, principal, null)).willCallRealMethod();
+		subject.getTeamByName(request, principal, null);
 	}
 
 	@Test
@@ -371,6 +378,7 @@ public class TeamRestControllerTest {
 		String someAccountEmail = userEmail;
 		String someOtherAccountEmail =  "anEmail";
 		getPrincipal();
+		getRequest();
 		getTeamResoure(team);
 		given(team.getAccount()).willReturn(account);
 		given(account.getEmail()).willReturn("some email");
@@ -383,7 +391,6 @@ public class TeamRestControllerTest {
 		team.getAccountsBelongingToTeam().addAll(accounts);
 		Mockito.when(team.getAccountsBelongingToTeam()).thenReturn(accounts);
 		getDomain();
-		getRequest();
 		assertTrue(team.getAccountsBelongingToTeam().size() == 2);
 		given(teamService.findByName(teamName)).willReturn(team);
         TeamResource teamResource = new TeamResource();
@@ -399,8 +406,6 @@ public class TeamRestControllerTest {
 		given(toAddAccount.getEmail()).willReturn(accountToAddEmail);
 		given(accountService.findByEmail(accountToAddEmail)).willReturn(toAddAccount);
 
-		HttpServletRequest request = mock(HttpServletRequest.class);
-		//Mockito.when(teamService.getBaseURL(request)).thenReturn("some base url");
 		given(subject.addMemberOnRequest(request, principal, teamResource)).willCallRealMethod();
 		ResponseEntity<?> memberAdded = subject.addMemberOnRequest(request, principal, teamResource);
 		assertTrue(memberAdded.getStatusCode().equals(HttpStatus.OK));

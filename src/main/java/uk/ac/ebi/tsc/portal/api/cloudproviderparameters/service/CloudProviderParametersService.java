@@ -396,11 +396,17 @@ public class CloudProviderParametersService {
 
 	public boolean canCredentialBeUsedForApplication(CloudProviderParameters cloudProviderParameters,
 													 Application application, Account account) {
+		logger.info("Checking if cloudProviderParameters '" + cloudProviderParameters.getName() +
+				"' can be used for application '" + application.getName() + "'" +
+				"by user '" + account.getGivenName() + "'"
+				);
 		if (cloudProviderParameters.getAccount().equals(account)) {
 			//CloudProviderParameters is owned by user, so it can be used on any applications
+			logger.debug("The user is the credential owner ");
 			return true;
 		} else {
 			//User is not the owner of the credential, check credential it has been shared user's team
+			logger.debug("The user is not the credential owner, check if it is shared ");
 			if (isCloudProviderParametersSharedWithAccount(account, cloudProviderParameters)) {
 				logger.debug("Checking if shared cloudProviderParameters "
 						+ " is usable for application " + application.getName());
@@ -416,6 +422,7 @@ public class CloudProviderParametersService {
 
 	public boolean checkForOverlapingAmongTeams(Set<String> cppSharedWithTeams, Set<String> appSharedWithTeams, Set<String> accountMemberOfTeams) {
 		//Retain teams of Cloud Provider Parameters intersect with Application
+		logger.info("Checking if shared cloudProviderParameters overlapping teams");
 		cppSharedWithTeams.retainAll(appSharedWithTeams);
 		if(!cppSharedWithTeams.isEmpty()){
 			cppSharedWithTeams.retainAll(accountMemberOfTeams);

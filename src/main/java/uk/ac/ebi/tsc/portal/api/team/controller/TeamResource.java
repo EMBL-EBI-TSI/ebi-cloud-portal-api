@@ -1,11 +1,10 @@
 package uk.ac.ebi.tsc.portal.api.team.controller;
 
-import uk.ac.ebi.tsc.portal.api.team.repo.Team;
-
 import java.util.Collection;
+import java.util.List;
 import java.util.stream.Collectors;
 
-import org.springframework.stereotype.Component;
+import uk.ac.ebi.tsc.portal.api.team.repo.Team;
 
 /**
  * @author Jose A. Dianes <jdianes@ebi.ac.uk>
@@ -22,6 +21,7 @@ public class TeamResource {
 	private Collection<String> configurationNames;
 	private Collection<String> configurationDeploymentParameterNames;
 	private String domainReference;
+	private List<String> managerUserNames;
 	
 	public TeamResource() {
 	}
@@ -106,5 +106,14 @@ public class TeamResource {
 	public void setConfigurationDeploymentParameterNames(Collection<String> configurationDeploymentParameterNames) {
 		this.configurationDeploymentParameterNames = configurationDeploymentParameterNames;
 	}
+
+	public List<String> getManagerUserNames() {
+		return managerUserNames;
+	}
+
+	public void setManagerUserNames(List<String> managerUserNames) {
+		this.managerUserNames = managerUserNames;
+	}
+
 	
 }

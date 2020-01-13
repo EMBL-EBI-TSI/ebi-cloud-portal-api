@@ -439,9 +439,131 @@ public class DeploymentRestControllerTest
 		 assertTrue(addedDeployment.getStatusCode().equals(HttpStatus.CREATED));
 	 }
 
+	 @Test
+	 public void test_add_deployment_own_application() throws InvalidApplicationInputValueException, ConfigurationNotUsableForApplicationException, CloudCredentialNotUsableForApplicationException, IOException {
+
+		 String username = "username";
+		 Principal principal = mock(Principal.class);
+		 given(principal.getName()).willReturn(username);
+
+		 //get account of the user with whom application and configuration are shared
+		 Account account = mock(Account.class);
+		 String accountReference = "accountReference";
+		 given(accountService.findByUsername(username)).willReturn(account);
+		 given(account.getGivenName()).willReturn(username);
+		 given(account.getUsername()).willReturn(username);
+		 given(account.getFirstJoinedDate()).willReturn(new Date(0, 0, 0));
+		 given(account.getReference()).willReturn(accountReference);
+
+		 DeploymentResource input = mock(DeploymentResource.class);
+		 given(input.getConfigurationAccountUsername()).willReturn(username);
+		 given(input.getApplicationAccountUsername()).willReturn(username);
+		 String sshkey = "sshkey";
+		 given(input.getUserSshKey()).willReturn(sshkey);
+
+		 //application
+		 given(input.getApplicationAccountUsername()).willReturn(username);
+		 String applicationName = "applicationName";
+		 given(input.getApplicationName()).willReturn(applicationName);
+		 Application application = mock(Application.class);
+		 given(application.getName()).willReturn(applicationName);
+		 given(application.getAccount()).willReturn(account);
+		 given(applicationService.findByAccountUsernameAndName(username,applicationName)).willReturn(application);
+
+		 //application is owned
+		 given(applicationService.findByAccountUsernameAndName(username,applicationName))
+				 .willReturn(application);
+
+		 //configuration
+		 String configurationName = "config";
+		 Configuration config = mock(Configuration.class);
+		 when(config.getAccount()).thenReturn(account);
+		 when(input.getConfigurationAccountUsername()).thenReturn(username);
+		 when(input.getConfigurationName()).thenReturn(configurationName);
+		 when(config.getName()).thenReturn(configurationName);
+		 when(configurationService.findByNameAndAccountUsername(input.getConfigurationName(), input.getConfigurationAccountUsername()))
+				 .thenReturn(config);
+		 when(config.getHardUsageLimit()).thenReturn(1.0);
+		 when(configurationService.getTotalConsumption(config, deploymentIndexService)).thenReturn(0.5);
+		 when(configurationService.canConfigurationBeUsedForApplication(config, application, account)).thenCallRealMethod();
+
+		 //cdp
+		 String cdpReference = "cdpReference";
+		 String cdpName = "cdpName";
+		 given(config.getConfigDeployParamsReference()).willReturn(cdpReference);
+		 ConfigDeploymentParamsCopy configDeploymentParamsCopy = mock(ConfigDeploymentParamsCopy.class);
+		 given(configDeploymentParamsCopy.getName()).willReturn(cdpName);
+		 given(configDeploymentParamsCopy.getConfigurationDeploymentParametersReference()).willReturn(cdpReference);
+		 given(configurationDeploymentParamsCopyService.findByConfigurationDeploymentParametersReference(cdpReference))
+				 .willReturn(configDeploymentParamsCopy);
+		 List<ConfigDeploymentParamsCopy> cdpCopyList = new ArrayList<>();
+		 cdpCopyList.add(configDeploymentParamsCopy);
+		 given(configurationDeploymentParamsCopyService.findByName(cdpName)).willReturn(cdpCopyList.get(0));
+		 given(configurationService.isConfigurationSharedWithAccount(account, config)).willCallRealMethod();
+		 given(configurationDeploymentParamsCopyService.findByConfigurationDeploymentParametersReference(cdpReference))
+				 .willReturn(configDeploymentParamsCopy);
+
+		 //assigned cloud provider parameters
+		 String cloudProviderParametersName = "cppName";
+		 String cloudProviderParametersReference= "cppReference";
+		 config.cloudProviderParametersName = cloudProviderParametersName;
+		 config.setCloudProviderParametersName(cloudProviderParametersName);
+		 when(config.getCloudProviderParametersName()).thenReturn(cloudProviderParametersName);
+		 when(config.getCloudProviderParametersReference()).thenReturn(cloudProviderParametersReference);
+		 when(cloudProviderParameters.getName()).thenReturn(cloudProviderParametersName);
+		 CloudProviderParameters selectedCloudProviderParameters = mock(CloudProviderParameters.class);
+
+		 given(selectedCloudProviderParameters.getReference()).willReturn(cloudProviderParametersReference);
+		 given(selectedCloudProviderParameters.getAccount()).willReturn(account);
+		 String cloudProvider = "ostack";
+		 given(selectedCloudProviderParameters.getCloudProvider()).willReturn(cloudProvider);
+		 given(cloudProviderParametersService.findByReference(cloudProviderParametersReference)).willReturn(selectedCloudProviderParameters);
+		 when(cloudProviderParametersService.canCredentialBeUsedForApplication(	selectedCloudProviderParameters, application, account)).thenCallRealMethod();
+
+		 //application cloud providers
+		 Collection<ApplicationCloudProvider> acpList = new ArrayList<>();
+		 ApplicationCloudProvider acp = mock(ApplicationCloudProvider.class);
+		 given(acp.getName()).willReturn("somename");
+		 given(acp.getPath()).willReturn("somepath");
+		 acpList.add(acp);
+		 given(application.getCloudProviders()).willReturn(acpList);
+		 given(selectedCloudProviderParameters.getName()).willReturn(cloudProviderParametersName);
+
+
+		 //deployment application
+		 DeploymentApplication deploymentApplication = mock(DeploymentApplication.class);
+		 given(deploymentApplicationService.createDeploymentApplication(application)).willReturn(deploymentApplication);
+		 given(deploymentApplication.getName()).willReturn(applicationName);
+		 given(deploymentApplication.getAccount()).willReturn(account);
+		 Collection<DeploymentApplicationCloudProvider> dacpList = new ArrayList<>();
+		 given(deploymentApplicationService.save(deploymentApplication)).willReturn(deploymentApplication);
+
+		 // application inputs
+		 Collection<DeploymentAssignedInputResource> inputResources = new ArrayList<>();
+		 DeploymentAssignedInputResource inputResource = mock(DeploymentAssignedInputResource.class);
+		 when(inputResource.getInputName()).thenReturn("somename");
+		 when(inputResource.getAssignedValue()).thenReturn("somevalue");
+
+		 inputResources.add(inputResource);
+		 when(input.getAssignedInputs()).thenReturn(inputResources);
+
+		 Deployment deployment = mock(Deployment.class);
+		 given(deployment.getId()).willReturn(1l);
+		 given(deploymentService.save(isA(Deployment.class))).willReturn(deployment);
+		 given(deployment.getAccount()).willReturn(account);
+		 given(deployment.getDeploymentApplication()).willReturn(deploymentApplication);
+		 HttpServletRequest request = new MockHttpServletRequest();
+		 when(subject.addDeployment(request, principal, input)).thenCallRealMethod();
+		 ResponseEntity<?> addedDeployment = subject.addDeployment(request, principal, input);
+		 assertNotNull(addedDeployment.getBody());
+		 assertTrue(addedDeployment.getStatusCode().equals(HttpStatus.CREATED));
+		 assertTrue(application.getCloudProviders().containsAll(deploymentApplication.getCloudProviders()));
+		 assertTrue(deployment.getDeploymentApplication().equals(deploymentApplication));
+	 }
+
 	 // run the flow of the add method and check no hiccups and deployment is created
 	@Test
-	public void test_add_deployment() throws InvalidApplicationInputValueException, ConfigurationNotUsableForApplicationException, CloudCredentialNotUsableForApplicationException, IOException {
+	public void test_add_deployment_shared_config_application() throws InvalidApplicationInputValueException, ConfigurationNotUsableForApplicationException, CloudCredentialNotUsableForApplicationException, IOException {
 
 		String sharedWithUsername = "sharedWithUsername";
 		Principal principal = mock(Principal.class);
