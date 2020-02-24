@@ -33,6 +33,7 @@ import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
 import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.QueryParam;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -553,7 +554,7 @@ public class DeploymentRestController {
 	}
 
 	@RequestMapping(method = RequestMethod.GET)
-	public Resources<DeploymentResource> getAllDeploymentsByUserId(Principal principal) throws IOException, ApplicationDeployerException {
+	public Resources<DeploymentResource> getAllDeploymentsByUserId(Principal principal, @QueryParam("showDestroyed") boolean showDestroyed) throws IOException, ApplicationDeployerException {
 		String userId = principal.getName();
 
 		logger.info("User '" + userId + "' deployment list requested");
@@ -561,6 +562,12 @@ public class DeploymentRestController {
 		this.accountService.findByUsername(userId);
 
 		Collection<Deployment> userDeployments = this.deploymentService.findByAccountUsername(userId);
+		if(!showDestroyed){
+			userDeployments = userDeployments.stream().filter(deployment -> deployment.getDeploymentStatus().getStatus().equals(DeploymentStatusEnum.RUNNING)
+			|| deployment.getDeploymentStatus().getStatus().equals(DeploymentStatusEnum.STARTING)
+			|| deployment.getDeploymentStatus().getStatus().equals(DeploymentStatusEnum.STARTING_FAILED))
+					.collect(Collectors.toList());
+		}
 
 		userDeployments.stream().forEach( d -> {
 			logger.debug("There are " + d.getGeneratedOutputs().size() + " generated outputs for deployment " + d.getReference());
