@@ -7,7 +7,9 @@ import static org.hamcrest.core.IsEqual.equalTo;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
+import org.junit.After;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,9 +26,8 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
-
+import org.springframework.transaction.annotation.Transactional;
 import uk.ac.ebi.tsc.portal.BePortalApiApplication;
 import uk.ac.ebi.tsc.portal.api.application.controller.ApplicationResource;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParameters;
@@ -36,7 +37,8 @@ import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigurationDeploymentParame
 import uk.ac.ebi.tsc.portal.api.deployment.controller.DeploymentResource;
 import uk.ac.ebi.tsc.portal.api.deployment.service.ConfigurationNotUsableForApplicationException;
 import uk.ac.ebi.tsc.portal.config.WebConfiguration;
-
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Optional;
 
@@ -55,28 +57,38 @@ public class DeploymentRestControllerIT {
 	@Autowired
 	private MockMvc mockMvc;
 
-	@Autowired 
+	@Autowired
 	private ObjectMapper mapper;
-	
-	@Value("${aapUserName}") 
+
+	// User Karo on AAP explore
+	private String TEST_USER_REFERENCE = "usr-b070585b-a340-4a98-aff1-f3de48da8c38";
+
+	// User  Ajay on AAP explore
+	private String AJAY_USER_REFERENCE = "usr-e8c1d6d5-6bf4-4636-a70e-41b8f32c70b4";
+
+	//Team owned by Ajay. Karo is a member of the team.
+	private String teamNameA = "test-team1";
+
+	//Team owned by Ajay. Karo is a member of the team.
+	private String teamNameB = "test-team2";
+
+	@Value("${aapUserName}")
 	private String testUserName;
-	
+
 	@Value("${aapPassword}")
 	private String testPassword;
-
-	private String TEST_USER_REFERENCE = "usr-d8749acf-6a22-4438-accc-cc8d1877ba36";
-
-	private String AJAY_USER_REFERENCE = "usr-9832620d-ec53-43a1-873d-efdc50d34ad1";
 
 	@Value("${ajayUserName}")
 	private String ajayUserName;
 
 	@Value("${ajayPassword}")
 	private String ajayPassword;
-	
+
 	@Value("${aapUrl}")
 	private String aapUrl;
 
+	@Value("${be.applications.root}")
+	private String applicationRootDir;
 
 	//@Test
 	public void canCreateDeployment() throws Exception{
@@ -159,139 +171,365 @@ public class DeploymentRestControllerIT {
 		.andExpect(status().is2xxSuccessful());
 	}
 
-
 	@Test
-	public void cannotDeployOwnAppWithInvalidConfig() throws Exception{
+    @Transactional
+	/***
+	 *  Case : User cannot deploy own Application with non existent Configuration
+	 */
+	public void cannotDeployAppWithNonExistentConfig() throws Exception{
 
-		String token = getToken(testUserName, testPassword);
-		String deploymentJson = "{\"applicationName\":\"Generic server instance\"," +
+		String testUserToken = getToken(testUserName, testPassword);
+		String configName = "some-config";
+
+		// Creating an application for test user
+        String appJson = "{\"repoUri\": \"https://github.com/EMBL-EBI-TSI/cpa-instance\"}";
+        String appResponse = mockMvc.perform(
+                post("/application")
+                        .headers(createHeaders(testUserToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(appJson)
+                        .accept(MediaType.APPLICATION_JSON)
+        )
+                .andExpect(status().is2xxSuccessful())
+                .andReturn().getResponse().getContentAsString();
+        ApplicationResource application = mapper.readValue(appResponse, ApplicationResource.class);
+
+        // Deploying application with some-config which does not exist
+		String deploymentJson = "{\"applicationName\":\""+application.getName()+"\"," +
 				"\"applicationAccountUsername\":\""+TEST_USER_REFERENCE+"\"," +
 				"\"cloudProviderParametersCopy\":null," +
 				"\"attachedVolumes\":[]," +
 				"\"assignedInputs\":[],\"assignedParameters\":[]," +
-				"\"configurationName\":\"config1\"," +
+				"\"configurationName\":\""+configName+"\"," +
 				"\"configurationAccountUsername\":\""+TEST_USER_REFERENCE+"\"}";
 
 		mockMvc.perform(
 				post("/deployment")
-						.headers(createHeaders(token))
+						.headers(createHeaders(testUserToken))
 						.contentType(MediaType.APPLICATION_JSON)
 						.content(deploymentJson)
 						.accept(MediaType.APPLICATION_JSON))
 				.andExpect(status().isNotFound())
-				.andExpect(jsonPath("[0].message").value("Could not find configuration config1 with owner reference '"+TEST_USER_REFERENCE+"'."))
+				.andExpect(jsonPath("[0].message").value("Could not find configuration "+configName+" " +
+						"with owner reference '"+TEST_USER_REFERENCE+"'."))
 				.andReturn();
 
 	}
 
+    @Test
+    @Transactional
+	/***
+	 *  Case : User cannot deploy own Application with shared configuration
+	 */
+    public void cannotDeployAppWithSharedConfig() throws Exception{
+
+        String testUserToken = getToken(testUserName, testPassword);
+        String ajayUserToken = getToken(ajayUserName, ajayPassword);
+
+		// Creating an application for test user
+        String appJson = "{\"repoUri\": \"https://github.com/EMBL-EBI-TSI/cpa-instance\"}";
+        String appResponse = mockMvc.perform(
+                post("/application")
+                        .headers(createHeaders(testUserToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(appJson)
+                        .accept(MediaType.APPLICATION_JSON)
+        )
+                .andExpect(status().is2xxSuccessful())
+                .andReturn().getResponse().getContentAsString();
+        ApplicationResource testUSerApplication = mapper.readValue(appResponse, ApplicationResource.class);
+
+        //Creating cloud provider parameter for Ajay
+        String cppJson = "{\"name\": \"os6\", \"cloudProvider\": \"openstack\", \"fields\":[]}";
+        String cppResponse = mockMvc.perform(
+                post("/cloudproviderparameters")
+                        .headers(createHeaders(ajayUserToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(cppJson)
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        CloudProviderParameters cpp = mapper.readValue(cppResponse, CloudProviderParameters.class);
+
+		//Creating deployment parameter for Ajay
+        String dpJson = "{\"name\": \"os6\", \"fields\":[]}";
+        String dpResponse = mockMvc.perform(
+                post("/configuration/deploymentparameters")
+                        .headers(createHeaders(ajayUserToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(dpJson)
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().is2xxSuccessful())
+                .andReturn().getResponse().getContentAsString();
+        ConfigurationDeploymentParameters configDP = mapper.readValue(dpResponse, ConfigurationDeploymentParameters.class);
+
+		/**
+		 * Creating configuration from created cloud provider parameter and deployment parameter
+		 *  for Ajay
+		 */
+        ConfigurationResource configurationResource = new ConfigurationResource();
+        configurationResource.setName("os6");
+        configurationResource.setCloudProviderParametersName(cpp.getName());
+        configurationResource.setDeploymentParametersName(configDP.getName());
+        configurationResource.setSshKey("some key");
+        String configJson = mapper.writeValueAsString(configurationResource);
+        String configResponse = mockMvc.perform(
+                post("/configuration")
+                        .headers(createHeaders(ajayUserToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(configJson)
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        Configuration ajayConfiguration =  mapper.readValue(configResponse, Configuration.class);
+
+		// Share the created configuration with Team A
+        String shareConfig =  "{\"name\": \""+ajayConfiguration.getName()+"\"}";
+
+        mockMvc.perform(
+                post("/team/"+teamNameA+"/configuration")
+                        .headers(createHeaders(ajayUserToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(shareConfig)
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+		// Now Deploy application with shared configuration
+        String deploymentJson = "{\"applicationName\":\""+testUSerApplication.getName()+"\"," +
+                "\"applicationAccountUsername\":\""+TEST_USER_REFERENCE+"\"," +
+                "\"cloudProviderParametersCopy\":null," +
+                "\"attachedVolumes\":[]," +
+                "\"assignedInputs\":[],\"assignedParameters\":[]," +
+                "\"configurationName\":\""+ajayConfiguration.getName()+"\"," +
+                "\"configurationAccountUsername\":\""+AJAY_USER_REFERENCE+"\"}";
+
+        MvcResult result = mockMvc.perform(
+                post("/deployment")
+                        .headers(createHeaders(testUserToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(deploymentJson)
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isForbidden())
+                .andReturn();
+        Optional<ConfigurationNotUsableForApplicationException> exception = Optional.ofNullable((ConfigurationNotUsableForApplicationException)
+				result.getResolvedException());
+        exception.ifPresent( (e) -> assertThat(e, is(instanceOf(ConfigurationNotUsableForApplicationException.class))));
+    }
+
 	@Test
-	public void cannotDeployOwnAppWithSharedConfig() throws Exception{
+	@Transactional
+	/***
+	 *  Case : User cannot deploy Application which is shared through Team A with Shared configuration
+	 *  which is shared through Team B
+	 */
+	public void cannotDeployAppAndConfigSharedInDifferentTeam() throws Exception {
 
-		String token = getToken(testUserName, testPassword);
-		String deploymentJson = "{\"applicationName\":\"Generic server instance\"," +
-				"\"applicationAccountUsername\":\""+TEST_USER_REFERENCE+"\"," +
-				"\"cloudProviderParametersCopy\":null," +
-				"\"attachedVolumes\":[]," +
-				"\"assignedInputs\":[],\"assignedParameters\":[]," +
-				"\"configurationName\":\"config1\"," +
-				"\"configurationAccountUsername\":\""+AJAY_USER_REFERENCE+"\"}";
+		String testUserToken = getToken(testUserName, testPassword);
+		String ajayUserToken = getToken(ajayUserName, ajayPassword);
 
-		MvcResult result = mockMvc.perform(
-				post("/deployment")
-						.headers(createHeaders(token))
+		// Creating an application for Ajay
+		String appJson = "{\"repoUri\": \"https://github.com/EMBL-EBI-TSI/cpa-instance\"}";
+		String appResponse = mockMvc.perform(
+				post("/application")
+						.headers(createHeaders(ajayUserToken))
 						.contentType(MediaType.APPLICATION_JSON)
-						.content(deploymentJson)
+						.content(appJson)
+						.accept(MediaType.APPLICATION_JSON)
+		)
+				.andExpect(status().is2xxSuccessful())
+				.andReturn().getResponse().getContentAsString();
+		ApplicationResource ajayUSerApplication = mapper.readValue(appResponse, ApplicationResource.class);
+
+		// Sharing the application with Team A
+		String shareApplication =  "{\"name\": \""+ajayUSerApplication.getName()+"\"}";
+
+		mockMvc.perform(
+				post("/team/"+teamNameA+"/application")
+						.headers(createHeaders(getToken(ajayUserName, ajayPassword)))
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(shareApplication)
 						.accept(MediaType.APPLICATION_JSON))
-				.andExpect(status().isForbidden())
-				.andReturn();
+				.andExpect(status().isOk());
 
-		Optional<ConfigurationNotUsableForApplicationException> exception = Optional.ofNullable((ConfigurationNotUsableForApplicationException) result.getResolvedException());
-		exception.ifPresent( (e) -> assertThat(e, is(instanceOf(ConfigurationNotUsableForApplicationException.class))));
-	}
 
-	@Test
-	public void cannotDeployAppWithConfigInDifferentTeam() throws Exception{
+		//Creating cloud provider parameter for Ajay
+		String cppJson = "{\"name\": \"os6\", \"cloudProvider\": \"openstack\", \"fields\":[]}";
+		String cppResponse = mockMvc.perform(
+				post("/cloudproviderparameters")
+						.headers(createHeaders(ajayUserToken))
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(cppJson)
+						.accept(MediaType.APPLICATION_JSON))
+				.andExpect(status().isOk())
+				.andReturn().getResponse().getContentAsString();
+		CloudProviderParameters cpp = mapper.readValue(cppResponse, CloudProviderParameters.class);
 
-		String token = getToken(testUserName, testPassword);
-		String deploymentJson = "{\"applicationName\":\"redis\"," +
+		//Creating deployment parameter for Ajay
+		String dpJson = "{\"name\": \"os6\", \"fields\":[]}";
+		String dpResponse = mockMvc.perform(
+				post("/configuration/deploymentparameters")
+						.headers(createHeaders(ajayUserToken))
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(dpJson)
+						.accept(MediaType.APPLICATION_JSON))
+				.andExpect(status().is2xxSuccessful())
+				.andReturn().getResponse().getContentAsString();
+		ConfigurationDeploymentParameters configDP = mapper.readValue(dpResponse, ConfigurationDeploymentParameters.class);
+
+		/**
+		 * Creating configuration from existing cloud provider parameter and deployment parameter
+		 *  for Ajay
+		 */
+		ConfigurationResource configurationResource = new ConfigurationResource();
+		configurationResource.setName("os6");
+		configurationResource.setCloudProviderParametersName(cpp.getName());
+		configurationResource.setDeploymentParametersName(configDP.getName());
+		configurationResource.setSshKey("some key");
+		String configJson = mapper.writeValueAsString(configurationResource);
+		String configResponse = mockMvc.perform(
+				post("/configuration")
+						.headers(createHeaders(ajayUserToken))
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(configJson)
+						.accept(MediaType.APPLICATION_JSON))
+				.andExpect(status().isCreated())
+				.andReturn().getResponse().getContentAsString();
+		Configuration ajayConfiguration =  mapper.readValue(configResponse, Configuration.class);
+
+		// Share the created configuration with Team B
+		String shareConfig =  "{\"name\": \""+ajayConfiguration.getName()+"\"}";
+
+		mockMvc.perform(
+				post("/team/"+teamNameB+"/configuration")
+						.headers(createHeaders(ajayUserToken))
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(shareConfig)
+						.accept(MediaType.APPLICATION_JSON))
+				.andExpect(status().isOk())
+				.andReturn().getResponse().getContentAsString();
+
+		// Now Deploy application which is shared in Team A with Configuration which is shared in Team B
+		String deploymentJson = "{\"applicationName\":\""+ajayUSerApplication.getName()+"\"," +
 				"\"applicationAccountUsername\":\""+AJAY_USER_REFERENCE+"\"," +
 				"\"cloudProviderParametersCopy\":null," +
 				"\"attachedVolumes\":[]," +
 				"\"assignedInputs\":[],\"assignedParameters\":[]," +
-				"\"configurationName\":\"config1\"," +
+				"\"configurationName\":\""+ajayConfiguration.getName()+"\"," +
 				"\"configurationAccountUsername\":\""+AJAY_USER_REFERENCE+"\"}";
 
 		MvcResult result = mockMvc.perform(
 				post("/deployment")
-						.headers(createHeaders(token))
+						.headers(createHeaders(testUserToken))
 						.contentType(MediaType.APPLICATION_JSON)
 						.content(deploymentJson)
 						.accept(MediaType.APPLICATION_JSON))
 				.andExpect(status().isForbidden())
 				.andReturn();
-
-		Optional<ConfigurationNotUsableForApplicationException> exception = Optional.ofNullable((ConfigurationNotUsableForApplicationException) result.getResolvedException());
+		Optional<ConfigurationNotUsableForApplicationException> exception = Optional.ofNullable((ConfigurationNotUsableForApplicationException)
+				result.getResolvedException());
 		exception.ifPresent( (e) -> assertThat(e, is(instanceOf(ConfigurationNotUsableForApplicationException.class))));
 	}
 
-	private String getToken(String username, String password) {
-		ResponseEntity<String> response = restTemplate.withBasicAuth(username, password)
-				.getForEntity(aapUrl, String.class);
-		assertThat(response.getStatusCode(), is(equalTo(HttpStatus.OK)));
-		return response.getBody();
-	}
-
-
 	@Test
-	public void cannotDeployOwnAppWithOwnConfigOfSharedCC() throws Exception{
+	@Transactional
+	/***
+	 *  Case : User cannot deploy an Application with configuration which is created from
+	 *  a shared cloud provider parameter.
+	 */
+	public void cannotDeployAppWithConfigCreatedBySharedCloudProviderParameter() throws Exception{
 
-		String token = getToken(testUserName, testPassword);
-		String cloudProviderParametersNameShared = "ostack provider";
+		String testUserToken = getToken(testUserName, testPassword);
+		String ajayUserToken = getToken(ajayUserName, ajayPassword);
 
-		//add deployment parameters
-		String deploymentParametersJson = "{\n\"name\":\"deploy_params\","
-				+ "\n\"fields\":[{\n\"key\":\"floatingip_pool\",\n\"value\":\"net-external\"\n}," +
-				"\n{\n\"key\":\"machine_type\",\n\"value\":\"s1.small\"\n}\n]\n}";
-		mockMvc.perform(
+		// Creating an application for test user
+		String appJson = "{\"repoUri\": \"https://github.com/EMBL-EBI-TSI/cpa-instance\"}";
+		String appResponse = mockMvc.perform(
+				post("/application")
+						.headers(createHeaders(testUserToken))
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(appJson)
+						.accept(MediaType.APPLICATION_JSON)
+		)
+				.andExpect(status().is2xxSuccessful())
+				.andReturn().getResponse().getContentAsString();
+		ApplicationResource testUSerApplication = mapper.readValue(appResponse, ApplicationResource.class);
+
+		//Creating deployment parameter for test user
+		String dpJson = "{\"name\": \"os6\", \"fields\":[]}";
+		String dpResponse = mockMvc.perform(
 				post("/configuration/deploymentparameters")
-						.headers(createHeaders(token))
+						.headers(createHeaders(testUserToken))
 						.contentType(MediaType.APPLICATION_JSON)
-						.content(deploymentParametersJson)
+						.content(dpJson)
 						.accept(MediaType.APPLICATION_JSON))
-				.andExpect(jsonPath("name").value("deploy_params"))
-				.andReturn();
+				.andExpect(status().is2xxSuccessful())
+				.andReturn().getResponse().getContentAsString();
+		ConfigurationDeploymentParameters configDP = mapper.readValue(dpResponse, ConfigurationDeploymentParameters.class);
 
-		//add configuration with shared cloud provider parameter
-		String configurationJson = "{\n\"name\":\"config2\",\n\"cloudProviderParametersName\":\""+cloudProviderParametersNameShared+"\"," +
-				"\n\"deploymentParametersName\":\"deploy_params\"," +
-				"\"sshKey\":\"\"}";
+		//Creating cloud provider parameter for Ajay
+		String cppJson = "{\"name\": \"os6\", \"cloudProvider\": \"openstack\", \"fields\":[]}";
+		String cppResponse = mockMvc.perform(
+				post("/cloudproviderparameters")
+						.headers(createHeaders(ajayUserToken))
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(cppJson)
+						.accept(MediaType.APPLICATION_JSON))
+				.andExpect(status().isOk())
+				.andReturn().getResponse().getContentAsString();
+		CloudProviderParameters cpp = mapper.readValue(cppResponse, CloudProviderParameters.class);
+
+		//Sharing cloud provider parameter with Team A
+		String shareCloudProviderParamter =  "{\"name\": \""+cpp.getName()+"\"}";
+
 		mockMvc.perform(
-				post("/configuration")
-						.headers(createHeaders(token))
+				post("/team/"+teamNameA+"/cloudproviderparameters")
+						.headers(createHeaders(ajayUserToken))
 						.contentType(MediaType.APPLICATION_JSON)
-						.content(configurationJson)
+						.content(shareCloudProviderParamter)
 						.accept(MediaType.APPLICATION_JSON))
-				.andReturn();
+				.andExpect(status().isOk())
+				.andReturn().getResponse().getContentAsString();
 
+		/**
+		 * Creating configuration from shared cloud provider parameter and deployment parameter
+		 *  for Test user
+		 */
+		ConfigurationResource configurationResource = new ConfigurationResource();
+		configurationResource.setName("os6");
+		configurationResource.setCloudProviderParametersName(cpp.getName());
+		configurationResource.setDeploymentParametersName(configDP.getName());
+		configurationResource.setSshKey("some key");
+		String configJson = mapper.writeValueAsString(configurationResource);
+		String configResponse = mockMvc.perform(
+				post("/configuration")
+						.headers(createHeaders(testUserToken))
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(configJson)
+						.accept(MediaType.APPLICATION_JSON))
+				.andExpect(status().isCreated())
+				.andReturn().getResponse().getContentAsString();
+		Configuration testUserConfiguration =  mapper.readValue(configResponse, Configuration.class);
 
-		String deploymentJson = "{\"applicationName\":\"Generic server instance\"," +
+		// Now Deploy application with Configuration which is created from shared cloud provider parameter
+		String deploymentJson = "{\"applicationName\":\""+testUSerApplication.getName()+"\"," +
 				"\"applicationAccountUsername\":\""+TEST_USER_REFERENCE+"\"," +
 				"\"cloudProviderParametersCopy\":null," +
 				"\"attachedVolumes\":[]," +
 				"\"assignedInputs\":[],\"assignedParameters\":[]," +
-				"\"configurationName\":\"config2\"," +
+				"\"configurationName\":\""+testUserConfiguration.getName()+"\"," +
 				"\"configurationAccountUsername\":\""+TEST_USER_REFERENCE+"\"}";
 
 		MvcResult result = mockMvc.perform(
 				post("/deployment")
-						.headers(createHeaders(token))
+						.headers(createHeaders(testUserToken))
 						.contentType(MediaType.APPLICATION_JSON)
 						.content(deploymentJson)
 						.accept(MediaType.APPLICATION_JSON))
 				.andExpect(status().isForbidden())
 				.andReturn();
-
-		Optional<ConfigurationNotUsableForApplicationException> exception = Optional.ofNullable((ConfigurationNotUsableForApplicationException) result.getResolvedException());
+		Optional<ConfigurationNotUsableForApplicationException> exception = Optional.ofNullable((ConfigurationNotUsableForApplicationException)
+				result.getResolvedException());
 		exception.ifPresent( (e) -> assertThat(e, is(instanceOf(ConfigurationNotUsableForApplicationException.class))));
 
 	}
@@ -307,5 +545,25 @@ public class DeploymentRestControllerIT {
 			}};
 	}
 
+	private String getToken(String username, String password) {
+		ResponseEntity<String> response = restTemplate.withBasicAuth(username, password)
+				.getForEntity(aapUrl, String.class);
+		assertThat(response.getStatusCode(), is(equalTo(HttpStatus.OK)));
+		return response.getBody();
+	}
+
+	@After
+	public void tearDownAfterClass() throws Exception {
+		// Cleaning application directories after test execution.
+		File file = new File(applicationRootDir+"/"+TEST_USER_REFERENCE);
+		deleteFile(file);
+		file = new File(applicationRootDir+"/"+AJAY_USER_REFERENCE);
+		deleteFile(file);
+	}
+
+	private void deleteFile(File file) throws IOException {
+		if(file.exists())
+			FileUtils.forceDelete(file);
+	}
 
 }
