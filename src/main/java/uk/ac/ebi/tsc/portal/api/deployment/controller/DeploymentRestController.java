@@ -554,19 +554,21 @@ public class DeploymentRestController {
 	}
 
 	@RequestMapping(method = RequestMethod.GET)
-	public Resources<DeploymentResource> getAllDeploymentsByUserId(Principal principal, @QueryParam("showDestroyed") boolean showDestroyed) throws IOException, ApplicationDeployerException {
+	public Resources<DeploymentResource> getAllDeploymentsByUserId(Principal principal, @QueryParam("hideDestroyed") boolean hideDestroyed) throws IOException, ApplicationDeployerException {
 		String userId = principal.getName();
 
 		logger.info("User '" + userId + "' deployment list requested");
 
 		this.accountService.findByUsername(userId);
 
-		Collection<Deployment> userDeployments = this.deploymentService.findByAccountUsername(userId);
-		if(!showDestroyed){
-			userDeployments = userDeployments.stream().filter(deployment -> deployment.getDeploymentStatus().getStatus().equals(DeploymentStatusEnum.RUNNING)
+		Collection<Deployment> userDeployments;
+		if(hideDestroyed){
+			userDeployments = this.deploymentService.findByAccountUsername(userId).stream().filter(deployment -> deployment.getDeploymentStatus().getStatus().equals(DeploymentStatusEnum.RUNNING)
 						|| deployment.getDeploymentStatus().getStatus().equals(DeploymentStatusEnum.STARTING)
 						|| deployment.getDeploymentStatus().getStatus().equals(DeploymentStatusEnum.STARTING_FAILED))
 						.collect(Collectors.toList());
+		}else{
+			userDeployments = this.deploymentService.findByAccountUsername(userId);
 		}
 
 		List<DeploymentResource> deploymentResourceList = new ArrayList<>();
