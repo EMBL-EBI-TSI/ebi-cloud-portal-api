@@ -3,6 +3,8 @@ package uk.ac.ebi.tsc.portal.api.deployment.service;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,6 +51,10 @@ public class DeploymentService {
         return this.deploymentRepository.findByAccountUsernameAndId(username, id).orElseThrow(
                 () -> new DeploymentNotFoundException(username, id));
     }
+    public Collection<Deployment> findByAccountUsernameAndDeploymentStatusStatus(String username, DeploymentStatusEnum status) {
+        return this.deploymentRepository.findByAccountUsernameAndDeploymentStatusStatus(username,status );
+    }
+
 
     public Deployment save(Deployment deployment) {
         return this.deploymentRepository.save(deployment);
@@ -84,5 +90,26 @@ public class DeploymentService {
 
     public Collection<Deployment> findByConfigurationReference(String reference) {
         return this.deploymentRepository.findByDeploymentConfigurationConfigurationReference(reference);
+    }
+
+    public List<Deployment> findDeployments(String userId, boolean hideDestroyed) {
+        if(hideDestroyed){
+            //get only active deployments status RUNNING, STARTING, STARTING_FAILED
+            Stream<Deployment> userDeploymentsStream = Stream.of(
+                    this.findByAccountUsernameAndDeploymentStatusStatus(userId, DeploymentStatusEnum.STARTING),
+                    this.findByAccountUsernameAndDeploymentStatusStatus(userId, DeploymentStatusEnum.STARTING_FAILED),
+                    this.findByAccountUsernameAndDeploymentStatusStatus(userId, DeploymentStatusEnum.RUNNING),
+                    this.findByAccountUsernameAndDeploymentStatusStatus(userId, DeploymentStatusEnum.RUNNING_FAILED))
+                    .flatMap(Collection::stream);
+            return userDeploymentsStream .collect(Collectors.toList());
+        }else{
+            Stream<Deployment> userDeploymentsStream = Stream.of(
+                    this.findByAccountUsernameAndDeploymentStatusStatus(userId, DeploymentStatusEnum.DESTROYING_FAILED),
+                    this.findByAccountUsernameAndDeploymentStatusStatus(userId, DeploymentStatusEnum.DESTROYING),
+                    this.findByAccountUsernameAndDeploymentStatusStatus(userId, DeploymentStatusEnum.DESTROYED))
+                    .flatMap(Collection::stream);
+            return userDeploymentsStream .collect(Collectors.toList());
+        }
+
     }
 }

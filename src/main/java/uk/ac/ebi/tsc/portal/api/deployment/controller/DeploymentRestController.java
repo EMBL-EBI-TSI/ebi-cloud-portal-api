@@ -28,6 +28,7 @@ import java.util.Optional;
 import java.util.Properties;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
@@ -561,15 +562,7 @@ public class DeploymentRestController {
 
 		this.accountService.findByUsername(userId);
 
-		Collection<Deployment> userDeployments;
-		if(hideDestroyed){
-			userDeployments = this.deploymentService.findByAccountUsername(userId).stream().filter(deployment -> deployment.getDeploymentStatus().getStatus().equals(DeploymentStatusEnum.RUNNING)
-						|| deployment.getDeploymentStatus().getStatus().equals(DeploymentStatusEnum.STARTING)
-						|| deployment.getDeploymentStatus().getStatus().equals(DeploymentStatusEnum.STARTING_FAILED))
-						.collect(Collectors.toList());
-		}else{
-			userDeployments = this.deploymentService.findByAccountUsername(userId);
-		}
+		List<Deployment> userDeployments = deploymentService.findDeployments(userId, hideDestroyed);
 
 		List<DeploymentResource> deploymentResourceList = new ArrayList<>();
 

@@ -19,5 +19,6 @@ public interface DeploymentRepository extends JpaRepository<Deployment, Long> {
     Optional<Deployment> findByAccessIp(String accessIp);
     List<Deployment> findByDeploymentApplicationId(Long id);
     Collection<Deployment> findByDeploymentConfigurationConfigurationReference(String reference);
+    Collection<Deployment> findByAccountUsernameAndDeploymentStatusStatus(String username, DeploymentStatusEnum status);
 
 }
