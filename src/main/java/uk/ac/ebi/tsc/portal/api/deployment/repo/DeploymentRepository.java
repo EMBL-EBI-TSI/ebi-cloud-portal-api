@@ -1,6 +1,8 @@
 package uk.ac.ebi.tsc.portal.api.deployment.repo;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.Collection;
 import java.util.List;
@@ -19,6 +21,9 @@ public interface DeploymentRepository extends JpaRepository<Deployment, Long> {
     Optional<Deployment> findByAccessIp(String accessIp);
     List<Deployment> findByDeploymentApplicationId(Long id);
     Collection<Deployment> findByDeploymentConfigurationConfigurationReference(String reference);
-    Collection<Deployment> findByAccountUsernameAndDeploymentStatusStatus(String username, DeploymentStatusEnum status);
+    @Query(value = "SELECT * from deployment d, deployment_status s, account a\n" +
+            "WHERE s.deployment_id = d.id AND s.status IN (:statuses) AND \n" +
+            "d.account_id = a.id AND a.username = :username", nativeQuery = true)
+    List<Deployment> findByAccountUsernameAndDeploymentStatus(@Param("username") String username, @Param("statuses") List<Integer> status);
 
 }
