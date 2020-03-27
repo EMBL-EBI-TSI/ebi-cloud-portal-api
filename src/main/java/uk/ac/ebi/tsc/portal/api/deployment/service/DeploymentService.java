@@ -89,12 +89,19 @@ public class DeploymentService {
     public List<Deployment> findDeployments(String userId, boolean hideDestroyed) {
         if(hideDestroyed){
             //get only active deployments status RUNNING, STARTING, STARTING_FAILED, RUNNING_FAILED
-            Integer[] activeStatusArray = {0,1,3,4};
-            return this.deploymentRepository.findByAccountUsernameAndDeploymentStatus(userId, Arrays.asList(activeStatusArray));
+            DeploymentStatusEnum[] activeStatuses = {
+                    DeploymentStatusEnum.STARTING,
+                    DeploymentStatusEnum.STARTING_FAILED,
+                    DeploymentStatusEnum.RUNNING,
+                    DeploymentStatusEnum.RUNNING_FAILED};
+            return this.deploymentRepository.findByAccountUsernameAndDeploymentStatus(userId, Arrays.asList(activeStatuses));
         }else{
             //get only inactive/ to be inactive deployments status DESTROYING, DESTROYING_FAILED, DESTROYED
-            Integer[] destoyedStatusArray = {2,5,6};
-            return this.deploymentRepository.findByAccountUsernameAndDeploymentStatus(userId, Arrays.asList(destoyedStatusArray));
+            DeploymentStatusEnum[] inactiveStatuses = {
+                    DeploymentStatusEnum.DESTROYED,
+                    DeploymentStatusEnum.DESTROYING_FAILED,
+                    DeploymentStatusEnum.DESTROYING};
+            return this.deploymentRepository.findByAccountUsernameAndDeploymentStatus(userId, Arrays.asList(inactiveStatuses));
         }
     }
 }
