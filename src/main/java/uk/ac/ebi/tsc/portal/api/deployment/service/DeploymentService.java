@@ -94,14 +94,11 @@ public class DeploymentService {
                     DeploymentStatusEnum.STARTING_FAILED,
                     DeploymentStatusEnum.RUNNING,
                     DeploymentStatusEnum.RUNNING_FAILED};
-            return this.deploymentRepository.findByAccountUsernameAndDeploymentStatus(userId, Arrays.asList(activeStatuses));
+            return this.deploymentRepository.findByAccountUsernameAndDeploymentStatusStatusIn(userId, Arrays.asList(activeStatuses));
         }else{
-            //get only inactive/ to be inactive deployments status DESTROYING, DESTROYING_FAILED, DESTROYED
-            DeploymentStatusEnum[] inactiveStatuses = {
-                    DeploymentStatusEnum.DESTROYED,
-                    DeploymentStatusEnum.DESTROYING_FAILED,
-                    DeploymentStatusEnum.DESTROYING};
-            return this.deploymentRepository.findByAccountUsernameAndDeploymentStatus(userId, Arrays.asList(inactiveStatuses));
+            //get  all including destroyed deployments status DESTROYING, DESTROYING_FAILED, DESTROYED
+            DeploymentStatusEnum[] allStatuses = DeploymentStatusEnum.values();
+            return this.deploymentRepository.findByAccountUsernameAndDeploymentStatusStatusIn(userId, Arrays.asList(allStatuses));
         }
     }
 }
