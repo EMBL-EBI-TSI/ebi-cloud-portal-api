@@ -97,8 +97,8 @@ public class DeploymentService {
             return this.deploymentRepository.findByAccountUsernameAndDeploymentStatusStatusIn(userId, Arrays.asList(activeStatuses));
         }else{
             //get  all including destroyed deployments status DESTROYING, DESTROYING_FAILED, DESTROYED
-            DeploymentStatusEnum[] allStatuses = DeploymentStatusEnum.values();
-            return this.deploymentRepository.findByAccountUsernameAndDeploymentStatusStatusIn(userId, Arrays.asList(allStatuses));
+            return this.deploymentRepository.findByAccountUsername(userId).stream().collect(Collectors.toList());
         }
     }
+
 }
