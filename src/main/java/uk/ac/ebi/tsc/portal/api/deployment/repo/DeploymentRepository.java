@@ -1,6 +1,8 @@
 package uk.ac.ebi.tsc.portal.api.deployment.repo;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.Collection;
 import java.util.List;
@@ -19,5 +21,6 @@ public interface DeploymentRepository extends JpaRepository<Deployment, Long> {
     Optional<Deployment> findByAccessIp(String accessIp);
     List<Deployment> findByDeploymentApplicationId(Long id);
     Collection<Deployment> findByDeploymentConfigurationConfigurationReference(String reference);
+    List<Deployment> findByAccountUsernameAndDeploymentStatusStatusIn(@Param("username") String username, @Param("statuses") List<DeploymentStatusEnum> status);
 
 }

@@ -1,8 +1,8 @@
 package uk.ac.ebi.tsc.portal.api.deployment.service;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -85,4 +85,20 @@ public class DeploymentService {
     public Collection<Deployment> findByConfigurationReference(String reference) {
         return this.deploymentRepository.findByDeploymentConfigurationConfigurationReference(reference);
     }
+
+    public List<Deployment> findDeployments(String userId, boolean hideDestroyed) {
+        if(hideDestroyed){
+            //get only active deployments status RUNNING, STARTING, STARTING_FAILED, RUNNING_FAILED
+            DeploymentStatusEnum[] activeStatuses = {
+                    DeploymentStatusEnum.STARTING,
+                    DeploymentStatusEnum.STARTING_FAILED,
+                    DeploymentStatusEnum.RUNNING,
+                    DeploymentStatusEnum.RUNNING_FAILED};
+            return this.deploymentRepository.findByAccountUsernameAndDeploymentStatusStatusIn(userId, Arrays.asList(activeStatuses));
+        }else{
+            //get  all including destroyed deployments status DESTROYING, DESTROYING_FAILED, DESTROYED
+            return this.deploymentRepository.findByAccountUsername(userId).stream().collect(Collectors.toList());
+        }
+    }
+
 }
