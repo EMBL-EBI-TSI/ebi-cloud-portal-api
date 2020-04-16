@@ -6,7 +6,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Matchers.isA;
+import static org.mockito.Matchers.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -20,12 +20,8 @@ import java.security.NoSuchProviderException;
 import java.security.Principal;
 import java.security.spec.InvalidKeySpecException;
 import java.sql.Date;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Properties;
-import java.util.Set;
+import java.util.*;
+import java.util.stream.Collectors;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
@@ -35,9 +31,11 @@ import javax.servlet.http.HttpServletRequest;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.data.domain.Sort;
+import org.springframework.hateoas.Resources;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -67,10 +65,7 @@ import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigDeploymentParamsCopy;
 import uk.ac.ebi.tsc.portal.api.configuration.repo.Configuration;
 import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigurationDeploymentParameters;
 import uk.ac.ebi.tsc.portal.api.configuration.service.*;
-import uk.ac.ebi.tsc.portal.api.deployment.repo.Deployment;
-import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentApplication;
-import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentApplicationCloudProvider;
-import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentConfiguration;
+import uk.ac.ebi.tsc.portal.api.deployment.repo.*;
 import uk.ac.ebi.tsc.portal.api.deployment.service.CloudCredentialNotUsableForApplicationException;
 import uk.ac.ebi.tsc.portal.api.deployment.service.ConfigurationNotUsableForApplicationException;
 import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentApplicationService;
@@ -742,6 +737,7 @@ public class DeploymentRestControllerTest
 		Account mockAccount = mock(Account.class);
 		when(mockAccount.getUsername()).thenReturn(A_USER_NAME);
 		when(mockDeployment.getAccount()).thenReturn(mockAccount);
+		when(mockDeploymentApp.getAccount()).thenReturn(mockAccount);
 		when(deploymentService.findByReference(reference)).thenReturn(mockDeployment);
 		when(mockDeployment.getCloudProviderParametersReference()).thenReturn(cppReference);
 		DeploymentConfiguration deploymentConfiguration = mock(DeploymentConfiguration.class);
@@ -1034,5 +1030,36 @@ public class DeploymentRestControllerTest
 		subject.addDeployment(request, principal, input);
 
 	}
-	
+
+	 @Test
+	 public void testDeploymentsReturned() throws IOException, ApplicationDeployerException {
+
+		 String username = "username";
+		 Principal principal = mock(Principal.class);
+		 given(principal.getName()).willReturn(username);
+
+		 //get account of the user
+		 Account account = mock(Account.class);
+		 given(account.getUsername()).willReturn(username);
+		 given(accountService.findByUsername(username)).willReturn(account);
+
+		 Set<Deployment> deployments = new HashSet<>();
+
+		 Deployment deploymentOne = deployment("some reference");
+
+		 deployments.add(deploymentOne);
+		 given(account.getDeployments()).willReturn(deployments);
+
+		 //test for hideDestroyed as true
+		 given(subject.getAllDeploymentsByUserId(principal, true)).willCallRealMethod();
+		 given(deploymentService.findDeployments(username, true)).willReturn(deployments.stream().collect(Collectors.toList()));
+		 Resources<DeploymentResource> deploymentResourcesHidden =  subject.getAllDeploymentsByUserId(principal, true);
+		 assertTrue(deploymentResourcesHidden.getContent().size()==1);
+
+		 //test for hideDestroyed as false
+		 given(subject.getAllDeploymentsByUserId(principal, false)).willCallRealMethod();
+		 given(deploymentService.findDeployments(username, false)).willReturn(deployments.stream().collect(Collectors.toList()));
+		 Resources<DeploymentResource> deploymentResources =  subject.getAllDeploymentsByUserId(principal, false);
+		 assertTrue(deploymentResources.getContent().size()==1);
+	 }
 }
