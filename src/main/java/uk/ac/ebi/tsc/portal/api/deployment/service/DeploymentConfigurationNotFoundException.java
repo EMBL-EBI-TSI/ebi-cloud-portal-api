@@ -15,4 +15,8 @@ public class DeploymentConfigurationNotFoundException extends RuntimeException {
 		super("Could not find deployment configuration with reference " + configurationName);
 	}
 
+	public DeploymentConfigurationNotFoundException() {
+		super("Could not find deployment configuration for the user");
+	}
+
 }

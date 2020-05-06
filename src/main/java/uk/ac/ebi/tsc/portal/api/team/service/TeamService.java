@@ -26,6 +26,7 @@ import uk.ac.ebi.tsc.portal.api.deployment.repo.Deployment;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentApplication;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentApplicationCloudProvider;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentStatusEnum;
+import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentConfigurationNotFoundException;
 import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentConfigurationService;
 import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentService;
 import uk.ac.ebi.tsc.portal.api.team.controller.TeamResource;
@@ -585,7 +586,7 @@ public class TeamService {
      * @param team
      * @param userEmail
      */
-	public void stopDeploymentsByMemberUserEmail(Team team, String userEmail) {
+	public void stopDeploymentsByMemberUserEmail(Team team, String userEmail) throws IOException, DeploymentConfigurationNotFoundException {
 
         logger.info("Stopping all deployments associated with team " + team.getName() + " for user " + userEmail);
 
@@ -602,22 +603,32 @@ public class TeamService {
         // To keep track who to notify
         List<String> toNotify = new ArrayList<>();
 
-        account.getDeployments().forEach(deployment -> {
-            if (configurationReferences.contains(deployment.getDeploymentConfiguration().getConfigurationReference())
-                    && (deployment.deploymentStatus.getStatus().equals(DeploymentStatusEnum.RUNNING)
-                    || deployment.deploymentStatus.getStatus().equals(DeploymentStatusEnum.STARTING))) {
-                try {
-                    this.stopDeployment(deployment);
-                    toNotify.add(deployment.getAccount().getEmail());
-                } catch (Exception e) {
-                    logger.error("Failed to stop deployment " + deployment.getReference()
-                            + ", using team's shared configuration "
-                            + deployment.getDeploymentConfiguration().getConfigurationReference());
-                    e.printStackTrace();
-                }
-            }
-        });
-
+        try{
+			for (Deployment deployment : deployments) {
+				if (configurationReferences.contains(deployment.getDeploymentConfiguration().getConfigurationReference())
+						&& (deployment.deploymentStatus.getStatus().equals(DeploymentStatusEnum.RUNNING)
+						|| deployment.deploymentStatus.getStatus().equals(DeploymentStatusEnum.STARTING))) {
+					try {
+						this.stopDeployment(deployment);
+						toNotify.add(deployment.getAccount().getEmail());
+					} catch (IOException e) {
+						logger.error("Failed to stop deployment " + deployment.getReference()
+								+ ", using team's shared configuration "
+								+ deployment.getDeploymentConfiguration().getConfigurationReference());
+						e.printStackTrace();
+						throw new IOException("Failed to stop deployment of user " + account.getUsername());
+					}
+				}
+			}
+		}catch (IOException ioe) {
+			logger.error("Failed to stop deployment of user " + account.getUsername());
+			ioe.printStackTrace();
+			throw ioe;
+		}catch(NullPointerException npe){
+        	logger.error("Could not stop deployments of user, possible deployment configuration error" + account.getUsername());
+        	npe.printStackTrace();
+        	throw new DeploymentConfigurationNotFoundException();
+		}
 
         if(!toNotify.isEmpty()){
             logger.info("There are users who are to be notified, regarding deployments destruction");
@@ -627,6 +638,7 @@ public class TeamService {
                 sendMail.send(toNotify, "Deployments destroyed", message );
             } catch (IOException e) {
                 logger.error("Failed to send, deployments destroyed notification to " + account.getGivenName() + ".");
+                throw new IOException("Failed to notify user via email");
             }
         }
 
@@ -740,7 +752,7 @@ public class TeamService {
                             this.stopDeployment(deployment);
                             toNotify.add(deployment.getAccount().getEmail());
                         }
-                    } catch (Exception e) {
+                    } catch (IOException e) {
                         logger.error("Failed to stop deployment " + deployment.getReference()
                                 + ", using team's shared cloud credentials "
                                 + deployment.getCloudProviderParametersReference());
@@ -795,7 +807,7 @@ public class TeamService {
 
 	}
 
-	private void stopDeployment(Deployment deployment) throws IOException, ApplicationDeployerException {
+	private void stopDeployment(Deployment deployment) throws IOException {
 
 		logger.info("Stopping deployment '" + deployment.getReference() + "'");
 

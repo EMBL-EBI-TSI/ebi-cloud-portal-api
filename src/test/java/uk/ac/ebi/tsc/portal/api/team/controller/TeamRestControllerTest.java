@@ -1,5 +1,6 @@
 package uk.ac.ebi.tsc.portal.api.team.controller;
 
+import com.sun.xml.internal.ws.policy.privateutil.PolicyUtils;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -36,6 +37,7 @@ import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigurationRepository;
 import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigurationDeploymentParametersService;
 import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigurationService;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.*;
+import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentConfigurationNotFoundException;
 import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentConfigurationService;
 import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentService;
 import uk.ac.ebi.tsc.portal.api.encryptdecrypt.security.EncryptionService;
@@ -64,6 +66,7 @@ import static org.junit.Assert.*;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Matchers.*;
+import static org.mockito.Mockito.when;
 
 @ContextConfiguration
 @RunWith(SpringJUnit4ClassRunner.class)
@@ -790,34 +793,30 @@ public class TeamRestControllerTest {
 		assertTrue(response.getStatusCode().equals(HttpStatus.OK));
 	}
 
-	/*@Test
-	public void testLeaveTeam() throws Exception{
+	@Test(expected = IOException.class)
+	public void testRemoveMemberThrowsIoException() throws IOException, AccountNotFoundException , DeploymentConfigurationNotFoundException {
 		getPrincipal();
-		this.getTeamResoure(team);
-		given(principal.getName()).willReturn(principalName);
-		given(teamService.leaveTeam(request, principal,
-				deploymentService, configurationService, configDepParamsService,
-				deploymentRestController, teamResource)).willReturn(true);
-		given(subject.leaveTeam(request, principal, teamResource)).willCallRealMethod();
-		ResponseEntity<?> response = subject.leaveTeam(request, principal, teamResource);
-		assertTrue(response.getStatusCode().equals(HttpStatus.OK));
+		addAccountsToTeam();
+		getMemberOfTeams();
+		getTeamResoure(team);
+		getRequest();
+		Mockito.when(teamService.removeMemberFromTeam(token, team.getName(), userEmail)).thenThrow(IOException.class);
+		given(subject.removeMemberFromTeam(request, principal, teamName, userEmail)).willCallRealMethod();
+		subject.removeMemberFromTeam(request, principal, teamName, userEmail);
 	}
-	
-	@Test
-	public void testLeaveTeamTeamNotFound() throws Exception{
+
+	@Test(expected = DeploymentConfigurationNotFoundException.class)
+	public void testRemoveMemberThrowsDeploymentConfigurationNotFoundException() throws IOException, AccountNotFoundException , DeploymentConfigurationNotFoundException {
 		getPrincipal();
-		this.getTeamResoure(team);
-		given(principal.getName()).willReturn(principalName);
-		given(teamService.findByName(teamName)).willCallRealMethod();
-		given(teamRepository.findByName(teamName)).willThrow(TeamNotFoundException.class);
-		given(teamService.leaveTeam(request, principal,
-				deploymentService, configurationService, configDepParamsService,
-				deploymentRestController, teamResource)).willCallRealMethod();
-		given(subject.leaveTeam(request, principal, teamResource)).willCallRealMethod();
-		ResponseEntity<?> response = subject.leaveTeam(request, principal, teamResource);
-		assertTrue(response.getStatusCode().equals(HttpStatus.NOT_MODIFIED));
-	}*/
-	
+		addAccountsToTeam();
+		getMemberOfTeams();
+		getTeamResoure(team);
+		getRequest();
+		Mockito.when(teamService.removeMemberFromTeam(token, team.getName(), userEmail)).thenThrow(DeploymentConfigurationNotFoundException.class);
+		given(subject.removeMemberFromTeam(request, principal, teamName, userEmail)).willCallRealMethod();
+		subject.removeMemberFromTeam(request, principal, teamName, userEmail);
+	}
+
 	private void getCppResoure(){
 		given(cppResource.getName()).willReturn(cppName);
 		Set<Team> cppSharedWith = new HashSet<>();

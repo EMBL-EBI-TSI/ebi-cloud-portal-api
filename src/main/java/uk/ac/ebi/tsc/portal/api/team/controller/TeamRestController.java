@@ -37,6 +37,7 @@ import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigurationDeploymentPar
 import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigurationNotFoundException;
 import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigurationService;
 import uk.ac.ebi.tsc.portal.api.deployment.controller.DeploymentRestController;
+import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentConfigurationNotFoundException;
 import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentConfigurationService;
 import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentService;
 import uk.ac.ebi.tsc.portal.api.encryptdecrypt.security.EncryptionService;
@@ -266,7 +267,7 @@ public class TeamRestController {
 	@RequestMapping(value="/{teamName:.+}/member/{userEmail:.+}", method=RequestMethod.DELETE)
 	public ResponseEntity<?> removeMemberFromTeam(HttpServletRequest request, Principal principal,
 												  @PathVariable String teamName,
-												  @PathVariable String userEmail) throws AccountNotFoundException {
+												  @PathVariable String userEmail) throws AccountNotFoundException, IOException, DeploymentConfigurationNotFoundException {
 
         logger.info("Request to remove user " + userEmail + " from team " + teamName);
 
