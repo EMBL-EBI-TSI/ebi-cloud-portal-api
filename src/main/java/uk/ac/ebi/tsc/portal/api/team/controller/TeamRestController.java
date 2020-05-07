@@ -10,6 +10,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import uk.ac.ebi.tsc.aap.client.model.Domain;
 import uk.ac.ebi.tsc.aap.client.repo.DomainService;
 import uk.ac.ebi.tsc.portal.api.account.repo.Account;
 import uk.ac.ebi.tsc.portal.api.account.service.AccountService;
@@ -56,10 +57,7 @@ import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.Principal;
 import java.security.spec.InvalidKeySpecException;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -95,6 +93,8 @@ public class TeamRestController {
 
 	private final CloudProviderParamsCopyService cloudProviderParametersCopyService;
 
+	private final DomainService domainService;
+
 	@Autowired
 	public TeamRestController(TeamService teamService,
                               AccountService  accountService,
@@ -121,6 +121,7 @@ public class TeamRestController {
 		this.configurationService = configurationService;
 		this.deploymentConfigurationService = deploymentConfigurationService; 
 		this.teamService = teamService;
+		this.domainService = domainService;
 	}
 
 	@RequestMapping(method=RequestMethod.GET)
@@ -241,8 +242,9 @@ public class TeamRestController {
 	}
 
 	@RequestMapping(value="/member", method=RequestMethod.GET)
-	public Resources<TeamResource> getMemberTeams(Principal principal){
+	public Resources<TeamResource> getMemberTeams(HttpServletRequest request, Principal principal){
 		logger.info("User " + principal.getName() + " requested all teams she is a member");
+		String token = getToken(request);
 
 		List<Team> teams = teamService.findByAccountUsername(principal.getName()).stream().collect(Collectors.toList());
 		Set<Team> memberTeams = new HashSet<>();
@@ -257,10 +259,21 @@ public class TeamRestController {
 			}
 		}
 
-		return new Resources<>(memberTeams.stream().map(
-				TeamResource::new
-				).collect(Collectors.toList())
-				);
+		Collection<Domain> domainCollection = domainService.getMyManagementDomains(token);
+
+		for(Domain domain: domainCollection){
+			try {
+				memberTeams.add(teamService.findByDomainReference(domain.getDomainReference()));
+			}catch(TeamNotFoundException e) {
+				logger.error(e.getMessage());
+			}
+		}
+
+		List<TeamResource> resourceList = new ArrayList<>();
+		for (Team team: memberTeams){
+			resourceList.add(teamService.setManagerUserNames(new TeamResource(team), token));
+		}
+		return new Resources<>(resourceList);
 	}
 
 	@RequestMapping(value="/{teamName:.+}/member/{userEmail:.+}", method=RequestMethod.DELETE)

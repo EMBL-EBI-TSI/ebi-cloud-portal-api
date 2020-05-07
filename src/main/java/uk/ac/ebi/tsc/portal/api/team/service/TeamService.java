@@ -836,20 +836,16 @@ public class TeamService {
 
 		return null;
 	}
-	
-	public TeamResource setManagerUserNames(TeamResource teamResource, String token) {
 
+	public TeamResource setManagerUserNames(TeamResource teamResource, String token) {
 		try {
 			List<String> managerUserNames = this.domainService.getAllManagersFromDomain(teamResource.getDomainReference(), token)
 					.parallelStream().map(manager -> manager.getUserReference()).collect(Collectors.toList());
-			logger.info("User is one of the managers of teamResource " + teamResource.getName());
 			teamResource.setManagerUserNames(managerUserNames);
-		}catch(Exception e){
-			logger.info("Not the teamResource manager of " + teamResource.getName());
-			teamResource.setManagerUserNames(new ArrayList<String>());
-			e.printStackTrace();
+		} catch (Exception e) {
+			//Manager username not found
+			teamResource.setManagerUserNames(new ArrayList<>());
 		}
-
 		return teamResource;
 	}
 	
