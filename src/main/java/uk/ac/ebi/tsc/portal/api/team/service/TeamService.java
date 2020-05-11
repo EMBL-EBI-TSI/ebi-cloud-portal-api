@@ -625,7 +625,7 @@ public class TeamService {
 			ioe.printStackTrace();
 			throw ioe;
 		}catch(NullPointerException npe){
-        	logger.error("Could not stop deployments of user, possible deployment configuration error" + account.getUsername());
+        	logger.error("Could not stop deployments of user, possibly missing deployment configuration");
         	npe.printStackTrace();
         	throw new DeploymentConfigurationNotFoundException();
 		}

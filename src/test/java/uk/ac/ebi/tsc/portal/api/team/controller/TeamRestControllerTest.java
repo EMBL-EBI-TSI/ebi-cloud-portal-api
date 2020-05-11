@@ -1,6 +1,5 @@
 package uk.ac.ebi.tsc.portal.api.team.controller;
 
-import com.sun.xml.internal.ws.policy.privateutil.PolicyUtils;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
