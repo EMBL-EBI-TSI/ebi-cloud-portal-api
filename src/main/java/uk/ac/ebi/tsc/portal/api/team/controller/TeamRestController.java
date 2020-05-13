@@ -263,9 +263,10 @@ public class TeamRestController {
 
 		for(Domain domain: domainCollection){
 			try {
+				//Adding Management teams using Management domain
 				memberTeams.add(teamService.findByDomainReference(domain.getDomainReference()));
 			}catch(TeamNotFoundException e) {
-				logger.error(e.getMessage());
+				logger.info(e.getMessage());
 			}
 		}
 

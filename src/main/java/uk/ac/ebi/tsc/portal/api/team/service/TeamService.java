@@ -843,7 +843,10 @@ public class TeamService {
 					.parallelStream().map(manager -> manager.getUserReference()).collect(Collectors.toList());
 			teamResource.setManagerUserNames(managerUserNames);
 		} catch (Exception e) {
-			//Manager username not found
+			logger.error("Failed while getting Managers for domain :"+teamResource.getDomainReference());
+			if (e.getMessage().indexOf("403") > -1) {
+				logger.info("User is not manager of the team; Domain reference: " + teamResource.getDomainReference());
+			}
 			teamResource.setManagerUserNames(new ArrayList<>());
 		}
 		return teamResource;
