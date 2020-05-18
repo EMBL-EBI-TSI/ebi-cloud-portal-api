@@ -164,7 +164,7 @@ public class ApplicationDownloader {
 
 		logger.debug("Removing application from " + path);
 
-		ProcessBuilder processBuilder = new ProcessBuilder(RM_COMMAND, "-r", path);
+		ProcessBuilder processBuilder = new ProcessBuilder(RM_COMMAND, "-rf", path);
 		Process p = processBuilder.start();
 
 
