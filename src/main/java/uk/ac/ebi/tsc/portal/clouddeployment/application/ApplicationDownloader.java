@@ -67,18 +67,11 @@ public class ApplicationDownloader {
 			File repoFolder = new File(path);
 			if (repoFolder.exists() && repoFolder.isDirectory()) { // if the problem is that the folder already exists...
 				logger.info("The folder '" + path + "' already exists");
-				logger.info("Pulling from master instead...");
-				return this.updateApplication(repoUri, path, theAccount);
+				logger.info("Removing the repository...");
+				this.removeApplication(path, repoUri);
 			}
 
 			logger.debug("Downloading application to " + path);
-
-			
-			//ApplicationManifest applicationManifest = ManifestParser.parseApplicationManifest(path + File.separator + "manifest.json");
-
-			//logger.debug("Parsed manifest for application " + applicationManifest.applicationName);
-
-			//Application application = fromManifestToApplication(repoUri, path, theAccount, applicationManifest);
 
 			Either<Tuple2<Integer, String>, Integer> result = processRunner.run(GIT_COMMAND, "clone", "--recursive", repoUri, path);
 			
@@ -102,7 +95,7 @@ public class ApplicationDownloader {
 			    
 			    logger.error("There is an error [" + exitStatus + "] downloading from " + repoUri);
                 logger.error(errorOutput);
-                
+
                 return new ApplicationDownloaderException(errorOutput);
 	         })
              ;
@@ -113,6 +106,9 @@ public class ApplicationDownloader {
 
 	}
 
+	/**
+	 * No longer used
+	*/
 	private Application updateApplication(String repoUri, String path, Account account) throws ApplicationDownloaderException, IOException {
 		logger.info("Updating application from: " + repoUri + " for user " + account.getUsername());
 
@@ -158,9 +154,7 @@ public class ApplicationDownloader {
 
 	}
 
-	public int removeApplication(Application application) throws IOException, ApplicationDownloaderException {
-
-		String path = application.getRepoPath();
+	public int removeApplication(String path, String repoUri) throws IOException, ApplicationDownloaderException {
 
 		logger.debug("Removing application from " + path);
 
@@ -171,7 +165,7 @@ public class ApplicationDownloader {
 		try {
 			p.waitFor();
 		} catch (InterruptedException e) {
-			logger.error("There is an error removing application from " + application.getRepoUri());
+			logger.error("There is an error removing application from " + repoUri);
 			String errorOutput = InputStreamLogger.logInputStream(p.getErrorStream());
 			logger.error(errorOutput);
 
@@ -179,7 +173,7 @@ public class ApplicationDownloader {
 		}
 
 		if (p.exitValue() != 0) {
-			logger.error("There is an error removing application from " + application.getRepoUri());
+			logger.error("There is an error removing application from " + repoUri);
 			String errorOutput = InputStreamLogger.logInputStream(p.getErrorStream());
 			logger.error(errorOutput);
 
