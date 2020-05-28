@@ -444,54 +444,6 @@ public class ApplicationRestControllerTest {
 		file.delete();
 	}
 
-	/**
-	 * When we add an application, which has been removed previously,
-	 * updating it fails. So we just remove the repository physically
-	 * and re-add it.
-	 */
-	@Test
-	public void testRemoveAndAddApplication() throws IOException, ApplicationDownloaderException {
-
-		String repoPath = "APPS_ROOT_FOLDER + File.separator + theName";
-		File file = new File(repoPath);
-		file.createNewFile();
-		assertTrue(file.exists()==true);
-
-		String principalName = "someone";
-		when(principalMock.getName()).thenReturn(principalName);
-
-		String theUri = "uri";
-		String theName = "appname";
-
-		ApplicationResource appResource = mock(ApplicationResource.class);
-		when(appResource.getName()).thenReturn(theName);
-		when(appResource.getRepoUri()).thenReturn(theUri);
-
-		Application application = mock(Application.class);
-		when(applicationService.findByAccountUsernameAndName(principalName, theName)).thenThrow(ApplicationNotFoundException.class);
-		when(applicationService.save(any(Application.class))).thenReturn(application);
-
-		when(application.getRepoPath()).thenReturn(repoPath);
-		when(application.getName()).thenReturn(theName);
-		when(application.getRepoUri()).thenReturn(theUri);
-		when(application.getId()).thenReturn(1L);
-		when(application.getAccount()).thenReturn(this.accountMock);
-		when(accountMock.getId()).thenReturn(1L);
-		Account account = mock(Account.class);
-		given(accountService.findByUsername(principalName)).willReturn(account);
-		when(applicationDownloader.removeApplication(repoPath, theUri)).thenCallRealMethod();
-		when(applicationDownloader.downloadApplication(APPS_ROOT_FOLDER , theUri, principalName)).thenCallRealMethod();
-		when(subject.add(principalMock, appResource)).thenCallRealMethod();
-
-
-		// do the request
-		ResponseEntity response = subject.add(principalMock, appResource);
-
-		// check assertions
-		assertThat(response.getStatusCode().value(), is(CREATED_HTTP_STATUS));
-
-	}
-
 	private void getApplicationResource(Application application){
 
 		when(application.getAccount()).thenReturn(accountMock);
