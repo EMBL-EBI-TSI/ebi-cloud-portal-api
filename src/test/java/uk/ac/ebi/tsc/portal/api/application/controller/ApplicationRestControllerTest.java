@@ -2,12 +2,14 @@
 package uk.ac.ebi.tsc.portal.api.application.controller;
 
 import static org.hamcrest.core.Is.is;
+import static org.hamcrest.core.Is.isA;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -104,6 +106,8 @@ public class ApplicationRestControllerTest {
 		ReflectionTestUtils.setField(subject, "applicationService", applicationService);
 		ReflectionTestUtils.setField(subject, "accountService", accountService);
 		ReflectionTestUtils.setField(subject, "applicationDownloader", applicationDownloader);
+		ReflectionTestUtils.setField(applicationDownloader, "accountService", accountService);
+		ReflectionTestUtils.setField(applicationDownloader, "accountService", accountService);
 		ReflectionTestUtils.setField(subject, "tokenHandler", tokenHandler);
 		ReflectionTestUtils.setField(subject, "deploymentApplicationService", deploymentApplicationService);
 		ReflectionTestUtils.setField(subject, "applicationsRoot", APPS_ROOT_FOLDER);
@@ -390,7 +394,7 @@ public class ApplicationRestControllerTest {
 		when(deploymentApplicationService.findByAccountIdAndRepoPath(application.getAccount().getId(), application.getRepoPath()))
 		.thenAnswer(depListAnswer);
 		
-		when(applicationDownloader.removeApplication(application)).thenCallRealMethod();
+		when(applicationDownloader.removeApplication(repoPath, theUri)).thenCallRealMethod();
 		when(subject.deleteApplicationByAccountUsernameAndName(principalMock, theName)).thenCallRealMethod();
 		ResponseEntity appDeleted = subject.deleteApplicationByAccountUsernameAndName(principalMock, theName);
 		
@@ -430,7 +434,7 @@ public class ApplicationRestControllerTest {
 		when(deploymentApplicationService.findByAccountIdAndRepoPath(application.getAccount().getId(), application.getRepoPath()))
 		.thenAnswer(depListAnswer);
 		
-		when(applicationDownloader.removeApplication(application)).thenCallRealMethod();
+		when(applicationDownloader.removeApplication(repoPath, theUri)).thenCallRealMethod();
 		when(subject.deleteApplicationByAccountUsernameAndName(principalMock, theName)).thenCallRealMethod();
 		ResponseEntity appDeleted = subject.deleteApplicationByAccountUsernameAndName(principalMock, theName);
 		
@@ -463,7 +467,7 @@ public class ApplicationRestControllerTest {
 
 		when(applicationService.findByAccountUsernameAndName(this.principalMock.getName(), mockApplication.getName())).thenReturn(mockApplication);
 		when(applicationService.findById(1L)).thenReturn(mockApplication);
-		when(applicationDownloader.removeApplication(mockApplication)).thenReturn(0);
+		when(applicationDownloader.removeApplication(mockApplication.getRepoPath(), repoUri )).thenReturn(0);
 		when(applicationDownloader.downloadApplication(APPS_ROOT_FOLDER, null, repoUri)).thenReturn(mockApplication);
 
 	}

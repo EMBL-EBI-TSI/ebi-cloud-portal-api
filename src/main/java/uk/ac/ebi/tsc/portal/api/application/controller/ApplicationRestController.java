@@ -148,7 +148,7 @@ public class ApplicationRestController {
 		
 		if(deployedApplications.isEmpty()){
 			logger.info("There are no deployments associated, with application,therefore removing the repo");
-			applicationDownloader.removeApplication(application);
+			applicationDownloader.removeApplication(application.getRepoPath(), application.getRepoUri());
 		}
 
 		
