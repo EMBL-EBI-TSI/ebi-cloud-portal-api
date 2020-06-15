@@ -37,6 +37,7 @@ import uk.ac.ebi.tsc.portal.clouddeployment.utils.NamesPatternMatcher;
 import uk.ac.ebi.tsc.portal.usage.deployment.service.DeploymentIndexService;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.QueryParam;
 import java.io.IOException;
 import java.security.Principal;
 import java.util.*;
@@ -543,7 +544,8 @@ public class ConfigurationRestController {
 	@RequestMapping(value = "/{configurationReference}/deployments", method = RequestMethod.GET)
 	public ResponseEntity<?> getAllConfigurationDeployments(
             Principal principal,
-            @PathVariable("configurationReference") String configurationReference) {
+            @PathVariable("configurationReference") String configurationReference,
+			@QueryParam("hideDestroyed") boolean hideDestroyed) {
 		String userId = principal.getName();
 
 		logger.info("Deployment list requested for configuration " + configurationReference);
@@ -557,8 +559,9 @@ public class ConfigurationRestController {
 			return new ResponseEntity(HttpStatus.FORBIDDEN);
 		}
 
-		Collection<Deployment> configDeployments =
-				this.deploymentService.findByConfigurationReference(theConfiguration.getReference());
+		Collection<Deployment> configDeployments = this.deploymentService.findDeployments(userId, hideDestroyed)
+				.stream().filter(deployment -> deployment.getDeploymentConfiguration().getConfigurationReference().equals(theConfiguration.getReference()))
+				.collect(Collectors.toList());
 
 		configDeployments.stream().forEach( d -> {
 			logger.debug("There are " + d.getGeneratedOutputs().size() + " generated outputs for deployment " + d.getReference());
