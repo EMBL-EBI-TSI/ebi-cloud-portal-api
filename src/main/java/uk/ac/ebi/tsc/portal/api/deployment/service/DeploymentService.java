@@ -1,21 +1,15 @@
 package uk.ac.ebi.tsc.portal.api.deployment.service;
 
-import java.util.*;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import uk.ac.ebi.tsc.portal.api.deployment.repo.*;
 
-import uk.ac.ebi.tsc.portal.api.deployment.controller.DeploymentAssignedInputResource;
-import uk.ac.ebi.tsc.portal.api.deployment.repo.Deployment;
-import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentApplication;
-import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentRepository;
-import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentStatus;
-import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentStatusEnum;
-import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentStatusRepository;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * @author Jose A. Dianes <jdianes@ebi.ac.uk>
@@ -29,6 +23,12 @@ public class DeploymentService {
 
     private final DeploymentRepository deploymentRepository;
     private final DeploymentStatusRepository deploymentStatusRepository;
+
+    DeploymentStatusEnum[] activeStatuses = {
+            DeploymentStatusEnum.STARTING,
+            DeploymentStatusEnum.STARTING_FAILED,
+            DeploymentStatusEnum.RUNNING,
+            DeploymentStatusEnum.RUNNING_FAILED};
 
    @Autowired
    public DeploymentService(DeploymentRepository deploymentRepository,
@@ -86,14 +86,20 @@ public class DeploymentService {
         return this.deploymentRepository.findByDeploymentConfigurationConfigurationReference(reference);
     }
 
+    public List<Deployment> findDeploymentsByConfigurationReferenceAndDeploymentStatus(String configurationReference, boolean hideDestroyed){
+        if(hideDestroyed){
+            //get only active deployments status RUNNING, STARTING, STARTING_FAILED, RUNNING_FAILED
+            return this.deploymentRepository.findByDeploymentConfigurationConfigurationReferenceAndDeploymentStatusStatusIn(configurationReference, Arrays.asList(activeStatuses));
+        }else{
+            //get  all including destroyed deployments status DESTROYING, DESTROYING_FAILED, DESTROYED
+            return this.deploymentRepository.findByDeploymentConfigurationConfigurationReference(configurationReference).stream().collect(Collectors.toList());
+        }
+
+    }
+
     public List<Deployment> findDeployments(String userId, boolean hideDestroyed) {
         if(hideDestroyed){
             //get only active deployments status RUNNING, STARTING, STARTING_FAILED, RUNNING_FAILED
-            DeploymentStatusEnum[] activeStatuses = {
-                    DeploymentStatusEnum.STARTING,
-                    DeploymentStatusEnum.STARTING_FAILED,
-                    DeploymentStatusEnum.RUNNING,
-                    DeploymentStatusEnum.RUNNING_FAILED};
             return this.deploymentRepository.findByAccountUsernameAndDeploymentStatusStatusIn(userId, Arrays.asList(activeStatuses));
         }else{
             //get  all including destroyed deployments status DESTROYING, DESTROYING_FAILED, DESTROYED

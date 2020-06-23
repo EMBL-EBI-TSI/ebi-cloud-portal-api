@@ -559,13 +559,13 @@ public class ConfigurationRestController {
 			return new ResponseEntity(HttpStatus.FORBIDDEN);
 		}
 
-		Collection<Deployment> configDeployments = this.deploymentService.findDeployments(userId, hideDestroyed)
-				.stream().filter(deployment -> deployment.getDeploymentConfiguration().getConfigurationReference().equals(theConfiguration.getReference()))
-				.collect(Collectors.toList());
+		Collection<Deployment> configDeployments = this.deploymentService.findDeploymentsByConfigurationReferenceAndDeploymentStatus(
+				theConfiguration.getReference(), hideDestroyed );
 
 		configDeployments.stream().forEach( d -> {
 			logger.debug("There are " + d.getGeneratedOutputs().size() + " generated outputs for deployment " + d.getReference());
 		});
+
 		List<DeploymentResource> deploymentResourceList = new ArrayList<>();
 		configDeployments.forEach(deployment -> {
 			if(deployment.getCloudProviderParametersReference() != null){
