@@ -184,15 +184,26 @@ public class ConfigurationService {
 				logger.info("CDP copy reference " +  configuration.getConfigDeploymentParametersReference()!= null ? configuration.getConfigDeploymentParametersReference() : null );
 				CloudProviderParamsCopy cpp = null; boolean cppCanBeUsed = false;
 				if(configuration.getCloudProviderParametersReference() != null){
-					cpp = cloudProviderParametersCopyService.findByCloudProviderParametersReference(configuration.getCloudProviderParametersReference());
-					cppCanBeUsed = findIfCppCanBeUsed(cpp, account);
+					try{
+						cpp = cloudProviderParametersCopyService.findByCloudProviderParametersReference(configuration.getCloudProviderParametersReference());
+						cppCanBeUsed = findIfCppCanBeUsed(cpp, account);
+					}catch(CloudProviderParamsCopyNotFoundException e){
+						logger.info("Could not find the associated cloud provider copy for configuration " + configuration.getName());
+						configuration.setObsolete(true);
+					}
+
 				}
 
 				ConfigDeploymentParamsCopy cdp = null;  boolean cdpCanBeUsed = false;
 				if(configuration.getCloudProviderParametersReference() != null){
-					cdp = configDeploymentParamsCopyService.
-							findByConfigurationDeploymentParametersReference(configuration.getConfigDeploymentParametersReference());
-					cdpCanBeUsed = findIfCdpCanBeUsed(cdp, account, configuration);
+					try{
+						cdp = configDeploymentParamsCopyService.
+								findByConfigurationDeploymentParametersReference(configuration.getConfigDeploymentParametersReference());
+						cdpCanBeUsed = findIfCdpCanBeUsed(cdp, account, configuration);
+				}catch(ConfigDeploymentParamsCopyNotFoundException e){
+						logger.info("Could not find the associated cloud provider params copy for configuration " + configuration.getName());
+						configuration.setObsolete(true);
+					}
 				}
 
 				if(!cppCanBeUsed || !cdpCanBeUsed){
@@ -200,14 +211,6 @@ public class ConfigurationService {
 				}else{
 					configuration.setObsolete(false);
 				}
-			}catch(CloudProviderParamsCopyNotFoundException e){
-				e.printStackTrace();
-				logger.error("Could not find the cloud provider params copy ");
-				configuration.setObsolete(true);
-			}catch(ConfigDeploymentParamsCopyNotFoundException e){
-				e.printStackTrace();
-				logger.error("Could not find deployment parameters");
-				configuration.setObsolete(true);
 			}catch(ConfigurationNotFoundException e){
 				logger.error("Configuration with reference " + configuration.getReference() +
 						" could not be found");
