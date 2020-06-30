@@ -46,6 +46,18 @@ public class DeploymentServiceTest {
     Application application =  new Application("repoUri", "repoPath", "name", "reference", account);
     DeploymentApplication deploymentApplication = new DeploymentApplication(application);
 
+    //first deployment
+    Deployment deployment =  new Deployment("reference", account, deploymentApplication,
+            "cloudProviderParametersReference", "userSshKey");
+    DeploymentStatus deploymentStatus = new DeploymentStatus(deployment, DeploymentStatusEnum.STARTING);
+
+    //second deployment
+    Deployment deploymentTwo =  new Deployment("reference2", account, deploymentApplication,
+            "cloudProviderParametersReference", "userSshKey");
+    DeploymentStatus deploymentStatusTwo = new DeploymentStatus(deployment, DeploymentStatusEnum.DESTROYING);
+
+    String configurationReference = "configurationReference";
+
     @Before
     public void setUp() {
         deploymentService = new DeploymentService(deploymentRepository, deploymentStatusRepository );
@@ -53,10 +65,8 @@ public class DeploymentServiceTest {
 
     @Test
     public void testFindDeploymentsShowActive(){
+
         //first deployment
-        Deployment deployment =  new Deployment("reference", account, deploymentApplication,
-                "cloudProviderParametersReference", "userSshKey");
-        DeploymentStatus deploymentStatus = new DeploymentStatus(deployment, DeploymentStatusEnum.STARTING);
         deployment.setDeploymentStatus(deploymentStatus);
 
         List<Deployment> deployments = new ArrayList<>();
@@ -69,16 +79,10 @@ public class DeploymentServiceTest {
 
     @Test
     public void testFindDeploymentsShowAll(){
-        //first deployment
-        Deployment deployment =  new Deployment("reference", account, deploymentApplication,
-                "cloudProviderParametersReference", "userSshKey");
-        DeploymentStatus deploymentStatus = new DeploymentStatus(deployment, DeploymentStatusEnum.STARTING);
-        deployment.setDeploymentStatus(deploymentStatus);
 
+        //first deployment
+        deployment.setDeploymentStatus(deploymentStatus);
         //second deployment
-        Deployment deploymentTwo =  new Deployment("reference2", account, deploymentApplication,
-                "cloudProviderParametersReference", "userSshKey");
-        DeploymentStatus deploymentStatusTwo = new DeploymentStatus(deployment, DeploymentStatusEnum.DESTROYING);
         deploymentTwo.setDeploymentStatus(deploymentStatusTwo);
 
         List<Deployment> deployments = new ArrayList<>();
@@ -91,11 +95,7 @@ public class DeploymentServiceTest {
 
     @Test
     public void testFindDeploymentsByReferenceAndStatusShowActive(){
-        String configurationReference = "configurationReference";
         //first deployment
-        Deployment deployment =  new Deployment("reference", account, deploymentApplication,
-                "cloudProviderParametersReference", "userSshKey");
-        DeploymentStatus deploymentStatus = new DeploymentStatus(deployment, DeploymentStatusEnum.STARTING);
         deployment.setDeploymentStatus(deploymentStatus);
 
         List<Deployment> deployments = new ArrayList<>();
@@ -108,17 +108,11 @@ public class DeploymentServiceTest {
 
     @Test
     public void testFindDeploymentsByReferenceAndStatusShowAll(){
-        String configurationReference = "configurationReference";
+
         //first deployment
-        Deployment deployment =  new Deployment("reference", account, deploymentApplication,
-                "cloudProviderParametersReference", "userSshKey");
-        DeploymentStatus deploymentStatus = new DeploymentStatus(deployment, DeploymentStatusEnum.STARTING);
         deployment.setDeploymentStatus(deploymentStatus);
 
         //second deployment
-        Deployment deploymentTwo =  new Deployment("reference2", account, deploymentApplication,
-                "cloudProviderParametersReference", "userSshKey");
-        DeploymentStatus deploymentStatusTwo = new DeploymentStatus(deployment, DeploymentStatusEnum.DESTROYING);
         deploymentTwo.setDeploymentStatus(deploymentStatusTwo);
 
         List<Deployment> deployments = new ArrayList<>();
