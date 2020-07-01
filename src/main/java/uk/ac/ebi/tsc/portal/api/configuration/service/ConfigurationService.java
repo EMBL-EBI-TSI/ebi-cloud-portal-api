@@ -182,7 +182,8 @@ public class ConfigurationService {
 				logger.info("Checking configuration " + configuration.getReference() != null ? configuration.getReference() : null);
 				logger.info("CPP copy reference " + configuration.getCloudProviderParametersReference() != null ? configuration.getCloudProviderParametersReference() : null);
 				logger.info("CDP copy reference " +  configuration.getConfigDeploymentParametersReference()!= null ? configuration.getConfigDeploymentParametersReference() : null );
-				CloudProviderParamsCopy cpp = null; boolean cppCanBeUsed = false;
+				CloudProviderParamsCopy cpp = null;
+				Boolean cppCanBeUsed = null;
 				if(configuration.getCloudProviderParametersReference() != null){
 					try{
 						cpp = cloudProviderParametersCopyService.findByCloudProviderParametersReference(configuration.getCloudProviderParametersReference());
@@ -194,7 +195,8 @@ public class ConfigurationService {
 
 				}
 
-				ConfigDeploymentParamsCopy cdp = null;  boolean cdpCanBeUsed = false;
+				ConfigDeploymentParamsCopy cdp = null;
+				Boolean cdpCanBeUsed = null;
 				if(configuration.getCloudProviderParametersReference() != null){
 					try{
 						cdp = configDeploymentParamsCopyService.
@@ -206,10 +208,12 @@ public class ConfigurationService {
 					}
 				}
 
-				if(!cppCanBeUsed || !cdpCanBeUsed){
-					configuration.setObsolete(true);
-				}else{
-					configuration.setObsolete(false);
+				if(cppCanBeUsed != null  && cdpCanBeUsed != null){
+					if(!cppCanBeUsed.booleanValue() || !cdpCanBeUsed.booleanValue()){
+						configuration.setObsolete(true);
+					}else{
+						configuration.setObsolete(false);
+					}
 				}
 			}catch(ConfigurationNotFoundException e){
 				logger.error("Configuration with reference " + configuration.getReference() +
