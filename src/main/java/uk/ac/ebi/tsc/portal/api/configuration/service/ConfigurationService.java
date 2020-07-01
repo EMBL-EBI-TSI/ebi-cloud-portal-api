@@ -716,8 +716,13 @@ public class ConfigurationService {
 		if (configuration.getAccount().equals(account)) {
 			//Checking credentials is can be used on any application
 			logger.debug("The user is the configuration owner, so check if cloud credential is usable ");
-			CloudProviderParameters cloudProviderParameters = cppService.findByReference(configuration.getCloudProviderParametersReference());
-			return cppService.canCredentialBeUsedForApplication(cloudProviderParameters, application, account);
+			try{
+				CloudProviderParameters cloudProviderParameters = cppService.findByReference(configuration.getCloudProviderParametersReference());
+				return cppService.canCredentialBeUsedForApplication(cloudProviderParameters, application, account);
+			}catch(CloudProviderParametersNotFoundException e){
+				logger.error("The associated cloud provider parameter is not found, it is obsolete");
+				return false;
+			}
 		} else {
 			//Check configuration is shared with user
 			logger.debug("User, is not configuration owner, check if configuration is shared with the user");
