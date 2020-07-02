@@ -182,21 +182,21 @@ public class ConfigurationService {
 				logger.info("Checking configuration " + configuration.getReference() != null ? configuration.getReference() : null);
 				logger.info("CPP copy reference " + configuration.getCloudProviderParametersReference() != null ? configuration.getCloudProviderParametersReference() : null);
 				logger.info("CDP copy reference " +  configuration.getConfigDeploymentParametersReference()!= null ? configuration.getConfigDeploymentParametersReference() : null );
+				configuration.setObsolete(true);
 				CloudProviderParamsCopy cpp = null;
-				Boolean cppCanBeUsed = null;
+				boolean cppCanBeUsed = false;
 				if(configuration.getCloudProviderParametersReference() != null){
 					try{
 						cpp = cloudProviderParametersCopyService.findByCloudProviderParametersReference(configuration.getCloudProviderParametersReference());
 						cppCanBeUsed = findIfCppCanBeUsed(cpp, account);
 					}catch(CloudProviderParamsCopyNotFoundException e){
 						logger.info("Could not find the associated cloud provider copy for configuration " + configuration.getName());
-						configuration.setObsolete(true);
 					}
 
 				}
 
 				ConfigDeploymentParamsCopy cdp = null;
-				Boolean cdpCanBeUsed = null;
+				boolean cdpCanBeUsed = false;
 				if(configuration.getCloudProviderParametersReference() != null){
 					try{
 						cdp = configDeploymentParamsCopyService.
@@ -204,16 +204,11 @@ public class ConfigurationService {
 						cdpCanBeUsed = findIfCdpCanBeUsed(cdp, account, configuration);
 				}catch(ConfigDeploymentParamsCopyNotFoundException e){
 						logger.info("Could not find the associated cloud provider params copy for configuration " + configuration.getName());
-						configuration.setObsolete(true);
 					}
 				}
 
-				if(cppCanBeUsed != null  && cdpCanBeUsed != null){
-					if(!cppCanBeUsed.booleanValue() || !cdpCanBeUsed.booleanValue()){
-						configuration.setObsolete(true);
-					}else{
-						configuration.setObsolete(false);
-					}
+				if(cppCanBeUsed && cdpCanBeUsed){
+					configuration.setObsolete(false);
 				}
 			}catch(ConfigurationNotFoundException e){
 				logger.error("Configuration with reference " + configuration.getReference() +
