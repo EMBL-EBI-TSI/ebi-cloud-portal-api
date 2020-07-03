@@ -182,6 +182,7 @@ public class ConfigurationService {
 				logger.info("Checking configuration " + configuration.getReference() != null ? configuration.getReference() : null);
 				logger.info("CPP copy reference " + configuration.getCloudProviderParametersReference() != null ? configuration.getCloudProviderParametersReference() : null);
 				logger.info("CDP copy reference " +  configuration.getConfigDeploymentParametersReference()!= null ? configuration.getConfigDeploymentParametersReference() : null );
+				//default deny
 				configuration.setObsolete(true);
 				CloudProviderParamsCopy cpp = null;
 				boolean cppCanBeUsed = false;
@@ -207,6 +208,7 @@ public class ConfigurationService {
 					}
 				}
 
+				//only if both cloud provider and deployment params exist, configuration is usable
 				if(cppCanBeUsed && cdpCanBeUsed){
 					configuration.setObsolete(false);
 				}
