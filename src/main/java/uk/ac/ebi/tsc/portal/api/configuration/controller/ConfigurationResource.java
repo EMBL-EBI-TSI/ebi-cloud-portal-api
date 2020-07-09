@@ -59,10 +59,11 @@ public class ConfigurationResource extends ResourceSupport {
         this.configDeploymentParametersReference = configuration.getConfigDeployParamsReference();
         this.deploymentParametersName = configuration.getConfigDeploymentParamsName();
         this.reference = configuration.getReference();
-        this.cloudProviderType = cppCopy.getCloudProvider();
+        this.cloudProviderType = cppCopy != null ? cppCopy.getCloudProvider(): null;
         this.softUsageLimit = configuration.getSoftUsageLimit();
         this.hardUsageLimit = configuration.getHardUsageLimit();
         this.sharedWithTeams = configuration.getSharedWithTeams().stream().map(TeamResource::new).collect(Collectors.toList());
+        this.isObsolete = this.isObsolete();
         
         this.add(
                 ControllerLinkBuilder.linkTo(

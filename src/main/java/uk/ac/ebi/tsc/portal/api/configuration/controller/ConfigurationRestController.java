@@ -233,14 +233,16 @@ public class ConfigurationRestController {
 
 		logger.info("Account " + principal.getName() + " configuration " + name + "  requested");
 
-		Configuration configuration = this.configurationService.findByNameAndAccountUsername(name, principal.getName());
-		CloudProviderParamsCopy cppCopy = cloudProviderParametersCopyService.findByCloudProviderParametersReference(configuration.getCloudProviderParametersReference());
-		ConfigDeploymentParamsCopy cdpCopy = this.configDeploymentParamsCopyService.findByConfigurationDeploymentParametersReference(configuration.getConfigDeployParamsReference());
-
-		ConfigurationResource configurationResource = 
-				new ConfigurationResource(configuration, cppCopy);
-
-		return new Resource<>(configurationResource);
+		try{
+			Configuration configuration = this.configurationService.findByNameAndAccountUsername(name, principal.getName());
+			CloudProviderParamsCopy cppCopy = cloudProviderParametersCopyService.findByCloudProviderParametersReference(configuration.getCloudProviderParametersReference());
+			ConfigDeploymentParamsCopy cdpCopy = this.configDeploymentParamsCopyService.findByConfigurationDeploymentParametersReference(configuration.getConfigDeployParamsReference());
+			return new Resource<> (new ConfigurationResource(configuration, cppCopy));
+		}catch(CloudProviderParamsCopyNotFoundException e){
+			logger.error("The configuration is obsolete, corresponding cloud provider not found");
+			Configuration configuration = this.configurationService.findByNameAndAccountUsername(name, principal.getName());
+			return new Resource<>(new ConfigurationResource(configuration, null));
+		}
 	}
 
 	@RequestMapping(value = "/{name:.+}", method = { RequestMethod.DELETE } )

@@ -642,6 +642,7 @@ public class ConfigurationService {
 						this.cloudProviderParametersCopyService.findByCloudProviderParametersReference(configuration.getCloudProviderParametersReference())));
 			}catch(CloudProviderParamsCopyNotFoundException e){
 				logger.info("Could not find the cloud provider copy for configuration " + configuration.getName());
+				configurationResources.add(new ConfigurationResource(configuration, null));
 			}
 		});
 
@@ -722,14 +723,12 @@ public class ConfigurationService {
 			}
 		} else {
 			//Check configuration is shared with user
-			logger.debug("User, is not configuration owner, check if configuration is shared with the user");
 			if (isConfigurationSharedWithAccount(account, configuration)) {
 				//Getting corresponding teams
 				Set<String> configSharedWithTeams = configuration.getSharedTeamNames();
 				Set<String> accountMemberOfTeams = account.getMembershipTeamNames();
 				Set<String> appSharedWithTeams = application.getSharedTeamNames();
 				return cppService.checkForOverlapingAmongTeams(configSharedWithTeams,appSharedWithTeams, accountMemberOfTeams);
-
 			}
 		}
 		return false;
