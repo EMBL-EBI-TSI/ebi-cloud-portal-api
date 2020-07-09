@@ -1,5 +1,8 @@
 package uk.ac.ebi.tsi.portal.api.team;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.core.IsEqual.equalTo;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -18,6 +21,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.mock.web.MockHttpServletResponse;
@@ -57,13 +61,20 @@ public class TeamRestControllerIT {
 		
 		@Value("${aapPassword}")
 		private String aapPassword;
+
+		@Value("${ajayUserName}")
+		private String ajayUserName;
+
+		@Value("${ajayPassword}")
+		private String ajayPassword;
 		
 		@Value("${aapUrl}")
 		private String aapUrl;
 		
 		private String token;
 		
-		String teamName = "SOME_TEAM_NAME";
+		String teamName = "some-interesting-team-name";
+		String memberEmail = "ajay@email.uk";
 		
 		@Before
 		public void setup() throws Exception{
@@ -86,43 +97,59 @@ public class TeamRestControllerIT {
 
 			logger.info("Response "  +response);
 		}
-		
-		
-		public void can_create_a_team() throws Exception{
-			Team team = new Team();
-			team.setName(teamName);
-			String json = mapper.writeValueAsString(team);
-			mockMvc.perform(
-					post("/team")
-					.headers(createHeaders(token))
-					.contentType(MediaType.APPLICATION_JSON)
-					.content(json)
-					.accept(MediaType.APPLICATION_JSON))
-			.andExpect(jsonPath("name").value(teamName))
-			.andReturn();
-		}
-		
-		/*@Test
-		public void add_member_to_team() throws Exception{
-			
-			String json = "{\"name\":\"" + teamName + "\", \"memberAccountEmails\":[\""+ email + "\"]}";
-			logger.info("In add member to team " + json);
-			mockMvc.perform(
-					post("/team/member") 
-					.headers(createHeaders(token))
-					.contentType(MediaType.APPLICATION_JSON)
-					.content(json)
-					.accept(MediaType.APPLICATION_JSON))
-
-			.andExpect(status().isOk());
-
-		}
-		
 
 		@Test
+		public void can_create_a_team() throws Exception{
+		Team team = new Team();
+		team.setName(teamName);
+		String json = mapper.writeValueAsString(team);
+		mockMvc.perform(
+				post("/team")
+						.headers(createHeaders(token))
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(json)
+						.accept(MediaType.APPLICATION_JSON))
+				.andExpect(jsonPath("name").value(teamName))
+				.andReturn();
+		}
+
+	//	@Test
+	    public void add_member_to_team() throws Exception{
+
+		String json = "{\"name\":\"" + teamName + "\", \"memberAccountEmails\":[\""+ memberEmail + "\"]}";
+		logger.info("In add member to team " + json);
+		mockMvc.perform(
+				post("/team/member")
+						.headers(createHeaders(token))
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(json)
+						.accept(MediaType.APPLICATION_JSON))
+
+				.andExpect(status().isOk());
+
+	}
+
+
+//	@Test
+	public void can_get_member_teams() throws Exception {
+		//now get ajay's teams
+		MockHttpServletResponse response = mockMvc.perform(
+				get("/team/member")
+						.headers(createHeaders(getToken(ajayUserName, ajayPassword)))
+						.contentType(MediaType.APPLICATION_JSON)
+						.accept(MediaType.APPLICATION_JSON)
+		)
+				.andExpect(status().isOk())
+				.andReturn().getResponse();
+
+		logger.info("Response " + response.getContentAsString());
+
+	}
+
+		//@Test
 		public void canRemoveMemberFromTeam() throws Exception{
 
-			String uri = "/team/" + teamName + "/member/" + email;
+			String uri = "/team/" + teamName + "/member/" + memberEmail;
 			mockMvc.perform(
 					delete(uri) 
 					.headers(createHeaders(token))
@@ -130,9 +157,9 @@ public class TeamRestControllerIT {
 					.accept(MediaType.APPLICATION_JSON))
 			.andExpect(status().isOk());
 
-		}*/
+		}
 
-		
+		//@Test
 		public void can_delete_a_team() throws Exception{
 			mockMvc.perform(
 					delete("/team/" , teamName)
@@ -152,5 +179,12 @@ public class TeamRestControllerIT {
 				set("Accept", "application/hal+json");
 			}};
 		}
+
+	private String getToken(String username, String password) {
+		ResponseEntity<String> response = restTemplate.withBasicAuth(username, password)
+				.getForEntity(aapUrl, String.class);
+		assertThat(response.getStatusCode(), is(equalTo(HttpStatus.OK)));
+		return response.getBody();
+	}
 
 }

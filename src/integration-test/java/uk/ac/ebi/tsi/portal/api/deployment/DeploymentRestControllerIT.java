@@ -27,6 +27,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.transaction.annotation.Transactional;
 import uk.ac.ebi.tsc.portal.BePortalApiApplication;
 import uk.ac.ebi.tsc.portal.api.application.controller.ApplicationResource;
@@ -35,6 +36,7 @@ import uk.ac.ebi.tsc.portal.api.configuration.controller.ConfigurationResource;
 import uk.ac.ebi.tsc.portal.api.configuration.repo.Configuration;
 import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigurationDeploymentParameters;
 import uk.ac.ebi.tsc.portal.api.deployment.controller.DeploymentResource;
+import uk.ac.ebi.tsc.portal.api.deployment.repo.Deployment;
 import uk.ac.ebi.tsc.portal.api.deployment.service.ConfigurationNotUsableForApplicationException;
 import uk.ac.ebi.tsc.portal.config.WebConfiguration;
 import java.io.File;
@@ -91,7 +93,7 @@ public class DeploymentRestControllerIT {
 	private String applicationRootDir;
 
 	//@Test
-	public void canCreateDeployment() throws Exception{
+	public void canCreateAndDeleteDeployment() throws Exception{
 
 
 		//create cloud credentials
@@ -105,7 +107,8 @@ public class DeploymentRestControllerIT {
 				.andExpect(status().isOk())
 				.andReturn().getResponse().getContentAsString();
 		CloudProviderParameters cpp = mapper.readValue(cppResponse, CloudProviderParameters.class);
-		
+
+		//create deployment parameters
 		String dpJson = "{\"name\": \"os6\", \"fields\":[]}";
 		String dpResponse = mockMvc.perform(
 				post("/configuration/deploymentparameters")
@@ -115,8 +118,10 @@ public class DeploymentRestControllerIT {
 				.accept(MediaType.APPLICATION_JSON))
 				.andExpect(status().is2xxSuccessful())
 				.andReturn().getResponse().getContentAsString();
+
 		ConfigurationDeploymentParameters dp = mapper.readValue(dpResponse, ConfigurationDeploymentParameters.class);
-		
+
+		//create configuration
 		ConfigurationResource configurationResource = new ConfigurationResource();
 		configurationResource.setName("os6");
 		configurationResource.setCloudProviderParametersName(cpp.getName());
@@ -144,34 +149,48 @@ public class DeploymentRestControllerIT {
 		.andExpect(status().is2xxSuccessful())
 		.andReturn().getResponse().getContentAsString();
 		ApplicationResource app = mapper.readValue(appResponse, ApplicationResource.class);
+
+
+		DeploymentResource deploymentResource = new DeploymentResource();
+		deploymentResource.applicationName = app.getName();
+		deploymentResource.setApplicationAccountUsername(app.getAccountUsername());
+		deploymentResource.applicationName = app.getName();
+		deploymentResource.setConfigurationName(configuration.getName());
+		deploymentResource.setConfigurationAccountUsername(app.getAccountUsername());
+		deploymentResource.accountUsername = app.getAccountUsername();
+		deploymentResource.assignedInputs = new ArrayList();
+		deploymentResource.assignedParameters = new ArrayList();
+		deploymentResource.attachedVolumes =  new ArrayList();
+		deploymentResource.cloudProviderParametersCopy = null;
 		
-		DeploymentResource deployment = new DeploymentResource();
-		deployment.applicationName = app.getName();
-		deployment.setApplicationAccountUsername(app.getAccountUsername());
-		deployment.applicationName = app.getName();
-		deployment.setConfigurationName(configuration.getName());
-		deployment.setConfigurationAccountUsername(app.getAccountUsername());
-		deployment.accountUsername = app.getAccountUsername();
-		deployment.assignedInputs = new ArrayList();
-		deployment.assignedParameters = new ArrayList();
-		deployment.attachedVolumes =  new ArrayList();
-		deployment.cloudProviderParametersCopy = null;
 		
-		
-		String deploymentJson = mapper.writeValueAsString(deployment);
+		String deploymentJson = mapper.writeValueAsString(deploymentResource);
 		logger.info("deploymentJson " + deploymentJson);
-		
-		mockMvc.perform(
+
+		String deploymentResponse  = mockMvc.perform(
 				post("/deployment")
 				.headers(createHeaders(getToken(testUserName, testPassword)))
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(deploymentJson)
 				.accept(MediaType.APPLICATION_JSON)
 				)
-		.andExpect(status().is2xxSuccessful());
+		.andExpect(status().is2xxSuccessful())
+				.andReturn().getResponse().getContentAsString();
+		Deployment deployment = mapper.readValue(deploymentResponse, Deployment.class);
+
+		//delete
+		mockMvc.perform(
+				MockMvcRequestBuilders
+						.delete("/deployment/{reference}", deployment.getReference())
+						.headers(createHeaders(getToken(testUserName, testPassword)))
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(deploymentJson)
+						.accept(MediaType.APPLICATION_JSON)
+		).andExpect(status().isOk());
+
 	}
 
-	@Test
+	//@Test
     @Transactional
 	/***
 	 *  Case : User cannot deploy own Application with non existent Configuration
@@ -216,7 +235,7 @@ public class DeploymentRestControllerIT {
 
 	}
 
-    @Test
+   // @Test
     @Transactional
 	/***
 	 *  Case : User cannot deploy own Application with shared configuration
@@ -317,7 +336,7 @@ public class DeploymentRestControllerIT {
         exception.ifPresent( (e) -> assertThat(e, is(instanceOf(ConfigurationNotUsableForApplicationException.class))));
     }
 
-	@Test
+	//@Test
 	@Transactional
 	/***
 	 *  Case : User cannot deploy Application which is shared through Team A with Shared configuration
@@ -431,7 +450,7 @@ public class DeploymentRestControllerIT {
 		exception.ifPresent( (e) -> assertThat(e, is(instanceOf(ConfigurationNotUsableForApplicationException.class))));
 	}
 
-	@Test
+	//@Test
 	@Transactional
 	/***
 	 *  Case : User cannot deploy an Application with configuration which is created from
