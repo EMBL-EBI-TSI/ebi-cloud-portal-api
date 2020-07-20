@@ -413,7 +413,7 @@ public class ConfigurationRestControllerTest {
 	}
 
 	@Test
-	public void testGetSharedConfigurationByName(){
+	public void testGetSharedConfigurationByName() throws Exception{
 		getPrincipal();
 		getRequest();
 		getAccount();
@@ -430,7 +430,7 @@ public class ConfigurationRestControllerTest {
 	}
 
 	@Test(expected = ConfigurationNotFoundException.class)
-	public void testGetSharedConfigurationByNameThrowsException(){
+	public void testGetSharedConfigurationByNameThrowsException() throws Exception{
 
 		getPrincipal();
 		getRequest();

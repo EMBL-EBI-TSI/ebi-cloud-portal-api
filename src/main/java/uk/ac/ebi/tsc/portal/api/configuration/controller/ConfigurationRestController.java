@@ -452,7 +452,7 @@ public class ConfigurationRestController {
 	}
 
 	@RequestMapping(value = "/shared/{name:.+}", method = {RequestMethod.GET})
-	public ConfigurationResource getSharedByName(HttpServletRequest request, Principal principal, @PathVariable("name") String name) {
+	public ConfigurationResource getSharedByName(HttpServletRequest request, Principal principal, @PathVariable("name") String name) throws Exception{
 
 		logger.info("Account " + principal.getName() + " requested shared application " + name);
 
@@ -470,6 +470,9 @@ public class ConfigurationRestController {
 			}
 		}catch(ConfigurationNotFoundException e) {
 			throw new ConfigurationNotFoundException(name);
+		}catch(CloudProviderParamsCopyNotFoundException e){
+			logger.error("Could not find the associated cloud provider it may have been deleted");
+			throw new CloudProviderParamsCopyNotFoundException("Could not find the associated cloud provider parameter, it may have been deleted");
 		}
 
 	}

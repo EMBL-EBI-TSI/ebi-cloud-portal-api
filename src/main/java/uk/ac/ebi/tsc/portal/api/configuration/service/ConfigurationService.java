@@ -182,15 +182,16 @@ public class ConfigurationService {
 				logger.info("Checking configuration " + configuration.getReference() != null ? configuration.getReference() : null);
 				logger.info("CPP copy reference " + configuration.getCloudProviderParametersReference() != null ? configuration.getCloudProviderParametersReference() : null);
 				logger.info("CDP copy reference " +  configuration.getConfigDeploymentParametersReference()!= null ? configuration.getConfigDeploymentParametersReference() : null );
+
 				//default deny
 				configuration.setObsolete(true);
 				CloudProviderParamsCopy cpp = null;
 				boolean cppCanBeUsed = false;
-				if(configuration.getCloudProviderParametersReference() != null){
-					try{
+				if (configuration.getCloudProviderParametersReference() != null) {
+					try {
 						cpp = cloudProviderParametersCopyService.findByCloudProviderParametersReference(configuration.getCloudProviderParametersReference());
 						cppCanBeUsed = findIfCppCanBeUsed(cpp, account);
-					}catch(CloudProviderParamsCopyNotFoundException e){
+					} catch (CloudProviderParamsCopyNotFoundException e) {
 						logger.info("Could not find the associated cloud provider copy for configuration " + configuration.getName());
 					}
 
@@ -198,20 +199,21 @@ public class ConfigurationService {
 
 				ConfigDeploymentParamsCopy cdp = null;
 				boolean cdpCanBeUsed = false;
-				if(configuration.getCloudProviderParametersReference() != null){
-					try{
+				if (configuration.getConfigDeploymentParametersReference() != null) {
+					try {
 						cdp = configDeploymentParamsCopyService.
 								findByConfigurationDeploymentParametersReference(configuration.getConfigDeploymentParametersReference());
 						cdpCanBeUsed = findIfCdpCanBeUsed(cdp, account, configuration);
-				}catch(ConfigDeploymentParamsCopyNotFoundException e){
+					} catch (ConfigDeploymentParamsCopyNotFoundException e) {
 						logger.info("Could not find the associated cloud provider params copy for configuration " + configuration.getName());
 					}
 				}
 
 				//only if both cloud provider and deployment params exist, configuration is usable
-				if(cppCanBeUsed && cdpCanBeUsed){
+				if (cppCanBeUsed && cdpCanBeUsed) {
 					configuration.setObsolete(false);
 				}
+
 			}catch(ConfigurationNotFoundException e){
 				logger.error("Configuration with reference " + configuration.getReference() +
 						" could not be found");
@@ -711,26 +713,27 @@ public class ConfigurationService {
 				"' can be used for application '" + application.getName() + "'" +
 				"by user '" + account.getGivenName() + "'"
 				);
-		if (configuration.getAccount().equals(account)) {
-			//Checking credentials is can be used on any application
-			logger.debug("The user is the configuration owner, so check if cloud credential is usable ");
-			try{
-				CloudProviderParameters cloudProviderParameters = cppService.findByReference(configuration.getCloudProviderParametersReference());
+		try{
+			CloudProviderParameters cloudProviderParameters = cppService.findByReference(configuration.getCloudProviderParametersReference());
+			if (configuration.getAccount().equals(account)) {
+				//Checking credentials is can be used on any application
+				logger.debug("The user is the configuration owner, so check if cloud credential is usable ");
 				return cppService.canCredentialBeUsedForApplication(cloudProviderParameters, application, account);
-			}catch(CloudProviderParametersNotFoundException e){
-				logger.error("The associated cloud provider parameter is not found, it is obsolete");
-				return false;
+			} else {
+				//Check configuration is shared with user
+				if (isConfigurationSharedWithAccount(account, configuration)) {
+					//Getting corresponding teams
+					Set<String> configSharedWithTeams = configuration.getSharedTeamNames();
+					Set<String> accountMemberOfTeams = account.getMembershipTeamNames();
+					Set<String> appSharedWithTeams = application.getSharedTeamNames();
+					return cppService.checkForOverlapingAmongTeams(configSharedWithTeams,appSharedWithTeams, accountMemberOfTeams);
+				}
 			}
-		} else {
-			//Check configuration is shared with user
-			if (isConfigurationSharedWithAccount(account, configuration)) {
-				//Getting corresponding teams
-				Set<String> configSharedWithTeams = configuration.getSharedTeamNames();
-				Set<String> accountMemberOfTeams = account.getMembershipTeamNames();
-				Set<String> appSharedWithTeams = application.getSharedTeamNames();
-				return cppService.checkForOverlapingAmongTeams(configSharedWithTeams,appSharedWithTeams, accountMemberOfTeams);
-			}
+		}catch(CloudProviderParametersNotFoundException e){
+			logger.error("The associated cloud provider parameter is not found, it is obsolete");
+			return false;
 		}
+
 		return false;
 	}
 
