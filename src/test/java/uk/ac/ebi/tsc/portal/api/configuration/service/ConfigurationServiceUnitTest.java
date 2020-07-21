@@ -3,6 +3,8 @@ package uk.ac.ebi.tsc.portal.api.configuration.service;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.runners.MockitoJUnitRunner;
 import org.springframework.boot.test.SpringApplicationConfiguration;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.test.context.ContextConfiguration;
@@ -25,21 +27,21 @@ import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigurationRepository;
 import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentService;
 import uk.ac.ebi.tsc.portal.api.utils.SendMail;
 
+import javax.servlet.http.HttpServletRequest;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Properties;
 import java.util.stream.Collectors;
 
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 
-@ContextConfiguration
-@RunWith(SpringJUnit4ClassRunner.class)
-@WebAppConfiguration
+@RunWith(MockitoJUnitRunner.class)
 public class ConfigurationServiceUnitTest {
 
-    private MockHttpServletRequest mockRequest;
     Account account = new Account("reference", "username", "givenName", "password", "email",
             new java.sql.Date(2000000000), "organisation", "avatarImageUrl");
+
     //first configuration
     ConfigurationDeploymentParameters cdp = new ConfigurationDeploymentParameters("cdpName", account);
     ConfigDeploymentParamsCopy configDeploymentParamsCopy = new ConfigDeploymentParamsCopy(cdp);
@@ -56,14 +58,31 @@ public class ConfigurationServiceUnitTest {
     Configuration configuration2 = new Configuration("myConfig", account,
             cppCopy2.getName(), cppReference2, "myKey", 2.0, 5.0, configDeploymentParamsCopy2);
     List configurationList = new ArrayList<Configuration>();
-    private ConfigurationRepository configurationRepository = mock(ConfigurationRepository.class);
-    private DomainService domainService = mock(DomainService.class);
-    private CloudProviderParametersService cppService = mock(CloudProviderParametersService.class);
-    private ConfigurationDeploymentParametersService cdpService = mock(ConfigurationDeploymentParametersService.class);
-    private ConfigDeploymentParamsCopyService cdpCopyService = mock(ConfigDeploymentParamsCopyService.class);
-    private CloudProviderParamsCopyService cloudProviderParametersCopyService = mock(CloudProviderParamsCopyService.class);
-    private DeploymentService deploymentService = mock(DeploymentService.class);
-    private SendMail sendMail = mock(SendMail.class);
+
+    @Mock
+    private ConfigurationRepository configurationRepository;
+
+    @Mock
+    private DomainService domainService;
+
+    @Mock
+    private CloudProviderParametersService cppService;
+
+    @Mock
+    private ConfigurationDeploymentParametersService cdpService;
+
+    @Mock
+    private ConfigDeploymentParamsCopyService cdpCopyService;
+
+    @Mock
+    private CloudProviderParamsCopyService cloudProviderParametersCopyService;
+
+    @Mock
+    private DeploymentService deploymentService;
+
+    @Mock
+    private SendMail sendMail;
+
     List<ConfigurationResource> configResourceList = new ArrayList<>();
     ConfigurationResource configurationResource1 = new ConfigurationResource(configuration, cppCopy1);
     ConfigurationResource configurationResource2 = new ConfigurationResource(configuration2, cppCopy2);
@@ -71,20 +90,19 @@ public class ConfigurationServiceUnitTest {
 
     @Before
     public void setUp() {
-        mockRequest = new MockHttpServletRequest();
-        mockRequest.setContextPath("/");
-        ServletRequestAttributes attrs = new ServletRequestAttributes(mockRequest);
-        RequestContextHolder.setRequestAttributes(attrs);
         testCandidate = new ConfigurationService(configurationRepository, domainService,
                 cppService, cdpService, cloudProviderParametersCopyService, deploymentService, sendMail);
-        configurationList.add(configuration);
-        configurationList.add(configuration2);
-        configResourceList.add(configurationResource1);
-        configResourceList.add(configurationResource2);
+
+        // Controller needs RequestContextHolder and HttpServlet Request
+        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(new MockHttpServletRequest()));
     }
 
     @Test
     public void testCheckObsoleteConfigurations() {
+        configurationList.add(configuration);
+        configurationList.add(configuration2);
+        configResourceList.add(configurationResource1);
+        configResourceList.add(configurationResource2);
         List<ConfigurationResource> obsoleteConfigurationList = testCandidate.checkObsoleteConfigurations(configResourceList,
                 account, cdpCopyService);
 
