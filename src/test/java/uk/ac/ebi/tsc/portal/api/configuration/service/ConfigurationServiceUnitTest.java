@@ -4,37 +4,33 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
 import org.mockito.runners.MockitoJUnitRunner;
-import org.springframework.boot.test.SpringApplicationConfiguration;
+import org.mockito.stubbing.Answer;
 import org.springframework.mock.web.MockHttpServletRequest;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 import uk.ac.ebi.tsc.aap.client.repo.DomainService;
-import uk.ac.ebi.tsc.portal.BePortalApiApplication;
 import uk.ac.ebi.tsc.portal.api.account.repo.Account;
+import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParameters;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParamsCopy;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.service.CloudProviderParametersService;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.service.CloudProviderParamsCopyService;
-import uk.ac.ebi.tsc.portal.api.configuration.controller.ConfigurationDeploymentParametersResource;
 import uk.ac.ebi.tsc.portal.api.configuration.controller.ConfigurationResource;
 import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigDeploymentParamsCopy;
 import uk.ac.ebi.tsc.portal.api.configuration.repo.Configuration;
 import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigurationDeploymentParameters;
 import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigurationRepository;
 import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentService;
+import uk.ac.ebi.tsc.portal.api.team.repo.Team;
 import uk.ac.ebi.tsc.portal.api.utils.SendMail;
 
-import javax.servlet.http.HttpServletRequest;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Properties;
-import java.util.stream.Collectors;
+import java.util.Set;
 
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.mock;
+import static org.mockito.BDDMockito.given;
 
 @RunWith(MockitoJUnitRunner.class)
 public class ConfigurationServiceUnitTest {
@@ -42,31 +38,44 @@ public class ConfigurationServiceUnitTest {
     Account account = new Account("reference", "username", "givenName", "password", "email",
             new java.sql.Date(2000000000), "organisation", "avatarImageUrl");
 
+    String cloudProvider = "openstack";
+
     //first configuration
-    ConfigurationDeploymentParameters cdp = new ConfigurationDeploymentParameters("cdpName", account);
-    ConfigDeploymentParamsCopy configDeploymentParamsCopy = new ConfigDeploymentParamsCopy(cdp);
-    CloudProviderParamsCopy cppCopy1 = new  CloudProviderParamsCopy("cpp1", "openstack", account);
+    String cdp1Name = "cdp1";
+    ConfigurationDeploymentParameters cdp1;
+    ConfigDeploymentParamsCopy configDeploymentParamsCopy1;
+    String cpp1Name = "cpp1";
+    CloudProviderParamsCopy cppCopy1;
+    CloudProviderParameters cpp1;
     String cppReference1 = "myCppReference1";
-    Configuration configuration = new Configuration("myConfig", account,
-            cppCopy1.getName(), cppReference1, "myKey", 2.0, 5.0, configDeploymentParamsCopy);
+    String cdpReference1 = "myCdpReference1";
+    Configuration configuration1;
 
     //second configuration
-    ConfigurationDeploymentParameters cdp2 = new ConfigurationDeploymentParameters("cdpName2", account);
-    ConfigDeploymentParamsCopy configDeploymentParamsCopy2 = new ConfigDeploymentParamsCopy(cdp2);
-    CloudProviderParamsCopy cppCopy2 = new  CloudProviderParamsCopy("cpp2", "openstack", account);
+    String cdp2Name = "cdp2";
+    ConfigurationDeploymentParameters cdp2;
+    ConfigDeploymentParamsCopy configDeploymentParamsCopy2;
+    String cpp2Name = "cpp2";
+    CloudProviderParamsCopy cppCopy2;
+    CloudProviderParameters cpp2;
     String cppReference2 = "myCppReference2";
-    Configuration configuration2 = new Configuration("myConfig", account,
-            cppCopy2.getName(), cppReference2, "myKey", 2.0, 5.0, configDeploymentParamsCopy2);
+    String cdpReference2 = "myCdpReference2";
+    Configuration configuration2;
+
     List configurationList = new ArrayList<Configuration>();
 
     @Mock
-    private ConfigurationRepository configurationRepository;
+    ConfigurationRepository configurationRepository;
 
     @Mock
     private DomainService domainService;
 
     @Mock
     private CloudProviderParametersService cppService;
+
+    @Mock
+    private CloudProviderParamsCopyService cppCopyService;
+
 
     @Mock
     private ConfigurationDeploymentParametersService cdpService;
@@ -84,28 +93,98 @@ public class ConfigurationServiceUnitTest {
     private SendMail sendMail;
 
     List<ConfigurationResource> configResourceList = new ArrayList<>();
-    ConfigurationResource configurationResource1 = new ConfigurationResource(configuration, cppCopy1);
-    ConfigurationResource configurationResource2 = new ConfigurationResource(configuration2, cppCopy2);
     ConfigurationService testCandidate;
 
     @Before
     public void setUp() {
+
         testCandidate = new ConfigurationService(configurationRepository, domainService,
                 cppService, cdpService, cloudProviderParametersCopyService, deploymentService, sendMail);
+
+        Account account = new Account("reference", "username", "givenName", "password", "email",
+                new java.sql.Date(2000000000), "organisation", "avatarImageUrl");
+
+        //first configuration
+        cdp1 = new ConfigurationDeploymentParameters(cdp1Name, account);
+        configDeploymentParamsCopy1 = new ConfigDeploymentParamsCopy(cdp1);
+        cppCopy1 = new  CloudProviderParamsCopy(cpp1Name, cloudProvider, account);
+        cpp1 = new CloudProviderParameters(cpp1Name, cloudProvider, account);
+        configuration1 = new Configuration("myConfig", account,
+                cppCopy1.getName(), cppReference1, "myKey", 2.0, 5.0, configDeploymentParamsCopy1);
+
+        //second configuration
+        cdp2 = new ConfigurationDeploymentParameters(cdp2Name, account);
+        configDeploymentParamsCopy2 = new ConfigDeploymentParamsCopy(cdp2);
+        cppCopy2 = new  CloudProviderParamsCopy(cpp2Name, cloudProvider, account);
+        cpp2 = new CloudProviderParameters(cpp2Name, cloudProvider, account);
+        configuration2 = new Configuration("myConfig", account,
+                cppCopy2.getName(), cppReference2, "myKey", 2.0, 5.0, configDeploymentParamsCopy2);
+
+
+        cpp1.setReference(cppReference1);
+        cpp2.setReference(cppReference2);
+        cppCopy1.setCloudProviderParametersReference(cppReference1);
+        cppCopy2.setCloudProviderParametersReference(cppReference2);
+        cdp1.setReference(cdpReference1);
+        cpp2.setReference(cppReference2);
+
+
+
+        configurationList = new ArrayList<Configuration>();
 
         // Controller needs RequestContextHolder and HttpServlet Request
         RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(new MockHttpServletRequest()));
     }
 
     @Test
-    public void testCheckObsoleteConfigurations() {
-        configurationList.add(configuration);
+    public void testCheckObsoleteConfigurationsNoneOwnedConfiguration() {
+
+
+        configurationList.add(configuration1);
         configurationList.add(configuration2);
+
+
+
+        ConfigurationResource configurationResource1 = new ConfigurationResource(configuration1, cppCopy1);
+        ConfigurationResource configurationResource2 = new ConfigurationResource(configuration2, cppCopy2);
         configResourceList.add(configurationResource1);
         configResourceList.add(configurationResource2);
+
+        Answer cpp1Answer = new Answer<CloudProviderParamsCopy>(){
+            @Override
+            public CloudProviderParamsCopy answer(InvocationOnMock invocation){
+                return cppCopy1;
+            }};
+
+        Answer cpp2Answer = new Answer<CloudProviderParamsCopy>(){
+            @Override
+            public CloudProviderParamsCopy answer(InvocationOnMock invocation){
+                return cppCopy2;
+            }};
+
+        Answer cdp1Answer = new Answer<ConfigDeploymentParamsCopy>(){
+            @Override
+            public ConfigDeploymentParamsCopy answer(InvocationOnMock invocation){
+                return configDeploymentParamsCopy1;
+            }};
+
+        Answer cdp2Answer = new Answer<ConfigDeploymentParamsCopy>(){
+            @Override
+            public ConfigDeploymentParamsCopy answer(InvocationOnMock invocation){
+                return configDeploymentParamsCopy2;
+            }};
+
+
+        given(cppCopyService.findByCloudProviderParametersReference(cppReference1)).willAnswer(cpp1Answer);
+        given(cppCopyService.findByCloudProviderParametersReference(cppReference2)).willAnswer(cpp2Answer);
+
+        given(cppService.findByReference(cppReference1)).willCallRealMethod();
+        given(cppService.findByReference(cppReference2)).willCallRealMethod();
+
         List<ConfigurationResource> obsoleteConfigurationList = testCandidate.checkObsoleteConfigurations(configResourceList,
                 account, cdpCopyService);
 
     }
 
 }
+
