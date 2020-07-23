@@ -3,8 +3,10 @@ package uk.ac.ebi.tsc.portal.api.configuration.service;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.BDDMockito;
 import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.Spy;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.runners.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
@@ -31,6 +33,7 @@ import java.util.List;
 import java.util.Set;
 
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.doReturn;
 
 @RunWith(MockitoJUnitRunner.class)
 public class ConfigurationServiceUnitTest {
@@ -76,15 +79,11 @@ public class ConfigurationServiceUnitTest {
     @Mock
     private CloudProviderParamsCopyService cppCopyService;
 
-
     @Mock
     private ConfigurationDeploymentParametersService cdpService;
 
     @Mock
     private ConfigDeploymentParamsCopyService cdpCopyService;
-
-    @Mock
-    private CloudProviderParamsCopyService cloudProviderParametersCopyService;
 
     @Mock
     private DeploymentService deploymentService;
@@ -99,7 +98,7 @@ public class ConfigurationServiceUnitTest {
     public void setUp() {
 
         testCandidate = new ConfigurationService(configurationRepository, domainService,
-                cppService, cdpService, cloudProviderParametersCopyService, deploymentService, sendMail);
+                cppService, cdpService, cppCopyService, deploymentService, sendMail);
 
         Account account = new Account("reference", "username", "givenName", "password", "email",
                 new java.sql.Date(2000000000), "organisation", "avatarImageUrl");
@@ -143,43 +142,19 @@ public class ConfigurationServiceUnitTest {
         configurationList.add(configuration1);
         configurationList.add(configuration2);
 
-
-
         ConfigurationResource configurationResource1 = new ConfigurationResource(configuration1, cppCopy1);
         ConfigurationResource configurationResource2 = new ConfigurationResource(configuration2, cppCopy2);
+        configurationResource1.setConfigDeploymentParametersReference(cdpReference1);
+        configurationResource2.setConfigDeploymentParametersReference(cdpReference2);
         configResourceList.add(configurationResource1);
         configResourceList.add(configurationResource2);
 
-        Answer cpp1Answer = new Answer<CloudProviderParamsCopy>(){
-            @Override
-            public CloudProviderParamsCopy answer(InvocationOnMock invocation){
-                return cppCopy1;
-            }};
-
-        Answer cpp2Answer = new Answer<CloudProviderParamsCopy>(){
-            @Override
-            public CloudProviderParamsCopy answer(InvocationOnMock invocation){
-                return cppCopy2;
-            }};
-
-        Answer cdp1Answer = new Answer<ConfigDeploymentParamsCopy>(){
-            @Override
-            public ConfigDeploymentParamsCopy answer(InvocationOnMock invocation){
-                return configDeploymentParamsCopy1;
-            }};
-
-        Answer cdp2Answer = new Answer<ConfigDeploymentParamsCopy>(){
-            @Override
-            public ConfigDeploymentParamsCopy answer(InvocationOnMock invocation){
-                return configDeploymentParamsCopy2;
-            }};
-
-
-        given(cppCopyService.findByCloudProviderParametersReference(cppReference1)).willAnswer(cpp1Answer);
-        given(cppCopyService.findByCloudProviderParametersReference(cppReference2)).willAnswer(cpp2Answer);
-
-        given(cppService.findByReference(cppReference1)).willCallRealMethod();
-        given(cppService.findByReference(cppReference2)).willCallRealMethod();
+        given(cppCopyService.findByCloudProviderParametersReference(cppReference1)).willReturn(cppCopy1);
+        given(cppCopyService.findByCloudProviderParametersReference(cppReference2)).willReturn(cppCopy2);
+        given(cppService.findByReference(cppReference1)).willReturn(cpp1);
+        given(cppService.findByReference(cppReference2)).willReturn(cpp2);
+        given(cdpCopyService.findByConfigurationDeploymentParametersReference(cdpReference1)).willReturn(configDeploymentParamsCopy2);
+        given(cdpCopyService.findByConfigurationDeploymentParametersReference(cdpReference2)).willReturn(configDeploymentParamsCopy2);
 
         List<ConfigurationResource> obsoleteConfigurationList = testCandidate.checkObsoleteConfigurations(configResourceList,
                 account, cdpCopyService);
