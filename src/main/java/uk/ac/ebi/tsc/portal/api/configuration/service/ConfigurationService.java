@@ -252,7 +252,7 @@ public class ConfigurationService {
 		try{
 			logger.info("Checking if the account holder owns the deployment parameter.");
 			ConfigurationDeploymentParameters cdp = this.cdpService.findByReference(cdpCopy.getConfigurationDeploymentParametersReference());
-			if(cdpCopy.getAccount().equals(account)){
+			if(cdp.getAccount().equals(account)){
 				return true;
 			}else{
 				logger.info("The user does not own the deployment parameter, checking if the account holder belongs to the team, it is shared with.");
