@@ -458,9 +458,9 @@ public class ConfigurationRestController {
 
 		Account account = this.accountService.findByUsername(principal.getName());
 		String token = request.getHeader(HttpHeaders.AUTHORIZATION).split(" ")[1];
-
+		Configuration configuration = null;
 		try{
-			Configuration configuration = configurationService.getSharedConfigurationByName(account, token, tokenHandler.parseUserFromToken(token), name);
+			configuration = configurationService.getSharedConfigurationByName(account, token, tokenHandler.parseUserFromToken(token), name);
 			if(configuration != null){
 				Configuration ownerConfiguration = configurationService.findByNameAndAccountUsername(name, configuration.getAccount().getUsername());
 				CloudProviderParamsCopy cppCopy = cloudProviderParametersCopyService.findByCloudProviderParametersReference(configuration.getCloudProviderParametersReference());
@@ -472,9 +472,8 @@ public class ConfigurationRestController {
 			throw new ConfigurationNotFoundException(name);
 		}catch(CloudProviderParamsCopyNotFoundException e){
 			logger.error("Could not find the associated cloud provider it may have been deleted");
-			throw new CloudProviderParamsCopyNotFoundException("Could not find the associated cloud provider parameter, it may have been deleted");
+			return new ConfigurationResource(configuration, null);
 		}
-
 	}
 
 	@RequestMapping(value = "/shared/deploymentparameters", method = {RequestMethod.GET})
