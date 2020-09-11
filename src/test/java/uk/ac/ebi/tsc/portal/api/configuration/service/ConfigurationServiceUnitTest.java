@@ -507,7 +507,7 @@ public class ConfigurationServiceUnitTest {
         given(cppService.canCredentialBeUsedForApplication(cpp1, application, memberAccount)).willCallRealMethod();
         given(cppService.checkForOverlapingAmongTeams(Mockito.anySet(),Mockito.anySet(), Mockito.anySet())).willCallRealMethod();
         boolean canConfigurationBeUsedForApplication = testCandidate.canConfigurationBeUsedForApplication(configuration1, application, memberAccount);
-        assertTrue(canConfigurationBeUsedForApplication == true);
+        assertTrue(canConfigurationBeUsedForApplication == false);
 
     }
 
@@ -540,4 +540,5 @@ public class ConfigurationServiceUnitTest {
     }
 
 }
+
 
