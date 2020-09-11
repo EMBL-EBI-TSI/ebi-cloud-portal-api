@@ -707,6 +707,18 @@ public class ConfigurationService {
 		}
 	}
 
+	public boolean checkForOverlapingAmongTeams(Set<String> configSharedWithTeams, Set<String> appSharedWithTeams, Set<String> accountMemberOfTeams) {
+		//Retain teams of Configuration Parameters intersect with Application
+		logger.info("Checking if shared cloudProviderParameters overlapping teams");
+		configSharedWithTeams.retainAll(appSharedWithTeams);
+		if(!configSharedWithTeams.isEmpty()){
+			configSharedWithTeams.retainAll(accountMemberOfTeams);
+			if(!configSharedWithTeams.isEmpty())
+				return true;
+		}
+		return false;
+	}
+
 	public boolean canConfigurationBeUsedForApplication(Configuration configuration, Application application, Account account) {
 		//Check configuration is owned by user
 		logger.info("Checking if configuration '" + configuration.getName() +
@@ -714,28 +726,34 @@ public class ConfigurationService {
 				"by user '" + account.getGivenName() + "'"
 				);
 		try{
+
 			CloudProviderParameters cloudProviderParameters = cppService.findByReference(configuration.getCloudProviderParametersReference());
-			if (configuration.getAccount().equals(account)) {
-				//Checking credentials is can be used on any application
-				logger.debug("The user is the configuration owner, so check if cloud credential is usable ");
-				return cppService.canCredentialBeUsedForApplication(cloudProviderParameters, application, account);
-			} else {
-				//Check configuration is shared with user
-				if (isConfigurationSharedWithAccount(account, configuration)) {
-					//Getting corresponding teams
-					Set<String> configSharedWithTeams = configuration.getSharedTeamNames();
-					Set<String> accountMemberOfTeams = account.getMembershipTeamNames();
-					Set<String> appSharedWithTeams = application.getSharedTeamNames();
-					return cppService.checkForOverlapingAmongTeams(configSharedWithTeams,appSharedWithTeams, accountMemberOfTeams);
+			boolean canConfigurationBeUsedForApplication = this.checkForOverlapingAmongTeams(configuration.getSharedTeamNames(), application.getSharedTeamNames(), account.getMembershipTeamNames());
+
+			if(canConfigurationBeUsedForApplication){
+				/**
+				 * If the configuration is shared in the same team as application,
+				 * 	the user can deploy
+				 */
+				return true;
+			}else{
+				/**
+				 * if the cloud credential is owned or shared in the same team as application,
+				 * the user can deploy the application, provided he owns the configuration
+				 */
+				if(cppService.canCredentialBeUsedForApplication(cloudProviderParameters, application, account)){
+
+					if(configuration.getAccount().getReference().equals(account.getReference())){
+						//configuration is owned
+						return true;
+					}
 				}
 			}
+			return false;
+
 		}catch(CloudProviderParametersNotFoundException e){
 			logger.error("The associated cloud provider parameter is not found, it is obsolete");
 			return false;
 		}
-
-		return false;
 	}
-
-
 }

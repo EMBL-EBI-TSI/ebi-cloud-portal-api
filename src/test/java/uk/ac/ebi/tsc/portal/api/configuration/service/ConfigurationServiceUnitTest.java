@@ -483,5 +483,62 @@ public class ConfigurationServiceUnitTest {
 
     }
 
+    @Test
+    public void testCanConfigurationBeUsedForApplicationCCPAAPSharedInSameTeamButNotConfiguration(){
+
+        Set<Team> cppSharedTeams = new HashSet<>();
+        cppSharedTeams.add(team1);
+        cpp1.setSharedWithTeams(cppSharedTeams);
+        team1.getCppBelongingToTeam().add(cpp1);
+
+        Set<Team> appSharedTeams = new HashSet<>();
+        appSharedTeams.add(team1);
+        application.setSharedWithTeams(appSharedTeams);
+        team1.getApplicationsBelongingToTeam().add(application);
+
+
+        Set<Team> configurationSharedWithTeams =  new HashSet<>();
+        configurationSharedWithTeams.add(team2);
+        configuration1.setSharedWithTeams(configurationSharedWithTeams);
+        team2.getConfigurationsBelongingToTeam().add(configuration1);
+
+        given(cppService.isCloudProviderParametersSharedWithAccount(memberAccount,cpp1)).willCallRealMethod();
+        given(cppService.findByReference(cppReference1)).willReturn(cpp1);
+        given(cppService.canCredentialBeUsedForApplication(cpp1, application, memberAccount)).willCallRealMethod();
+        given(cppService.checkForOverlapingAmongTeams(Mockito.anySet(),Mockito.anySet(), Mockito.anySet())).willCallRealMethod();
+        boolean canConfigurationBeUsedForApplication = testCandidate.canConfigurationBeUsedForApplication(configuration1, application, memberAccount);
+        assertTrue(canConfigurationBeUsedForApplication == false);
+
+    }
+
+    @Test
+    public void testCanConfigurationBeUsedForApplicationCCPAAPConfigurationSharedInSameTeam(){
+
+        Set<Team> cppSharedTeams = new HashSet<>();
+        cppSharedTeams.add(team1);
+        cpp1.setSharedWithTeams(cppSharedTeams);
+        team1.getCppBelongingToTeam().add(cpp1);
+
+        Set<Team> appSharedTeams = new HashSet<>();
+        appSharedTeams.add(team1);
+        application.setSharedWithTeams(appSharedTeams);
+        team1.getApplicationsBelongingToTeam().add(application);
+
+
+        Set<Team> configurationSharedWithTeams =  new HashSet<>();
+        configurationSharedWithTeams.add(team1);
+        configuration1.setSharedWithTeams(configurationSharedWithTeams);
+        team1.getConfigurationsBelongingToTeam().add(configuration1);
+
+        given(cppService.isCloudProviderParametersSharedWithAccount(memberAccount,cpp1)).willCallRealMethod();
+        given(cppService.findByReference(cppReference1)).willReturn(cpp1);
+        given(cppService.canCredentialBeUsedForApplication(cpp1, application, memberAccount)).willCallRealMethod();
+        given(cppService.checkForOverlapingAmongTeams(Mockito.anySet(),Mockito.anySet(), Mockito.anySet())).willCallRealMethod();
+        boolean canConfigurationBeUsedForApplication = testCandidate.canConfigurationBeUsedForApplication(configuration1, application, memberAccount);
+        assertTrue(canConfigurationBeUsedForApplication == true);
+
+    }
+
 }
+
 
