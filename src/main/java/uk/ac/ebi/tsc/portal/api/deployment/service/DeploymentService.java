@@ -3,9 +3,11 @@ package uk.ac.ebi.tsc.portal.api.deployment.service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PostAuthorize;
 import org.springframework.stereotype.Service;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.*;
 
+import java.security.Principal;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -64,6 +66,7 @@ public class DeploymentService {
                 () -> new DeploymentStatusNotFoundException(deploymentId));
     }
 
+    @PostAuthorize("returnObject.getAccount().getUsername() == authentication.name")
     public Deployment findByReference(String reference) {
         return this.deploymentRepository.findByReference(reference).orElseThrow(
                 () -> new DeploymentNotFoundException(reference));
@@ -105,6 +108,16 @@ public class DeploymentService {
             //get  all including destroyed deployments status DESTROYING, DESTROYING_FAILED, DESTROYED
             return this.deploymentRepository.findByAccountUsername(userId).stream().collect(Collectors.toList());
         }
+    }
+
+    public boolean checkUserAccess(Principal principal, String reference) {
+
+       Deployment deployment = this.findByReference(reference);
+       if(deployment.getAccount().username.equals(principal.getName())) {
+           return true;
+       } else {
+           return false;
+       }
     }
 
 }

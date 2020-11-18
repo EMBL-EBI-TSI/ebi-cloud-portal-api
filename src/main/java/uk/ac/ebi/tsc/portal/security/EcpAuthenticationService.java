@@ -14,6 +14,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.security.core.Authentication;
@@ -109,6 +110,7 @@ public class EcpAuthenticationService {
      * @param request
      * @return
      */
+    @Bean
     public Authentication getAuthentication(HttpServletRequest request) {
         Authentication authentication = this.tokenAuthenticationService.getAuthentication(request);
         if (authentication == null) {
