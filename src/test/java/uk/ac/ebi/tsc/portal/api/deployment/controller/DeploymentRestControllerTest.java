@@ -92,8 +92,7 @@ import uk.ac.ebi.tsc.portal.usage.tracker.DeploymentStatusTracker;
  */
 @RunWith(SpringRunner.class)
 @WebAppConfiguration
-public class DeploymentRestControllerTest
- {
+public class DeploymentRestControllerTest {
 
 	private static final String A_CLOUD_PROVIDER_PARAMS_NAME = "OS TEST";
 	public final String A_USER_NAME = "A User Name";
@@ -175,8 +174,12 @@ public class DeploymentRestControllerTest
 	@MockBean
 	ApplicationDeployerHelper applicationDeployerHelper;
 
+	@MockBean
+	DeploymentRepository deploymentRepository;
+
 	String cppReference = "cppReference";
-	@Before 
+
+	@Before
 	public void setUp() {
 		ReflectionTestUtils.setField(subject, "deploymentService", deploymentService);
 		ReflectionTestUtils.setField(subject, "cloudProviderParametersCopyService", cloudProviderParametersCopyService);
@@ -190,8 +193,9 @@ public class DeploymentRestControllerTest
 		ReflectionTestUtils.setField(configurationService, "cppService", cloudProviderParametersService);
 		ReflectionTestUtils.setField(subject, "applicationDeployer", applicationDeployer);
 		ReflectionTestUtils.setField(subject, "applicationDeployerHelper", applicationDeployerHelper);
+		ReflectionTestUtils.setField(deploymentService, "deploymentRepository", deploymentRepository);
 		Properties props = new Properties();
-		props.put("be.applications.root", "blah");    
+		props.put("be.applications.root", "blah");
 		props.put("be.deployments.root", "bleh");
 		props.put("os.user.name", "blih");
 		props.put("os.password", "bloh");
@@ -201,14 +205,14 @@ public class DeploymentRestControllerTest
 	}
 
 	@Test
-	public void can_delete_deployment_given_id()  {
+	public void can_delete_deployment_given_id() {
 
 		String theId = "blah";
 		deployment(theId);
 		CloudProviderParameters mockCloudProviderParameters = mock(CloudProviderParameters.class);
 		when(mockCloudProviderParameters.getReference()).thenReturn(cppReference);
 		when(cloudProviderParametersService.findByNameAndAccountUsername(A_CLOUD_PROVIDER_PARAMS_NAME, A_USER_NAME))
-		.thenReturn(mockCloudProviderParameters);
+				.thenReturn(mockCloudProviderParameters);
 		when(cloudProviderParametersService.findByReference(cppReference)).thenReturn(mockCloudProviderParameters);
 		Account mockAccount = mock(Account.class);
 		when(mockAccount.getUsername()).thenReturn(A_USER_NAME);
@@ -217,7 +221,7 @@ public class DeploymentRestControllerTest
 		when(mockAccount.getPassword()).thenReturn("A password");
 		when(mockAccount.getOrganisation()).thenReturn("An organisation");
 		when(mockCloudProviderParameters.getAccount()).thenReturn(mockAccount);
-		when( subject.removeDeploymentByReference(principal, theId)).thenCallRealMethod();
+		when(subject.removeDeploymentByReference(principal, theId)).thenCallRealMethod();
 		ResponseEntity response = subject.removeDeploymentByReference(principal, theId);
 
 		assertThat(response.getStatusCode().value(), is(200));
@@ -233,7 +237,7 @@ public class DeploymentRestControllerTest
 
 		CloudProviderParameters mockCloudProviderParameters = mock(CloudProviderParameters.class);
 		when(cloudProviderParametersService.findByNameAndAccountUsername(A_CLOUD_PROVIDER_PARAMS_NAME, A_USER_NAME))
-		.thenReturn(mockCloudProviderParameters);
+				.thenReturn(mockCloudProviderParameters);
 		when(subject.readyToTearDown(tempKey, theId)).thenCallRealMethod();
 		ResponseEntity response = subject.readyToTearDown(tempKey, theId);
 		assertThat(response.getStatusCode().is2xxSuccessful(), is(true));
@@ -252,8 +256,8 @@ public class DeploymentRestControllerTest
 
 	@Test(expected = DeploymentNotFoundException.class)
 	public void returns_appropriate_error_when_deployment_not_found() throws IOException, ApplicationDeployerException,
-	NoSuchPaddingException, InvalidKeyException, NoSuchAlgorithmException, IllegalBlockSizeException,
-	BadPaddingException, InvalidAlgorithmParameterException, InvalidKeySpecException {
+			NoSuchPaddingException, InvalidKeyException, NoSuchAlgorithmException, IllegalBlockSizeException,
+			BadPaddingException, InvalidAlgorithmParameterException, InvalidKeySpecException {
 		String aNonExistentDeployment = "foo";
 		when(deploymentService.findByReference(aNonExistentDeployment)).thenThrow(DeploymentNotFoundException.class);
 		when(subject.readyToTearDown(tempKey, aNonExistentDeployment)).thenCallRealMethod();
@@ -270,7 +274,7 @@ public class DeploymentRestControllerTest
 		when(mockDeployment.getId()).thenReturn(1234L);
 		CloudProviderParameters mockCloudProviderParameters = mock(CloudProviderParameters.class);
 		when(cloudProviderParametersService.findByNameAndAccountUsername(A_CLOUD_PROVIDER_PARAMS_NAME, A_USER_NAME))
-		.thenReturn(mockCloudProviderParameters);
+				.thenReturn(mockCloudProviderParameters);
 		when(subject.readyToTearDown(tempKey, aDeploymentReference)).thenCallRealMethod();
 		subject.readyToTearDown(tempKey, aDeploymentReference);
 
@@ -279,8 +283,8 @@ public class DeploymentRestControllerTest
 
 	@Test
 	public void can_recognise_an_IP_has_been_given() throws IOException, ApplicationDeployerException,
-	NoSuchPaddingException, InvalidKeyException, NoSuchAlgorithmException, IllegalBlockSizeException,
-	BadPaddingException, InvalidAlgorithmParameterException, InvalidKeySpecException {
+			NoSuchPaddingException, InvalidKeyException, NoSuchAlgorithmException, IllegalBlockSizeException,
+			BadPaddingException, InvalidAlgorithmParameterException, InvalidKeySpecException {
 		String anIp = "123.123.123.123";
 		String aReference = "bar";
 		Deployment mockDeployment = deployment(aReference);
@@ -289,7 +293,7 @@ public class DeploymentRestControllerTest
 
 		CloudProviderParameters mockCloudProviderParameters = mock(CloudProviderParameters.class);
 		when(cloudProviderParametersService.findByNameAndAccountUsername(A_CLOUD_PROVIDER_PARAMS_NAME, A_USER_NAME))
-		.thenReturn(mockCloudProviderParameters);
+				.thenReturn(mockCloudProviderParameters);
 		when(subject.readyToTearDown(tempKey, anIp)).thenCallRealMethod();
 		subject.readyToTearDown(tempKey, anIp);
 
@@ -315,126 +319,126 @@ public class DeploymentRestControllerTest
 		Set applicationCollection = new HashSet<>();
 		applicationCollection.add(applicationMock);
 
-		when(applicationService.findByAccountUsername(accountUserName,new Sort("sort.name"))).thenReturn(applicationCollection);
+		when(applicationService.findByAccountUsername(accountUserName, new Sort("sort.name"))).thenReturn(applicationCollection);
 		when(deploymentResourceMock.getApplicationAccountUsername()).thenReturn(accountUserName);
 		when(deploymentResourceMock.getApplicationName()).thenReturn(appName);
 		when(deploymentResourceMock.getConfigurationAccountUsername()).thenReturn(accountUserName);
 		when(deploymentResourceMock.getConfigurationName()).thenReturn("some_configuration_name");
 		when(applicationService.findByAccountUsernameAndName(accountUserName, appName))
-		.thenReturn(applicationMock);
+				.thenReturn(applicationMock);
 		HttpServletRequest request = new MockHttpServletRequest();
 		when(subject.addDeployment(request, principal, deploymentResourceMock)).thenCallRealMethod();
 		subject.addDeployment(request, principal, deploymentResourceMock);
 
 	}
 
-	 @Test(expected = TeamNameInvalidInputException.class)
-	 public void test_if_team_deployment_throws_exception_empty_team_name() throws CloudCredentialNotUsableForApplicationException, IOException, ConfigurationNotUsableForApplicationException {
-		 DeploymentResource deploymentResourceMock = mock(DeploymentResource.class);
-		 HttpServletRequest request = new MockHttpServletRequest();
-		 when(subject.deployForTeamShared(request, principal, "", deploymentResourceMock)).thenCallRealMethod();
-		 subject.deployForTeamShared(request, principal, "", deploymentResourceMock);
-	 }
+	@Test(expected = TeamNameInvalidInputException.class)
+	public void test_if_team_deployment_throws_exception_empty_team_name() throws CloudCredentialNotUsableForApplicationException, IOException, ConfigurationNotUsableForApplicationException {
+		DeploymentResource deploymentResourceMock = mock(DeploymentResource.class);
+		HttpServletRequest request = new MockHttpServletRequest();
+		when(subject.deployForTeamShared(request, principal, "", deploymentResourceMock)).thenCallRealMethod();
+		subject.deployForTeamShared(request, principal, "", deploymentResourceMock);
+	}
 
-	 @Test(expected = ApplicationNotFoundUnderTeamException.class)
-	 public void test_if_team_deployment_throws_exception_application_not_shared() throws CloudCredentialNotUsableForApplicationException, IOException, ConfigurationNotUsableForApplicationException {
-		 String applicationName = "bla_app";
-		 String configuration = "bla_config";
-		 String teamName = "team_football";
+	@Test(expected = ApplicationNotFoundUnderTeamException.class)
+	public void test_if_team_deployment_throws_exception_application_not_shared() throws CloudCredentialNotUsableForApplicationException, IOException, ConfigurationNotUsableForApplicationException {
+		String applicationName = "bla_app";
+		String configuration = "bla_config";
+		String teamName = "team_football";
 
-		 DeploymentResource deploymentResourceMock = mock(DeploymentResource.class);
-		 Application application = mock(Application.class);
-		 Set<Application> applicationSet = new HashSet<>();
-		 applicationSet.add(application);
+		DeploymentResource deploymentResourceMock = mock(DeploymentResource.class);
+		Application application = mock(Application.class);
+		Set<Application> applicationSet = new HashSet<>();
+		applicationSet.add(application);
 
-		 Team team = mock(Team.class);
-		 given(application.getName()).willReturn("some_app");
-		 given(team.getApplicationsBelongingToTeam()).willReturn(applicationSet);
-		 given(deploymentResourceMock.getApplicationName()).willReturn(applicationName);
-		 given(deploymentResourceMock.getConfigurationName()).willReturn(configuration);
+		Team team = mock(Team.class);
+		given(application.getName()).willReturn("some_app");
+		given(team.getApplicationsBelongingToTeam()).willReturn(applicationSet);
+		given(deploymentResourceMock.getApplicationName()).willReturn(applicationName);
+		given(deploymentResourceMock.getConfigurationName()).willReturn(configuration);
 
-		 HttpServletRequest request = new MockHttpServletRequest();
-		 when(teamService.findByName(teamName)).thenReturn(team);
-		 when(teamService.findSharedApplicationWitinTeam(team, applicationName)).thenCallRealMethod();
-		 when(subject.deployForTeamShared(request, principal, teamName, deploymentResourceMock)).thenCallRealMethod();
-		 subject.deployForTeamShared(request, principal, teamName, deploymentResourceMock);
-	 }
+		HttpServletRequest request = new MockHttpServletRequest();
+		when(teamService.findByName(teamName)).thenReturn(team);
+		when(teamService.findSharedApplicationWitinTeam(team, applicationName)).thenCallRealMethod();
+		when(subject.deployForTeamShared(request, principal, teamName, deploymentResourceMock)).thenCallRealMethod();
+		subject.deployForTeamShared(request, principal, teamName, deploymentResourceMock);
+	}
 
-	 @Test(expected = ConfigurationNotFoundUnderTeamException.class)
-	 public void test_if_team_deployment_throws_exception_configuration_not_shared() throws CloudCredentialNotUsableForApplicationException, IOException, ConfigurationNotUsableForApplicationException {
-		 String applicationName = "bla_app";
-		 String configurationName = "bla_config";
-		 String accountUserName = "bla_username";
-		 String teamName = "team_football";
+	@Test(expected = ConfigurationNotFoundUnderTeamException.class)
+	public void test_if_team_deployment_throws_exception_configuration_not_shared() throws CloudCredentialNotUsableForApplicationException, IOException, ConfigurationNotUsableForApplicationException {
+		String applicationName = "bla_app";
+		String configurationName = "bla_config";
+		String accountUserName = "bla_username";
+		String teamName = "team_football";
 
-		 DeploymentResource deploymentResourceMock = mock(DeploymentResource.class);
-		 Application application = mock(Application.class);
-		 Account account = mock(Account.class);
-		 Set<Application> applicationSet = new HashSet<>();
-		 applicationSet.add(application);
-		 Configuration configuration = mock(Configuration.class);
-		 Set<Configuration> configurationSet = new HashSet<>();
-		 configurationSet.add(configuration);
+		DeploymentResource deploymentResourceMock = mock(DeploymentResource.class);
+		Application application = mock(Application.class);
+		Account account = mock(Account.class);
+		Set<Application> applicationSet = new HashSet<>();
+		applicationSet.add(application);
+		Configuration configuration = mock(Configuration.class);
+		Set<Configuration> configurationSet = new HashSet<>();
+		configurationSet.add(configuration);
 
-		 Team team = mock(Team.class);
-		 given(application.getName()).willReturn(applicationName);
-		 given(configuration.getName()).willReturn("some_config");
-		 given(account.getUsername()).willReturn(accountUserName);
-		 given(application.getAccount()).willReturn(account);
-		 given(team.getApplicationsBelongingToTeam()).willReturn(applicationSet);
-		 given(team.getConfigurationsBelongingToTeam()).willReturn(configurationSet);
-		 given(deploymentResourceMock.getApplicationName()).willReturn(applicationName);
-		 given(deploymentResourceMock.getConfigurationName()).willReturn(configurationName);
+		Team team = mock(Team.class);
+		given(application.getName()).willReturn(applicationName);
+		given(configuration.getName()).willReturn("some_config");
+		given(account.getUsername()).willReturn(accountUserName);
+		given(application.getAccount()).willReturn(account);
+		given(team.getApplicationsBelongingToTeam()).willReturn(applicationSet);
+		given(team.getConfigurationsBelongingToTeam()).willReturn(configurationSet);
+		given(deploymentResourceMock.getApplicationName()).willReturn(applicationName);
+		given(deploymentResourceMock.getConfigurationName()).willReturn(configurationName);
 
-		 HttpServletRequest request = new MockHttpServletRequest();
-		 when(teamService.findByName(teamName)).thenReturn(team);
-		 when(teamService.findSharedApplicationWitinTeam(team, applicationName)).thenCallRealMethod();
-		 when(teamService.findSharedConfigurationWitinTeam(team, configurationName)).thenCallRealMethod();
-		 when(subject.deployForTeamShared(request, principal, teamName, deploymentResourceMock)).thenCallRealMethod();
-		 subject.deployForTeamShared(request, principal, teamName, deploymentResourceMock);
-	 }
+		HttpServletRequest request = new MockHttpServletRequest();
+		when(teamService.findByName(teamName)).thenReturn(team);
+		when(teamService.findSharedApplicationWitinTeam(team, applicationName)).thenCallRealMethod();
+		when(teamService.findSharedConfigurationWitinTeam(team, configurationName)).thenCallRealMethod();
+		when(subject.deployForTeamShared(request, principal, teamName, deploymentResourceMock)).thenCallRealMethod();
+		subject.deployForTeamShared(request, principal, teamName, deploymentResourceMock);
+	}
 
-	 @Test
-	 public void test_if_team_deployment_succeeds() throws CloudCredentialNotUsableForApplicationException, IOException, ConfigurationNotUsableForApplicationException {
-		 String applicationName = "bla_app";
-		 String configurationName = "bla_config";
-		 String accountUserName = "bla_username";
-		 String teamName = "team_football";
+	@Test
+	public void test_if_team_deployment_succeeds() throws CloudCredentialNotUsableForApplicationException, IOException, ConfigurationNotUsableForApplicationException {
+		String applicationName = "bla_app";
+		String configurationName = "bla_config";
+		String accountUserName = "bla_username";
+		String teamName = "team_football";
 
-		 DeploymentResource deploymentResourceMock = mock(DeploymentResource.class);
-		 Application application = mock(Application.class);
-		 Account account = mock(Account.class);
-		 Set<Application> applicationSet = new HashSet<>();
-		 applicationSet.add(application);
-		 Configuration configuration = mock(Configuration.class);
-		 Set<Configuration> configurationSet = new HashSet<>();
-		 configurationSet.add(configuration);
+		DeploymentResource deploymentResourceMock = mock(DeploymentResource.class);
+		Application application = mock(Application.class);
+		Account account = mock(Account.class);
+		Set<Application> applicationSet = new HashSet<>();
+		applicationSet.add(application);
+		Configuration configuration = mock(Configuration.class);
+		Set<Configuration> configurationSet = new HashSet<>();
+		configurationSet.add(configuration);
 
-		 Team team = mock(Team.class);
-		 given(application.getName()).willReturn(applicationName);
-		 given(configuration.getName()).willReturn(configurationName);
-		 given(account.getUsername()).willReturn(accountUserName);
-		 given(application.getAccount()).willReturn(account);
-		 given(configuration.getAccount()).willReturn(account);
-		 given(team.getApplicationsBelongingToTeam()).willReturn(applicationSet);
-		 given(team.getConfigurationsBelongingToTeam()).willReturn(configurationSet);
-		 given(deploymentResourceMock.getApplicationName()).willReturn(applicationName);
-		 given(deploymentResourceMock.getConfigurationName()).willReturn(configurationName);
+		Team team = mock(Team.class);
+		given(application.getName()).willReturn(applicationName);
+		given(configuration.getName()).willReturn(configurationName);
+		given(account.getUsername()).willReturn(accountUserName);
+		given(application.getAccount()).willReturn(account);
+		given(configuration.getAccount()).willReturn(account);
+		given(team.getApplicationsBelongingToTeam()).willReturn(applicationSet);
+		given(team.getConfigurationsBelongingToTeam()).willReturn(configurationSet);
+		given(deploymentResourceMock.getApplicationName()).willReturn(applicationName);
+		given(deploymentResourceMock.getConfigurationName()).willReturn(configurationName);
 
-		 HttpServletRequest request = new MockHttpServletRequest();
-		 ResponseEntity responseEntity = new ResponseEntity<>("{}", null, HttpStatus.CREATED);
+		HttpServletRequest request = new MockHttpServletRequest();
+		ResponseEntity responseEntity = new ResponseEntity<>("{}", null, HttpStatus.CREATED);
 
-		 when(teamService.findByName(teamName)).thenReturn(team);
-		 when(teamService.findSharedApplicationWitinTeam(team, applicationName)).thenCallRealMethod();
-		 when(teamService.findSharedConfigurationWitinTeam(team, configurationName)).thenCallRealMethod();
-		 when(subject.deployForTeamShared(request, principal, teamName, deploymentResourceMock)).thenCallRealMethod();
-		 when(subject.addDeployment(request, principal, deploymentResourceMock)).thenReturn(responseEntity);
-		 ResponseEntity<?> addedDeployment = subject.deployForTeamShared(request, principal, teamName, deploymentResourceMock);
-		 assertNotNull(addedDeployment.getBody());
-		 assertTrue(addedDeployment.getStatusCode().equals(HttpStatus.CREATED));
-	 }
+		when(teamService.findByName(teamName)).thenReturn(team);
+		when(teamService.findSharedApplicationWitinTeam(team, applicationName)).thenCallRealMethod();
+		when(teamService.findSharedConfigurationWitinTeam(team, configurationName)).thenCallRealMethod();
+		when(subject.deployForTeamShared(request, principal, teamName, deploymentResourceMock)).thenCallRealMethod();
+		when(subject.addDeployment(request, principal, deploymentResourceMock)).thenReturn(responseEntity);
+		ResponseEntity<?> addedDeployment = subject.deployForTeamShared(request, principal, teamName, deploymentResourceMock);
+		assertNotNull(addedDeployment.getBody());
+		assertTrue(addedDeployment.getStatusCode().equals(HttpStatus.CREATED));
+	}
 
-	 // run the flow of the add method and check no hiccups and deployment is created
+	// run the flow of the add method and check no hiccups and deployment is created
 	@Test
 	public void test_add_deployment_shared_config_application() throws InvalidApplicationInputValueException, ConfigurationNotUsableForApplicationException, CloudCredentialNotUsableForApplicationException, IOException {
 
@@ -453,7 +457,7 @@ public class DeploymentRestControllerTest
 		given(account.getReference()).willReturn(accountReference);
 
 		//get account of the user who owns application and configuration
-		Account owner =  mock(Account.class);
+		Account owner = mock(Account.class);
 		String username = "username";
 		given(owner.getUsername()).willReturn(username);
 		given(accountService.findByUsername(username)).willReturn(owner);
@@ -482,7 +486,7 @@ public class DeploymentRestControllerTest
 		given(input.getApplicationName()).willReturn(applicationName);
 		Application application = mock(Application.class);
 		given(application.getName()).willReturn(applicationName);
-		given(applicationService.findByAccountUsernameAndName(username,applicationName)).willReturn(application);
+		given(applicationService.findByAccountUsernameAndName(username, applicationName)).willReturn(application);
 
 		//set up teams, sharedwith user is a member of only one of these teams
 		Set<Account> teamAccounts = new HashSet<>();
@@ -493,8 +497,8 @@ public class DeploymentRestControllerTest
 		sharedWithTeams.add(team);
 
 		//application is shared not owned
-		given(applicationService.findByAccountUsernameAndName(sharedWithUsername,applicationName))
-		.willThrow(ApplicationNotFoundException.class);
+		given(applicationService.findByAccountUsernameAndName(sharedWithUsername, applicationName))
+				.willThrow(ApplicationNotFoundException.class);
 
 		Set<Application> applications = new HashSet<>();
 		applications.add(application);
@@ -516,7 +520,7 @@ public class DeploymentRestControllerTest
 		when(input.getConfigurationName()).thenReturn(configurationName);
 		when(config.getName()).thenReturn(configurationName);
 		when(configurationService.findByNameAndAccountUsername(input.getConfigurationName(), input.getConfigurationAccountUsername()))
-		.thenReturn(config);
+				.thenReturn(config);
 		when(config.getHardUsageLimit()).thenReturn(1.0);
 		when(configurationService.getTotalConsumption(config, deploymentIndexService)).thenReturn(0.5);
 		when(configurationService.canConfigurationBeUsedForApplication(config, application, account)).thenCallRealMethod();
@@ -529,17 +533,17 @@ public class DeploymentRestControllerTest
 		given(configDeploymentParamsCopy.getName()).willReturn(cdpName);
 		given(configDeploymentParamsCopy.getConfigurationDeploymentParametersReference()).willReturn(cdpReference);
 		given(configurationDeploymentParamsCopyService.findByConfigurationDeploymentParametersReference(cdpReference))
-		.willReturn(configDeploymentParamsCopy);
+				.willReturn(configDeploymentParamsCopy);
 		List<ConfigDeploymentParamsCopy> cdpCopyList = new ArrayList<>();
 		cdpCopyList.add(configDeploymentParamsCopy);
 		given(configurationDeploymentParamsCopyService.findByName(cdpName)).willReturn(cdpCopyList.get(0));
 		given(configurationService.isConfigurationSharedWithAccount(account, config)).willCallRealMethod();
 		given(configurationDeploymentParamsCopyService.findByConfigurationDeploymentParametersReference(cdpReference))
-		.willReturn(configDeploymentParamsCopy);
+				.willReturn(configDeploymentParamsCopy);
 
 		//assigned cloud provider parameters
 		String cloudProviderParametersName = "cppName";
-		String cloudProviderParametersReference= "cppReference";
+		String cloudProviderParametersReference = "cppReference";
 		config.cloudProviderParametersName = cloudProviderParametersName;
 		config.setCloudProviderParametersName(cloudProviderParametersName);
 		when(config.getCloudProviderParametersName()).thenReturn(cloudProviderParametersName);
@@ -552,7 +556,7 @@ public class DeploymentRestControllerTest
 		given(selectedCloudProviderParameters.getCloudProvider()).willReturn(cloudProvider);
 		given(cloudProviderParametersService.isCloudProviderParametersSharedWithAccount(account, selectedCloudProviderParameters)).willCallRealMethod();
 		given(cloudProviderParametersService.findByReference(cloudProviderParametersReference)).willReturn(selectedCloudProviderParameters);
-		given(cloudProviderParametersService.checkForOverlapingAmongTeams(isA(Set.class),isA(Set.class),isA(Set.class))).willCallRealMethod();
+		given(cloudProviderParametersService.checkForOverlapingAmongTeams(isA(Set.class), isA(Set.class), isA(Set.class))).willCallRealMethod();
 		given(selectedCloudProviderParameters.getAccount()).willReturn(owner);
 		//application cloud providers
 		Collection<ApplicationCloudProvider> acpList = new ArrayList<>();
@@ -572,7 +576,7 @@ public class DeploymentRestControllerTest
 		CloudProviderParametersCopyResource cppCopyResource = new CloudProviderParametersCopyResource(cppCopy);
 		when(input.getCloudProviderParametersCopy()).thenReturn(cppCopyResource);
 		given(cloudProviderParametersCopyService.findByCloudProviderParametersReference(cloudProviderParametersReference))
-		.willReturn(cppCopy);
+				.willReturn(cppCopy);
 
 		//deployment application
 		DeploymentApplication deploymentApplication = mock(DeploymentApplication.class);
@@ -629,7 +633,7 @@ public class DeploymentRestControllerTest
 		Application application = mock(Application.class);
 		given(application.getName()).willReturn(applicationName);
 		given(application.getAccount()).willReturn(account);
-		given(applicationService.findByAccountUsernameAndName(username,applicationName)).willReturn(application);
+		given(applicationService.findByAccountUsernameAndName(username, applicationName)).willReturn(application);
 		HttpServletRequest request = new MockHttpServletRequest();
 		when(subject.addDeployment(request, principal, input)).thenCallRealMethod();
 		subject.addDeployment(request, principal, input);
@@ -661,14 +665,14 @@ public class DeploymentRestControllerTest
 		Application application = mock(Application.class);
 		given(application.getName()).willReturn(applicationName);
 		given(application.getAccount()).willReturn(account);
-		given(applicationService.findByAccountUsernameAndName(username,applicationName)).willReturn(application);
+		given(applicationService.findByAccountUsernameAndName(username, applicationName)).willReturn(application);
 		HttpServletRequest request = new MockHttpServletRequest();
 		when(subject.addDeployment(request, principal, input)).thenCallRealMethod();
 		ResponseEntity<?> addedDeployment = subject.addDeployment(request, principal, input);
 	}
 
 	@Test(expected = InvalidApplicationInputException.class)
-	public void invalid_application_input_no_app_name() throws IOException,	InvalidApplicationInputValueException, ConfigurationNotUsableForApplicationException, CloudCredentialNotUsableForApplicationException{
+	public void invalid_application_input_no_app_name() throws IOException, InvalidApplicationInputValueException, ConfigurationNotUsableForApplicationException, CloudCredentialNotUsableForApplicationException {
 
 		String username = "username";
 		Principal principal = mock(Principal.class);
@@ -696,8 +700,8 @@ public class DeploymentRestControllerTest
 		ResponseEntity<?> addedDeployment = subject.addDeployment(request, principal, input);
 	}
 
-	@Test(expected=ApplicationNotFoundException.class)
-	public void app_not_found_exception() throws IOException, InvalidApplicationInputValueException, ConfigurationNotUsableForApplicationException, CloudCredentialNotUsableForApplicationException{
+	@Test(expected = ApplicationNotFoundException.class)
+	public void app_not_found_exception() throws IOException, InvalidApplicationInputValueException, ConfigurationNotUsableForApplicationException, CloudCredentialNotUsableForApplicationException {
 
 		String username = "username";
 		Principal principal = mock(Principal.class);
@@ -720,7 +724,7 @@ public class DeploymentRestControllerTest
 		Application application = mock(Application.class);
 		given(application.getName()).willReturn(applicationName);
 		given(application.getAccount()).willReturn(account);
-		given(applicationService.findByAccountUsernameAndName(username,applicationName)).willThrow(ApplicationNotFoundException.class);
+		given(applicationService.findByAccountUsernameAndName(username, applicationName)).willThrow(ApplicationNotFoundException.class);
 		HttpServletRequest request = new MockHttpServletRequest();
 		when(subject.addDeployment(request, principal, input)).thenCallRealMethod();
 		subject.addDeployment(request, principal, input);
@@ -767,20 +771,25 @@ public class DeploymentRestControllerTest
             With server path    https://api.portal.tsi.ebi.ac.uk/deployments/TSI000000000000001/stopme
 
 		 */
-		MockHttpServletRequest localURLRequest  = mockRequest("localhost", 8080);
+		MockHttpServletRequest localURLRequest = mockRequest("localhost", 8080);
 		when(subject.baseURL(localURLRequest)).thenCallRealMethod();
 		when(subject.getPortStr(Mockito.any(URL.class))).thenCallRealMethod();
 		assertEquals("http://localhost:8080", subject.baseURL(localURLRequest));
 		MockHttpServletRequest devURLRequest = mockRequest("dev.api.portal.tsi.ebi.ac.uk");
-		when(subject.baseURL( devURLRequest)).thenCallRealMethod();
-		assertEquals( "http://dev.api.portal.tsi.ebi.ac.uk" , subject.baseURL( devURLRequest) );
+		when(subject.baseURL(devURLRequest)).thenCallRealMethod();
+		assertEquals("http://dev.api.portal.tsi.ebi.ac.uk", subject.baseURL(devURLRequest));
 		MockHttpServletRequest prodURLRequest = mockRequest("api.portal.tsi.ebi.ac.uk", -1, "/deployments/TSI000000000000001/stopme");
-		when(subject.baseURL( prodURLRequest)).thenCallRealMethod();
-		assertEquals( "http://api.portal.tsi.ebi.ac.uk"     , subject.baseURL(prodURLRequest));
+		when(subject.baseURL(prodURLRequest)).thenCallRealMethod();
+		assertEquals("http://api.portal.tsi.ebi.ac.uk", subject.baseURL(prodURLRequest));
 	}
 
-	MockHttpServletRequest mockRequest(String host)            {  return mockRequest(host, -1);	          }
-	MockHttpServletRequest mockRequest(String host, int port)  {  return mockRequest(host, port, null);   }
+	MockHttpServletRequest mockRequest(String host) {
+		return mockRequest(host, -1);
+	}
+
+	MockHttpServletRequest mockRequest(String host, int port) {
+		return mockRequest(host, port, null);
+	}
 
 	MockHttpServletRequest mockRequest(String host, int port, String path) {
 
@@ -798,10 +807,10 @@ public class DeploymentRestControllerTest
 	}
 
 	@Test(expected = ConfigurationNotUsableForApplicationException.class)
-	public void testIfConfigurationisNotUsable() throws InvalidApplicationInputValueException, IOException,ConfigurationNotUsableForApplicationException, CloudCredentialNotUsableForApplicationException {
+	public void testIfConfigurationisNotUsable() throws InvalidApplicationInputValueException, IOException, ConfigurationNotUsableForApplicationException, CloudCredentialNotUsableForApplicationException {
 
 		DeploymentResource input = mock(DeploymentResource.class);
-		
+
 		String sharedWithUsername = "sharedWithUsername";
 		Principal principal = mock(Principal.class);
 		given(principal.getName()).willReturn(sharedWithUsername);
@@ -813,11 +822,11 @@ public class DeploymentRestControllerTest
 		given(account.getUsername()).willReturn(sharedWithUsername);
 		given(account.getFirstJoinedDate()).willReturn(new Date(0, 0, 0));
 		given(account.getReference()).willReturn(accountReference);
-		
-		
+
+
 		String applicationName = "applicationName";
 		String applicationOwnerAccountUsername = "applicationOwnerAccountUsername";
-		Account applicationOwner =  mock(Account.class);
+		Account applicationOwner = mock(Account.class);
 		when(input.getApplicationName()).thenReturn(applicationName);
 		when(input.getApplicationAccountUsername()).thenReturn(applicationOwnerAccountUsername);
 		given(accountService.findByUsername(applicationOwnerAccountUsername)).willReturn(applicationOwner);
@@ -826,10 +835,10 @@ public class DeploymentRestControllerTest
 		given(applicationOwner.getUsername()).willReturn(applicationOwnerAccountUsername);
 		given(applicationService.findByAccountUsernameAndName(applicationOwnerAccountUsername, applicationName)).willReturn(application);
 		given(applicationService.isApplicationSharedWithAccount(account, application)).willReturn(true);
-		
+
 		String configurationName = "configurationName";
 		String configurationOwnerAccountUsername = "configurationOwnerAccountUsername";
-		Account configurationOwner =  mock(Account.class);
+		Account configurationOwner = mock(Account.class);
 		when(input.getConfigurationName()).thenReturn(configurationName);
 		when(input.getConfigurationAccountUsername()).thenReturn(configurationOwnerAccountUsername);
 		given(accountService.findByUsername(configurationOwnerAccountUsername)).willReturn(configurationOwner);
@@ -838,25 +847,25 @@ public class DeploymentRestControllerTest
 		given(configurationOwner.getUsername()).willReturn(configurationOwnerAccountUsername);
 		given(configurationService.findByNameAndAccountUsername(configurationName, sharedWithUsername)).willThrow(ConfigurationNotFoundException.class);
 		given(configurationService.findByNameAndAccountUsername(configurationName, configurationOwnerAccountUsername)).willReturn(configuration);
-		given(configurationService.isConfigurationSharedWithAccount(account, configuration)).willReturn(true);	
+		given(configurationService.isConfigurationSharedWithAccount(account, configuration)).willReturn(true);
 		given(configurationService
 				.canConfigurationBeUsedForApplication(
 						isA(Configuration.class),
 						isA(Application.class),
 						isA(Account.class))).willReturn(false);
-		
+
 		HttpServletRequest request = new MockHttpServletRequest();
 		when(subject.addDeployment(request, principal, input)).thenCallRealMethod();
 		subject.addDeployment(request, principal, input);
 
 	}
-	
+
 	@Test(expected = ConfigurationNotUsableForApplicationException.class)
 	public void testIfConfigurationisNotShared() throws InvalidApplicationInputValueException,
-	IOException, ConfigurationNotUsableForApplicationException, CloudCredentialNotUsableForApplicationException {
+			IOException, ConfigurationNotUsableForApplicationException, CloudCredentialNotUsableForApplicationException {
 
 		DeploymentResource input = mock(DeploymentResource.class);
-		
+
 		String sharedWithUsername = "sharedWithUsername";
 		Principal principal = mock(Principal.class);
 		given(principal.getName()).willReturn(sharedWithUsername);
@@ -868,11 +877,11 @@ public class DeploymentRestControllerTest
 		given(account.getUsername()).willReturn(sharedWithUsername);
 		given(account.getFirstJoinedDate()).willReturn(new Date(0, 0, 0));
 		given(account.getReference()).willReturn(accountReference);
-		
-		
+
+
 		String applicationName = "applicationName";
 		String applicationOwnerAccountUsername = "applicationOwnerAccountUsername";
-		Account applicationOwner =  mock(Account.class);
+		Account applicationOwner = mock(Account.class);
 		when(input.getApplicationName()).thenReturn(applicationName);
 		when(input.getApplicationAccountUsername()).thenReturn(applicationOwnerAccountUsername);
 		given(accountService.findByUsername(applicationOwnerAccountUsername)).willReturn(applicationOwner);
@@ -881,10 +890,10 @@ public class DeploymentRestControllerTest
 		given(applicationOwner.getUsername()).willReturn(applicationOwnerAccountUsername);
 		given(applicationService.findByAccountUsernameAndName(applicationOwnerAccountUsername, applicationName)).willReturn(application);
 		given(applicationService.isApplicationSharedWithAccount(account, application)).willReturn(true);
-		
+
 		String configurationName = "configurationName";
 		String configurationOwnerAccountUsername = "configurationOwnerAccountUsername";
-		Account configurationOwner =  mock(Account.class);
+		Account configurationOwner = mock(Account.class);
 		when(input.getConfigurationName()).thenReturn(configurationName);
 		when(input.getConfigurationAccountUsername()).thenReturn(configurationOwnerAccountUsername);
 		given(accountService.findByUsername(configurationOwnerAccountUsername)).willReturn(configurationOwner);
@@ -893,18 +902,18 @@ public class DeploymentRestControllerTest
 		given(configurationOwner.getUsername()).willReturn(configurationOwnerAccountUsername);
 		given(configurationService.findByNameAndAccountUsername(configurationName, sharedWithUsername)).willThrow(ConfigurationNotFoundException.class);
 		given(configurationService.findByNameAndAccountUsername(configurationName, configurationOwnerAccountUsername)).willReturn(configuration);
-		given(configurationService.isConfigurationSharedWithAccount(account, configuration)).willReturn(false);	
+		given(configurationService.isConfigurationSharedWithAccount(account, configuration)).willReturn(false);
 		HttpServletRequest request = new MockHttpServletRequest();
 		when(subject.addDeployment(request, principal, input)).thenCallRealMethod();
 		subject.addDeployment(request, principal, input);
 
 	}
-	
+
 	@Test(expected = ConfigurationNotUsableForApplicationException.class)
 	public void testIfCredentialisNotUsable() throws ConfigurationNotUsableForApplicationException, CloudCredentialNotUsableForApplicationException, IOException {
 
 		DeploymentResource input = mock(DeploymentResource.class);
-		
+
 		String sharedWithUsername = "sharedWithUsername";
 		Principal principal = mock(Principal.class);
 		given(principal.getName()).willReturn(sharedWithUsername);
@@ -916,11 +925,11 @@ public class DeploymentRestControllerTest
 		given(account.getUsername()).willReturn(sharedWithUsername);
 		given(account.getFirstJoinedDate()).willReturn(new Date(0, 0, 0));
 		given(account.getReference()).willReturn(accountReference);
-		
-		
+
+
 		String applicationName = "applicationName";
 		String applicationOwnerAccountUsername = "applicationOwnerAccountUsername";
-		Account applicationOwner =  mock(Account.class);
+		Account applicationOwner = mock(Account.class);
 		when(input.getApplicationName()).thenReturn(applicationName);
 		when(input.getApplicationAccountUsername()).thenReturn(applicationOwnerAccountUsername);
 		given(accountService.findByUsername(applicationOwnerAccountUsername)).willReturn(applicationOwner);
@@ -929,7 +938,7 @@ public class DeploymentRestControllerTest
 		given(applicationOwner.getUsername()).willReturn(applicationOwnerAccountUsername);
 		given(applicationService.findByAccountUsernameAndName(applicationOwnerAccountUsername, applicationName)).willReturn(application);
 		given(applicationService.isApplicationSharedWithAccount(account, application)).willReturn(true);
-		
+
 		String configurationName = "configurationName";
 		when(input.getConfigurationName()).thenReturn(configurationName);
 		when(input.getConfigurationAccountUsername()).thenReturn(sharedWithUsername);
@@ -939,14 +948,14 @@ public class DeploymentRestControllerTest
 		String credentialName = "credentialName";
 		given(configuration.getCloudProviderParametersName()).willReturn(credentialName);
 		given(configurationService.findByNameAndAccountUsername(configurationName, sharedWithUsername)).willReturn(configuration);
-			
+
 		given(cloudProviderParametersService.findByNameAndAccountUsername(credentialName, sharedWithUsername))
-		.willThrow(CloudProviderParametersNotFoundException.class);
-		CloudProviderParameters cloudProviderParameters =  mock(CloudProviderParameters.class);
+				.willThrow(CloudProviderParametersNotFoundException.class);
+		CloudProviderParameters cloudProviderParameters = mock(CloudProviderParameters.class);
 		String credentialReference = "credentialReference";
 		given(configuration.getCloudProviderParametersReference()).willReturn(credentialReference);
 		given(cloudProviderParametersService.findByReference(credentialReference)).willReturn(cloudProviderParameters);
-		
+
 		//credential owner account
 		Account cppOwner = mock(Account.class);
 		String cppOwnerName = "cppOwnerName";
@@ -954,7 +963,7 @@ public class DeploymentRestControllerTest
 		given(cloudProviderParameters.getAccount()).willReturn(cppOwner);
 		given(accountService.findByUsername(cppOwnerName)).willReturn(cppOwner);
 		given(cloudProviderParametersService
-				.isCloudProviderParametersSharedWithAccount(account, cloudProviderParameters)).willReturn(true);	
+				.isCloudProviderParametersSharedWithAccount(account, cloudProviderParameters)).willReturn(true);
 		given(cloudProviderParametersService
 				.canCredentialBeUsedForApplication(
 						isA(CloudProviderParameters.class),
@@ -965,13 +974,13 @@ public class DeploymentRestControllerTest
 		subject.addDeployment(request, principal, input);
 
 	}
-	
+
 	@Test(expected = ConfigurationNotUsableForApplicationException.class)
 	public void testIfCredentialisNotShared() throws InvalidApplicationInputValueException, IOException,
-	ConfigurationNotUsableForApplicationException, CloudCredentialNotUsableForApplicationException {
+			ConfigurationNotUsableForApplicationException, CloudCredentialNotUsableForApplicationException {
 
 		DeploymentResource input = mock(DeploymentResource.class);
-		
+
 		String sharedWithUsername = "sharedWithUsername";
 		Principal principal = mock(Principal.class);
 		given(principal.getName()).willReturn(sharedWithUsername);
@@ -983,11 +992,11 @@ public class DeploymentRestControllerTest
 		given(account.getUsername()).willReturn(sharedWithUsername);
 		given(account.getFirstJoinedDate()).willReturn(new Date(0, 0, 0));
 		given(account.getReference()).willReturn(accountReference);
-		
-		
+
+
 		String applicationName = "applicationName";
 		String applicationOwnerAccountUsername = "applicationOwnerAccountUsername";
-		Account applicationOwner =  mock(Account.class);
+		Account applicationOwner = mock(Account.class);
 		when(input.getApplicationName()).thenReturn(applicationName);
 		when(input.getApplicationAccountUsername()).thenReturn(applicationOwnerAccountUsername);
 		given(accountService.findByUsername(applicationOwnerAccountUsername)).willReturn(applicationOwner);
@@ -996,7 +1005,7 @@ public class DeploymentRestControllerTest
 		given(applicationOwner.getUsername()).willReturn(applicationOwnerAccountUsername);
 		given(applicationService.findByAccountUsernameAndName(applicationOwnerAccountUsername, applicationName)).willReturn(application);
 		given(applicationService.isApplicationSharedWithAccount(account, application)).willReturn(true);
-		
+
 		String configurationName = "configurationName";
 		when(input.getConfigurationName()).thenReturn(configurationName);
 		when(input.getConfigurationAccountUsername()).thenReturn(sharedWithUsername);
@@ -1006,14 +1015,14 @@ public class DeploymentRestControllerTest
 		String credentialName = "credentialName";
 		given(configuration.getCloudProviderParametersName()).willReturn(credentialName);
 		given(configurationService.findByNameAndAccountUsername(configurationName, sharedWithUsername)).willReturn(configuration);
-			
+
 		given(cloudProviderParametersService.findByNameAndAccountUsername(credentialName, sharedWithUsername))
-		.willThrow(CloudProviderParametersNotFoundException.class);
-		CloudProviderParameters cloudProviderParameters =  mock(CloudProviderParameters.class);
+				.willThrow(CloudProviderParametersNotFoundException.class);
+		CloudProviderParameters cloudProviderParameters = mock(CloudProviderParameters.class);
 		String credentialReference = "credentialReference";
 		given(configuration.getCloudProviderParametersReference()).willReturn(credentialReference);
 		given(cloudProviderParametersService.findByReference(credentialReference)).willReturn(cloudProviderParameters);
-		
+
 		//credential owner account
 		Account cppOwner = mock(Account.class);
 		String cppOwnerName = "cppOwnerName";
@@ -1031,35 +1040,72 @@ public class DeploymentRestControllerTest
 
 	}
 
-	 @Test
-	 public void testDeploymentsReturned() throws IOException, ApplicationDeployerException {
+	@Test
+	public void testDeploymentsReturned() throws IOException, ApplicationDeployerException {
 
-		 String username = "username";
-		 Principal principal = mock(Principal.class);
-		 given(principal.getName()).willReturn(username);
+		String username = "username";
+		Principal principal = mock(Principal.class);
+		given(principal.getName()).willReturn(username);
 
-		 //get account of the user
-		 Account account = mock(Account.class);
-		 given(account.getUsername()).willReturn(username);
-		 given(accountService.findByUsername(username)).willReturn(account);
+		//get account of the user
+		Account account = mock(Account.class);
+		given(account.getUsername()).willReturn(username);
+		given(accountService.findByUsername(username)).willReturn(account);
 
-		 Set<Deployment> deployments = new HashSet<>();
+		Set<Deployment> deployments = new HashSet<>();
 
-		 Deployment deploymentOne = deployment("some reference");
+		Deployment deploymentOne = deployment("some reference");
 
-		 deployments.add(deploymentOne);
-		 given(account.getDeployments()).willReturn(deployments);
+		deployments.add(deploymentOne);
+		given(account.getDeployments()).willReturn(deployments);
 
-		 //test for hideDestroyed as true
-		 given(subject.getAllDeploymentsByUserId(principal, true)).willCallRealMethod();
-		 given(deploymentService.findDeployments(username, true)).willReturn(deployments.stream().collect(Collectors.toList()));
-		 Resources<DeploymentResource> deploymentResourcesHidden =  subject.getAllDeploymentsByUserId(principal, true);
-		 assertTrue(deploymentResourcesHidden.getContent().size()==1);
+		//test for hideDestroyed as true
+		given(subject.getAllDeploymentsByUserId(principal, true)).willCallRealMethod();
+		given(deploymentService.findDeployments(username, true)).willReturn(deployments.stream().collect(Collectors.toList()));
+		Resources<DeploymentResource> deploymentResourcesHidden = subject.getAllDeploymentsByUserId(principal, true);
+		assertTrue(deploymentResourcesHidden.getContent().size() == 1);
 
-		 //test for hideDestroyed as false
-		 given(subject.getAllDeploymentsByUserId(principal, false)).willCallRealMethod();
-		 given(deploymentService.findDeployments(username, false)).willReturn(deployments.stream().collect(Collectors.toList()));
-		 Resources<DeploymentResource> deploymentResources =  subject.getAllDeploymentsByUserId(principal, false);
-		 assertTrue(deploymentResources.getContent().size()==1);
-	 }
+		//test for hideDestroyed as false
+		given(subject.getAllDeploymentsByUserId(principal, false)).willCallRealMethod();
+		given(deploymentService.findDeployments(username, false)).willReturn(deployments.stream().collect(Collectors.toList()));
+		Resources<DeploymentResource> deploymentResources = subject.getAllDeploymentsByUserId(principal, false);
+		assertTrue(deploymentResources.getContent().size() == 1);
+	}
+
+	@Test
+	public void testDeployments() throws IOException, ApplicationDeployerException {
+
+		String username = "username";
+		Principal principal = mock(Principal.class);
+		given(principal.getName()).willReturn(username);
+
+		//get account of the user
+		Account account = mock(Account.class);
+		given(account.getUsername()).willReturn(username);
+		given(accountService.findByUsername(username)).willReturn(account);
+
+		String reference = "some reference";
+		Deployment deploymentOne = mock(Deployment.class);
+		given(deploymentOne.getAccount()).willReturn(account);
+		DeploymentApplication mockDeploymentApp = mock(DeploymentApplication.class);
+		when(mockDeploymentApp.getRepoPath()).thenReturn("irrelevant");
+		when(deploymentOne.getDeploymentApplication()).thenReturn(mockDeploymentApp);
+		when(mockDeploymentApp.getAccount()).thenReturn(account);
+
+		//test for hideDestroyed as true
+		given(deploymentService.findByReference(reference)).willCallRealMethod();
+		given(deploymentRepository.findByReference(reference)).willReturn(Optional.of(deploymentOne));
+
+		String username2 = "username2";
+		Principal principal2 = mock(Principal.class);
+		given(principal2.getName()).willReturn(username2);
+
+		Account account2 = mock(Account.class);
+		given(account2.getUsername()).willReturn(username2);
+		given(accountService.findByUsername(username2)).willReturn(account2);
+
+		given(subject.getDeploymentByReference(principal2,reference)).willCallRealMethod();
+		DeploymentResource deployment = subject.getDeploymentByReference(principal2, reference);
+		assert(deployment.getAccountUsername().equals(username));
+	}
 }

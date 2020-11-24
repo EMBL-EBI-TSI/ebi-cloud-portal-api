@@ -6,12 +6,14 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.authentication.configurers.GlobalAuthenticationConfigurerAdapter;
-import org.springframework.security.core.authority.AuthorityUtils;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
-import uk.ac.ebi.tsc.portal.api.account.repo.AccountRepository;
+import uk.ac.ebi.tsc.portal.api.account.service.AccountService;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * @author Jose A. Dianes <jdianes@ebi.ac.uk>
@@ -22,21 +24,35 @@ import uk.ac.ebi.tsc.portal.api.account.repo.AccountRepository;
 @ComponentScan(basePackages = "uk.ac.ebi.tsc.portal.api")
 class AuthenticationConfiguration extends GlobalAuthenticationConfigurerAdapter {
 
-    @Autowired
-    AccountRepository accountRepository;
-    
-    @Bean(name = "userDetailsService")
-    public UserDetailsService userDetailsService() {
+    private AccountService accountService;
 
-        return (username) -> accountRepository
-                .findByUsername(username)
-                .map(a -> new User(a.username, a.password, true, true, true, true,
-                        AuthorityUtils.createAuthorityList("ROLE_USER", "write")))
-                .orElseThrow(
-                        () -> new UsernameNotFoundException("could not find the user '"
-                                + username + "'"));
+    AuthenticationConfiguration(AccountService accountService) {
+        this.accountService = accountService;
     }
 
+    @Bean(name = "userDetailsService")
+    public UserDetailsService userDetailsService() {
+        return accountService;
+    }
+
+    private User buildUserForAuthentication(User user) {
+        String username = user.getUsername();
+        String password = user.getPassword();
+        boolean enabled = true;
+        boolean accountNonExpired = true;
+        boolean credentialsNonExpired = true;
+        boolean accountNonLocked = true;
+
+        List<GrantedAuthority> authorities = new ArrayList<>();
+        authorities.add(new GrantedAuthority() {
+            @Override
+            public String getAuthority() {
+                return "ROLE_ADMIN";
+            }
+        });
+        return new User(username, password, enabled, accountNonExpired, credentialsNonExpired,
+                accountNonLocked, authorities);
+    }
 
     @Override
     public void init(AuthenticationManagerBuilder auth) throws Exception {

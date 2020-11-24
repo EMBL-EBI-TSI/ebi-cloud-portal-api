@@ -11,11 +11,15 @@ import uk.ac.ebi.tsc.portal.api.account.repo.Account;
 import uk.ac.ebi.tsc.portal.api.application.repo.Application;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.*;
 
+import java.security.Principal;
+import java.sql.Date;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.Assert.assertTrue;
+import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -47,7 +51,8 @@ public class DeploymentServiceTest {
     DeploymentApplication deploymentApplication = new DeploymentApplication(application);
 
     //first deployment
-    Deployment deployment =  new Deployment("reference", account, deploymentApplication,
+    String reference = "reference";
+    Deployment deployment =  new Deployment(reference, account, deploymentApplication,
             "cloudProviderParametersReference", "userSshKey");
     DeploymentStatus deploymentStatus = new DeploymentStatus(deployment, DeploymentStatusEnum.STARTING);
 
@@ -122,5 +127,4 @@ public class DeploymentServiceTest {
                 .thenReturn(deployments);
         assertTrue(deploymentService.findDeploymentsByConfigurationReferenceAndDeploymentStatus(configurationReference, false).size() ==2);
     }
-
 }

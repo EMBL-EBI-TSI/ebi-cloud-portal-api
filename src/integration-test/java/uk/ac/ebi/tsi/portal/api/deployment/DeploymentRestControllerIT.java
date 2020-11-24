@@ -90,7 +90,7 @@ public class DeploymentRestControllerIT {
 	@Value("${be.applications.root}")
 	private String applicationRootDir;
 
-	//@Test
+	@Test
 	public void canCreateDeployment() throws Exception{
 
 

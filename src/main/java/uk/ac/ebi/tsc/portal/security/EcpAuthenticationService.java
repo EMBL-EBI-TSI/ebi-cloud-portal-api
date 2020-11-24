@@ -2,11 +2,9 @@ package uk.ac.ebi.tsc.portal.security;
 
 import java.io.IOException;
 import java.sql.Date;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -18,12 +16,24 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.AuthorityUtils;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Lists;
 
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
+import uk.ac.ebi.tsc.aap.client.model.Domain;
 import uk.ac.ebi.tsc.aap.client.repo.DomainService;
 import uk.ac.ebi.tsc.aap.client.repo.TokenService;
 import uk.ac.ebi.tsc.portal.api.account.repo.Account;
@@ -45,12 +55,11 @@ import uk.ac.ebi.tsc.portal.clouddeployment.application.ApplicationDeployer;
  * @since 09/05/2018.
  */
 @Component
-public class EcpAuthenticationService {
+public class EcpAuthenticationService implements UserDetailsService{
 
     private static final Logger logger = LoggerFactory.getLogger(EcpAuthenticationService.class);
     private static final String TOKEN_HEADER_KEY = "Authorization";
     private static final String TOKEN_HEADER_VALUE_PREFIX = "Bearer ";
-
 
     uk.ac.ebi.tsc.aap.client.security.TokenAuthenticationService tokenAuthenticationService;
 
@@ -58,6 +67,7 @@ public class EcpAuthenticationService {
     private final TokenService tokenService;
     private final TeamService teamService;
     private final DeploymentService deploymentService;
+    private final DomainService domainService;
     private final CloudProviderParamsCopyService cloudProviderParamsCopyService;
     private final DeploymentConfigurationService deploymentConfigurationService;
     private final ApplicationDeployer applicationDeployer;
@@ -65,7 +75,6 @@ public class EcpAuthenticationService {
     private final String ecpAapPassword;
     private final Map<String, List<DefaultTeamMap>> defaultTeamsMap;
 
-    @Autowired
 	public EcpAuthenticationService(
             uk.ac.ebi.tsc.aap.client.security.TokenAuthenticationService tokenAuthenticationService,
             AccountService accountService, DeploymentService deploymentService,
@@ -86,6 +95,7 @@ public class EcpAuthenticationService {
         this.deploymentConfigurationService = deploymentConfigurationService;
         this.cloudProviderParamsCopyService = cloudProviderParamsCopyService;
         this.teamService = teamService;
+        this.domainService = domainService;
         this.defaultTeamsMap = new HashMap<>();
         // Read maps from json file
         ObjectMapper mapper = new ObjectMapper();
@@ -110,7 +120,6 @@ public class EcpAuthenticationService {
      * @param request
      * @return
      */
-    @Bean
     public Authentication getAuthentication(HttpServletRequest request) {
         Authentication authentication = this.tokenAuthenticationService.getAuthentication(request);
         if (authentication == null) {
@@ -173,8 +182,7 @@ public class EcpAuthenticationService {
         }
 
         // Manage default team membership
-        this.addAccountToDefaultTeamsByEmail(account);
-
+       // this.addAccountToDefaultTeamsByEmail(account);
         return authentication;
     }
 
@@ -205,6 +213,41 @@ public class EcpAuthenticationService {
             	logger.info("Team " + defaultTeamMap.getTeamName() + " not found. Can't add user " + account.getEmail());
             }
         });
+    }
+
+    @Override
+    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+        User user;
+        HttpServletRequest request =
+                ((ServletRequestAttributes) RequestContextHolder.
+                        currentRequestAttributes()).
+                        getRequest();
+        final String header = request.getHeader(TOKEN_HEADER_KEY);
+        final String aapToken = header.substring(TOKEN_HEADER_VALUE_PREFIX.length());
+        Account account = accountService.findByUsername(username);
+        Collection<Domain> domains = domainService.getMyManagementDomains(aapToken);
+        Optional<Domain> adminDomain = domains.stream().filter(domain -> domain.getDomainName().matches("self.AUTH_PORTAL")).findAny();
+        try {
+            if (adminDomain.isPresent()) {
+                user = new User(
+                        account.getUsername(),
+                        account.getPassword(),
+                        true,
+                        true,
+                        true,
+                        true,
+                        AuthorityUtils.createAuthorityList("ROLE_USER", "ROLE_ADMIN", "write"));
+            } else {
+                user = new User( account.getUsername(),
+                        account.getPassword(), true, true, true, true,
+                        AuthorityUtils.createAuthorityList("ROLE_USER", "write"));
+            }
+        } catch (UsernameNotFoundException e) {
+            throw new UsernameNotFoundException("could not find the user '" + username + "'");
+        }
+
+        return user;
+
     }
 
 }

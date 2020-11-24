@@ -40,6 +40,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.EnableAspectJAutoProxy;
 import org.springframework.hateoas.Link;
 import org.springframework.hateoas.Resources;
 import org.springframework.hateoas.VndErrors;
@@ -47,6 +48,9 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PostAuthorize;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.access.prepost.PreFilter;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 
@@ -575,6 +579,8 @@ public class DeploymentRestController {
 
 	@RequestMapping(value = "/{deploymentReference}", method = RequestMethod.GET)
 	DeploymentResource getDeploymentByReference(Principal principal, @PathVariable("deploymentReference") String reference) throws IOException, ApplicationDeployerException {
+
+		logger.info("Deployment " + reference + " for user " + " requested");
 		String userId = principal.getName();
 
 		logger.info("Deployment " + reference + " for user " + userId + " requested");
@@ -594,8 +600,6 @@ public class DeploymentRestController {
 			logger.error("Could not find cpp copy with reference " + theDeployment.getCloudProviderParametersReference());
 			return new DeploymentResource(theDeployment, null);
 		}
-
-
 	}
 
 	@RequestMapping(value = "/{deploymentReference}/status", method = RequestMethod.GET)

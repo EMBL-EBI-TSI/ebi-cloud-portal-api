@@ -53,7 +53,7 @@ public class DeploymentStatusUpdate implements Runnable {
 	public void run() {
 		if (this.deploymentIndexService == null) {
 			logger.error("DeploymentIndex service not available. Cause: NOT INSTANTIATED");
-		} else {
+		} /*else {
 
 			try {
 				Collection<DeploymentDocument> deploymentDocuments =
@@ -152,7 +152,7 @@ public class DeploymentStatusUpdate implements Runnable {
 				logger.error("Unexpected exception. Cause: ", e);
 			}
 
-		}
+		}*/
 
 	}
 }
