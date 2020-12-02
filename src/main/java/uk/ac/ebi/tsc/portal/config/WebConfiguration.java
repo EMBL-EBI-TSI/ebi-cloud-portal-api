@@ -22,6 +22,9 @@ public class WebConfiguration extends WebMvcConfigurerAdapter {
     @Value("#{'${be.friendly.origins}'.split(',')}")
     List<String> origins;
 
+    @Value("${ecp.aai.authority}")
+    public String adminAuthority;
+
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**")
@@ -49,6 +52,11 @@ public class WebConfiguration extends WebMvcConfigurerAdapter {
     @Bean
     public String elasticsearchpassword(@Value("${elasticsearch.password}") String elasticsearchpassword) {
        return elasticsearchpassword;
+    }
+
+    @Bean
+    public String adminAuthority(){
+        return adminAuthority;
     }
 
 }

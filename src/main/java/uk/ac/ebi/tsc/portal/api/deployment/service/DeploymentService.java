@@ -66,7 +66,7 @@ public class DeploymentService {
                 () -> new DeploymentStatusNotFoundException(deploymentId));
     }
 
-    @PostAuthorize(value = "hasAuthority('ROLE_self.AUTH_PORTAL')" +
+    @PostAuthorize(value = "hasAuthority(@webConfiguration.adminAuthority())" +
             " or returnObject.getAccount().getUsername() == authentication.name")
     public Deployment findByReference(String reference) {
         return this.deploymentRepository.findByReference(reference).orElseThrow(
