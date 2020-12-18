@@ -54,7 +54,6 @@ public class WebConfiguration extends WebMvcConfigurerAdapter {
        return elasticsearchpassword;
     }
 
-    @Bean
     public String adminAuthority(){
         return adminAuthority;
     }
