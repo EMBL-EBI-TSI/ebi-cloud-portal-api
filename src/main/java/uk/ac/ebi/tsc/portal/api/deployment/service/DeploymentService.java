@@ -4,7 +4,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PostAuthorize;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.*;
 
@@ -66,8 +65,8 @@ public class DeploymentService {
                 () -> new DeploymentStatusNotFoundException(deploymentId));
     }
 
-    @PostAuthorize(value = "hasAuthority(@webConfiguration.adminAuthority())" +
-            " or returnObject.getAccount().getUsername() == authentication.name")
+    @PostAuthorize(value = "hasAuthority(@viewDeploymentsRole)" +
+            " or returnObject.account.username == authentication.name")
     public Deployment findByReference(String reference) {
         return this.deploymentRepository.findByReference(reference).orElseThrow(
                 () -> new DeploymentNotFoundException(reference));

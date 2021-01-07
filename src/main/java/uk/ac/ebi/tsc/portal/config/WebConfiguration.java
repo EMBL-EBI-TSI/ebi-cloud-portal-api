@@ -1,10 +1,12 @@
 package uk.ac.ebi.tsc.portal.config;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.DependsOn;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter;
@@ -22,8 +24,8 @@ public class WebConfiguration extends WebMvcConfigurerAdapter {
     @Value("#{'${be.friendly.origins}'.split(',')}")
     List<String> origins;
 
-    @Value("${ecp.aai.authority}")
-    public String adminAuthority;
+    @Autowired
+    ECPApplicationProperties ecpApplicationProperties;
 
     @Override
     public void addCorsMappings(CorsRegistry registry) {
@@ -54,8 +56,9 @@ public class WebConfiguration extends WebMvcConfigurerAdapter {
        return elasticsearchpassword;
     }
 
-    public String adminAuthority(){
-        return adminAuthority;
+    @Bean
+    public String viewDeploymentsRole(){
+        return ecpApplicationProperties.getView();
     }
 
 }
