@@ -1,21 +1,17 @@
 package uk.ac.ebi.tsi.portal.api.deployment;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.core.IsEqual.equalTo;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
 import org.junit.After;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -26,21 +22,34 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.transaction.annotation.Transactional;
 import uk.ac.ebi.tsc.portal.BePortalApiApplication;
 import uk.ac.ebi.tsc.portal.api.application.controller.ApplicationResource;
+import uk.ac.ebi.tsc.portal.api.application.repo.Application;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParameters;
+import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParamsCopy;
 import uk.ac.ebi.tsc.portal.api.configuration.controller.ConfigurationResource;
 import uk.ac.ebi.tsc.portal.api.configuration.repo.Configuration;
 import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigurationDeploymentParameters;
 import uk.ac.ebi.tsc.portal.api.deployment.controller.DeploymentResource;
 import uk.ac.ebi.tsc.portal.api.deployment.service.ConfigurationNotUsableForApplicationException;
+import uk.ac.ebi.tsc.portal.clouddeployment.application.ApplicationDeployer;
 import uk.ac.ebi.tsc.portal.config.WebConfiguration;
+
 import java.io.File;
 import java.io.IOException;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Optional;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.*;
+import static org.hamcrest.core.IsEqual.equalTo;
+import static org.mockito.Mockito.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
 
 @RunWith(SpringRunner.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -90,9 +99,13 @@ public class DeploymentRestControllerIT {
 	@Value("${be.applications.root}")
 	private String applicationRootDir;
 
-	//@Test
-	public void canCreateDeployment() throws Exception{
+	@MockBean
+	ApplicationDeployer applicationDeployer;
 
+	DeploymentResource karoDeploymentResource;
+
+	@Test
+	public void canCreateDeployment() throws Exception{
 
 		//create cloud credentials
 		String cppJson = "{\"name\": \"os6\", \"cloudProvider\": \"openstack\", \"fields\":[]}";
@@ -160,15 +173,22 @@ public class DeploymentRestControllerIT {
 		
 		String deploymentJson = mapper.writeValueAsString(deployment);
 		logger.info("deploymentJson " + deploymentJson);
-		
-		mockMvc.perform(
+
+		doNothing().when(applicationDeployer).deploy(anyString(), Mockito.any(Application.class),anyString(),
+				anyString(), anyMap(), anyMap(), anyMap(), anyMap(), Mockito.any(CloudProviderParamsCopy.class),
+				Mockito.any(Configuration.class), Mockito.any(Timestamp.class), anyString(), anyString());
+
+		String deploymentResponse = mockMvc.perform(
 				post("/deployment")
 				.headers(createHeaders(getToken(testUserName, testPassword)))
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(deploymentJson)
 				.accept(MediaType.APPLICATION_JSON)
 				)
-		.andExpect(status().is2xxSuccessful());
+		.andExpect(status().is2xxSuccessful())
+				.andReturn().getResponse().getContentAsString();
+		karoDeploymentResource = mapper.readValue(deploymentResponse, DeploymentResource.class);
+		assertThat(karoDeploymentResource.accountEmail, containsString("embl.ebi.tsi@gmail.com"));
 	}
 
 	@Test

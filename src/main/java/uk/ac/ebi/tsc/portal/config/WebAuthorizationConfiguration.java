@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
@@ -17,6 +18,7 @@ import uk.ac.ebi.tsc.portal.security.StatelessAuthenticationFilter;
  */
 @Configuration
 @ComponentScan(basePackages = {"uk.ac.ebi.tsc.portal.api", "uk.ac.ebi.tsc.portal.security"})
+@EnableGlobalMethodSecurity(prePostEnabled = true)
 public class WebAuthorizationConfiguration extends WebSecurityConfigurerAdapter {
 
     @Autowired

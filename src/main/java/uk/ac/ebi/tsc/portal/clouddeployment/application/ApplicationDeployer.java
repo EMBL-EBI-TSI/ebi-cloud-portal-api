@@ -18,6 +18,7 @@ import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigDeploymentParamsCopy
 import uk.ac.ebi.tsc.portal.api.deployment.repo.*;
 import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentSecretService;
 import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentService;
+import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentNotFoundException;
 import uk.ac.ebi.tsc.portal.clouddeployment.exceptions.ApplicationDeployerException;
 import uk.ac.ebi.tsc.portal.clouddeployment.model.StateFromTerraformOutput;
 import uk.ac.ebi.tsc.portal.clouddeployment.model.terraform.TerraformState;
@@ -71,6 +72,8 @@ public class ApplicationDeployer extends AbstractApplicationDeployer {
      */
     DeploymentStrategy deploymentStrategy;
 
+    @Autowired
+    DeploymentRepository deploymentRepository;
 
     @Autowired
     public ApplicationDeployer(DeploymentService deploymentService,
@@ -130,7 +133,7 @@ public class ApplicationDeployer extends AbstractApplicationDeployer {
         processBuilder.redirectErrorStream(true);
 
         logger.info("Looking for deployment " + reference);
-        Deployment theDeployment = deploymentService.findByReference(reference);
+        Deployment theDeployment = findDeployment(reference);
         logger.info("Can't find deployment " + reference);
 
         ApplicationDeployerHelper.addGenericProviderCreds(env, cloudProviderParametersCopy, logger);
@@ -251,7 +254,7 @@ public class ApplicationDeployer extends AbstractApplicationDeployer {
                     }
                     logger.info("Exit from process input stream");
                     p.waitFor();
-                    Deployment theDeployment = deploymentService.findByReference(reference);
+                    Deployment theDeployment = findDeployment(reference);
                     updateDeploymentStatus(deploymentIndexService, theDeployment,
                             DeploymentStatusEnum.STARTING, "Interrupted deployment process",
                             null, null, startTime);
@@ -263,9 +266,9 @@ public class ApplicationDeployer extends AbstractApplicationDeployer {
                     // kill the process if alive?
                     p.destroy();
                     // Set the right deployment status
-                    Deployment theDeployment = deploymentService.findByReference(reference);
+                    Deployment theDeployment = findDeployment(reference);
                     updateDeploymentStatus(deploymentIndexService,
-                            deploymentService.findByReference(theDeployment.getReference()),
+                            theDeployment,
                             DeploymentStatusEnum.STARTING_FAILED, "Interrupted deployment process",
                             null, errorOutput, startTime);
                     deploymentService.save(theDeployment);
@@ -291,7 +294,7 @@ public class ApplicationDeployer extends AbstractApplicationDeployer {
                     // kill the process if alive?
                     p.destroy();
                     // Set the right deployment status
-                    Deployment theDeployment = deploymentService.findByReference(reference);
+                    Deployment theDeployment = findDeployment(reference);
                     updateDeploymentStatus(deploymentIndexService, theDeployment,
                             DeploymentStatusEnum.STARTING_FAILED, "Failed deployment process exit code", null, errorOutput, startTime);
                     deploymentService.save(theDeployment);
@@ -306,7 +309,7 @@ public class ApplicationDeployer extends AbstractApplicationDeployer {
                     }
                 } else {
                     logger.info("Successfully deployed application from " + theApplication.repoPath);
-                    Deployment theDeployment = deploymentService.findByReference(reference);
+                    Deployment theDeployment = findDeployment(reference);
 
                     String output = ApplicationDeployerHelper.getOutputFromFile(logs, logger);
                     logger.debug(output);
@@ -502,7 +505,7 @@ public class ApplicationDeployer extends AbstractApplicationDeployer {
                     // kill the process if alive?
                     p.destroy();
                     // Set the right deployment status
-                    Deployment theDeployment = deploymentService.findByReference(reference);
+                    Deployment theDeployment = findDeployment(reference);
                     updateDeploymentStatus(deploymentIndexService, theDeployment,
                             DeploymentStatusEnum.DESTROYING_FAILED, "Interrupted destroy process",
                             null, errorOutput, null);
@@ -525,7 +528,7 @@ public class ApplicationDeployer extends AbstractApplicationDeployer {
                     // kill the process if alive?
                     p.destroy();
                     // Set the right deployment status
-                    Deployment theDeployment = deploymentService.findByReference(reference);
+                    Deployment theDeployment = findDeployment(reference);
                     updateDeploymentStatus(deploymentIndexService, theDeployment,
                             DeploymentStatusEnum.DESTROYING_FAILED,
                             "Failed destroy process exit code", null, errorOutput, null);
@@ -544,7 +547,7 @@ public class ApplicationDeployer extends AbstractApplicationDeployer {
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
-                    Deployment theDeployment = deploymentService.findByReference(reference);
+                    Deployment theDeployment = findDeployment(reference);
                     updateDeploymentStatus(deploymentIndexService, theDeployment,
                             DeploymentStatusEnum.DESTROYED, null,
                             null, null, null);
@@ -555,6 +558,11 @@ public class ApplicationDeployer extends AbstractApplicationDeployer {
         });
         newThread.start();
 
+    }
+
+    private Deployment findDeployment(String reference){
+        return deploymentRepository.findByReference(reference).orElseThrow(
+                () -> new DeploymentNotFoundException(reference));
     }
 
 
