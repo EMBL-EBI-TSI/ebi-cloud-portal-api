@@ -102,34 +102,36 @@ public class DeploymentRestControllerIT {
 	@MockBean
 	ApplicationDeployer applicationDeployer;
 
-	DeploymentResource karoDeploymentResource;
-
 	@Test
 	public void canCreateDeployment() throws Exception{
+
+		doNothing().when(applicationDeployer).deploy(anyString(), Mockito.any(Application.class),anyString(),
+				anyString(), anyMap(), anyMap(), anyMap(), anyMap(), Mockito.any(CloudProviderParamsCopy.class),
+				Mockito.any(Configuration.class), Mockito.any(Timestamp.class), anyString(), anyString());
 
 		//create cloud credentials
 		String cppJson = "{\"name\": \"os6\", \"cloudProvider\": \"openstack\", \"fields\":[]}";
 		String cppResponse = mockMvc.perform(
 				post("/cloudproviderparameters")
-				.headers(createHeaders(getToken(testUserName, testPassword)))
-				.contentType(MediaType.APPLICATION_JSON)
-				.content(cppJson)
-				.accept(MediaType.APPLICATION_JSON))
+						.headers(createHeaders(getToken(testUserName, testPassword)))
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(cppJson)
+						.accept(MediaType.APPLICATION_JSON))
 				.andExpect(status().isOk())
 				.andReturn().getResponse().getContentAsString();
 		CloudProviderParameters cpp = mapper.readValue(cppResponse, CloudProviderParameters.class);
-		
+
 		String dpJson = "{\"name\": \"os6\", \"fields\":[]}";
 		String dpResponse = mockMvc.perform(
 				post("/configuration/deploymentparameters")
-				.headers(createHeaders(getToken(testUserName, testPassword)))
-				.contentType(MediaType.APPLICATION_JSON)
-				.content(dpJson)
-				.accept(MediaType.APPLICATION_JSON))
+						.headers(createHeaders(getToken(testUserName, testPassword)))
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(dpJson)
+						.accept(MediaType.APPLICATION_JSON))
 				.andExpect(status().is2xxSuccessful())
 				.andReturn().getResponse().getContentAsString();
 		ConfigurationDeploymentParameters dp = mapper.readValue(dpResponse, ConfigurationDeploymentParameters.class);
-		
+
 		ConfigurationResource configurationResource = new ConfigurationResource();
 		configurationResource.setName("os6");
 		configurationResource.setCloudProviderParametersName(cpp.getName());
@@ -138,26 +140,26 @@ public class DeploymentRestControllerIT {
 		String configJson = mapper.writeValueAsString(configurationResource);
 		String configResponse = mockMvc.perform(
 				post("/configuration")
-				.headers(createHeaders(getToken(testUserName, testPassword)))
-				.contentType(MediaType.APPLICATION_JSON)
-				.content(configJson)
-				.accept(MediaType.APPLICATION_JSON))
+						.headers(createHeaders(getToken(testUserName, testPassword)))
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(configJson)
+						.accept(MediaType.APPLICATION_JSON))
 				.andExpect(status().isCreated())
 				.andReturn().getResponse().getContentAsString();
 		Configuration configuration =  mapper.readValue(configResponse, Configuration.class);
-		
+
 		String appJson = "{\"repoUri\": \"https://github.com/EMBL-EBI-TSI/cpa-bioexcel-cwl\"}";
 		String appResponse = mockMvc.perform(
 				post("/application")
-				.headers(createHeaders(getToken(testUserName, testPassword)))
-				.contentType(MediaType.APPLICATION_JSON)
-				.content(appJson)
-				.accept(MediaType.APPLICATION_JSON)
-				)
-		.andExpect(status().is2xxSuccessful())
-		.andReturn().getResponse().getContentAsString();
+						.headers(createHeaders(getToken(testUserName, testPassword)))
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(appJson)
+						.accept(MediaType.APPLICATION_JSON)
+		)
+				.andExpect(status().is2xxSuccessful())
+				.andReturn().getResponse().getContentAsString();
 		ApplicationResource app = mapper.readValue(appResponse, ApplicationResource.class);
-		
+
 		DeploymentResource deployment = new DeploymentResource();
 		deployment.applicationName = app.getName();
 		deployment.setApplicationAccountUsername(app.getAccountUsername());
@@ -169,25 +171,17 @@ public class DeploymentRestControllerIT {
 		deployment.assignedParameters = new ArrayList();
 		deployment.attachedVolumes =  new ArrayList();
 		deployment.cloudProviderParametersCopy = null;
-		
-		
-		String deploymentJson = mapper.writeValueAsString(deployment);
-		logger.info("deploymentJson " + deploymentJson);
-
-		doNothing().when(applicationDeployer).deploy(anyString(), Mockito.any(Application.class),anyString(),
-				anyString(), anyMap(), anyMap(), anyMap(), anyMap(), Mockito.any(CloudProviderParamsCopy.class),
-				Mockito.any(Configuration.class), Mockito.any(Timestamp.class), anyString(), anyString());
 
 		String deploymentResponse = mockMvc.perform(
 				post("/deployment")
 				.headers(createHeaders(getToken(testUserName, testPassword)))
 				.contentType(MediaType.APPLICATION_JSON)
-				.content(deploymentJson)
+				.content(mapper.writeValueAsString(deployment))
 				.accept(MediaType.APPLICATION_JSON)
 				)
 		.andExpect(status().is2xxSuccessful())
 				.andReturn().getResponse().getContentAsString();
-		karoDeploymentResource = mapper.readValue(deploymentResponse, DeploymentResource.class);
+		DeploymentResource karoDeploymentResource = mapper.readValue(deploymentResponse, DeploymentResource.class);
 		assertThat(karoDeploymentResource.accountEmail, containsString("embl.ebi.tsi@gmail.com"));
 	}
 
