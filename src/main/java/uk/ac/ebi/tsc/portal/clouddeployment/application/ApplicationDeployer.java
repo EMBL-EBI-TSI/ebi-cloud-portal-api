@@ -72,8 +72,8 @@ public class ApplicationDeployer extends AbstractApplicationDeployer {
      */
     DeploymentStrategy deploymentStrategy;
 
-    @Autowired
-    DeploymentRepository deploymentRepository;
+    //@Autowired
+    //DeploymentRepository deploymentRepository;
 
     @Autowired
     public ApplicationDeployer(DeploymentService deploymentService,
@@ -133,7 +133,7 @@ public class ApplicationDeployer extends AbstractApplicationDeployer {
         processBuilder.redirectErrorStream(true);
 
         logger.info("Looking for deployment " + reference);
-        Deployment theDeployment = findDeployment(reference);
+        Deployment theDeployment = deploymentService.findByReference(reference);
         logger.info("Can't find deployment " + reference);
 
         ApplicationDeployerHelper.addGenericProviderCreds(env, cloudProviderParametersCopy, logger);
@@ -254,7 +254,7 @@ public class ApplicationDeployer extends AbstractApplicationDeployer {
                     }
                     logger.info("Exit from process input stream");
                     p.waitFor();
-                    Deployment theDeployment = findDeployment(reference);
+                    Deployment theDeployment = deploymentService.findByReference(reference);
                     updateDeploymentStatus(deploymentIndexService, theDeployment,
                             DeploymentStatusEnum.STARTING, "Interrupted deployment process",
                             null, null, startTime);
@@ -266,7 +266,7 @@ public class ApplicationDeployer extends AbstractApplicationDeployer {
                     // kill the process if alive?
                     p.destroy();
                     // Set the right deployment status
-                    Deployment theDeployment = findDeployment(reference);
+                    Deployment theDeployment = deploymentService.findByReference(reference);
                     updateDeploymentStatus(deploymentIndexService,
                             theDeployment,
                             DeploymentStatusEnum.STARTING_FAILED, "Interrupted deployment process",
@@ -294,7 +294,7 @@ public class ApplicationDeployer extends AbstractApplicationDeployer {
                     // kill the process if alive?
                     p.destroy();
                     // Set the right deployment status
-                    Deployment theDeployment = findDeployment(reference);
+                    Deployment theDeployment = deploymentService.findByReference(reference);
                     updateDeploymentStatus(deploymentIndexService, theDeployment,
                             DeploymentStatusEnum.STARTING_FAILED, "Failed deployment process exit code", null, errorOutput, startTime);
                     deploymentService.save(theDeployment);
@@ -309,7 +309,7 @@ public class ApplicationDeployer extends AbstractApplicationDeployer {
                     }
                 } else {
                     logger.info("Successfully deployed application from " + theApplication.repoPath);
-                    Deployment theDeployment = findDeployment(reference);
+                    Deployment theDeployment = deploymentService.findByReference(reference);
 
                     String output = ApplicationDeployerHelper.getOutputFromFile(logs, logger);
                     logger.debug(output);
@@ -505,7 +505,7 @@ public class ApplicationDeployer extends AbstractApplicationDeployer {
                     // kill the process if alive?
                     p.destroy();
                     // Set the right deployment status
-                    Deployment theDeployment = findDeployment(reference);
+                    Deployment theDeployment = deploymentService.findByReference(reference);
                     updateDeploymentStatus(deploymentIndexService, theDeployment,
                             DeploymentStatusEnum.DESTROYING_FAILED, "Interrupted destroy process",
                             null, errorOutput, null);
@@ -528,7 +528,7 @@ public class ApplicationDeployer extends AbstractApplicationDeployer {
                     // kill the process if alive?
                     p.destroy();
                     // Set the right deployment status
-                    Deployment theDeployment = findDeployment(reference);
+                    Deployment theDeployment = deploymentService.findByReference(reference);
                     updateDeploymentStatus(deploymentIndexService, theDeployment,
                             DeploymentStatusEnum.DESTROYING_FAILED,
                             "Failed destroy process exit code", null, errorOutput, null);
@@ -547,7 +547,7 @@ public class ApplicationDeployer extends AbstractApplicationDeployer {
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
-                    Deployment theDeployment = findDeployment(reference);
+                    Deployment theDeployment = deploymentService.findByReference(reference);
                     updateDeploymentStatus(deploymentIndexService, theDeployment,
                             DeploymentStatusEnum.DESTROYED, null,
                             null, null, null);
@@ -559,11 +559,5 @@ public class ApplicationDeployer extends AbstractApplicationDeployer {
         newThread.start();
 
     }
-
-    private Deployment findDeployment(String reference){
-        return deploymentRepository.findByReference(reference).orElseThrow(
-                () -> new DeploymentNotFoundException(reference));
-    }
-
 
 }

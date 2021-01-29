@@ -1,4 +1,4 @@
-package uk.ac.ebi.tsi.portal.api.deployment;
+package uk.ac.ebi.tsc.portal.deployment;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.io.FileUtils;
@@ -17,13 +17,14 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.annotation.Transactional;
 import uk.ac.ebi.tsc.portal.BePortalApiApplication;
+import uk.ac.ebi.tsc.portal.api.account.repo.Account;
+import uk.ac.ebi.tsc.portal.api.account.repo.AccountRepository;
 import uk.ac.ebi.tsc.portal.api.application.controller.ApplicationResource;
 import uk.ac.ebi.tsc.portal.api.application.repo.Application;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParameters;
@@ -32,6 +33,8 @@ import uk.ac.ebi.tsc.portal.api.configuration.controller.ConfigurationResource;
 import uk.ac.ebi.tsc.portal.api.configuration.repo.Configuration;
 import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigurationDeploymentParameters;
 import uk.ac.ebi.tsc.portal.api.deployment.controller.DeploymentResource;
+import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentApplication;
+import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentRepository;
 import uk.ac.ebi.tsc.portal.api.deployment.service.ConfigurationNotUsableForApplicationException;
 import uk.ac.ebi.tsc.portal.clouddeployment.application.ApplicationDeployer;
 import uk.ac.ebi.tsc.portal.config.WebConfiguration;
@@ -46,14 +49,14 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.IsEqual.equalTo;
 import static org.mockito.Mockito.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 
 @RunWith(SpringRunner.class)
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@ContextConfiguration(classes = {WebConfiguration.class, BePortalApiApplication.class})
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, classes = {WebConfiguration.class, BePortalApiApplication.class})
 @TestPropertySource("classpath:integrationTest.properties")
 @AutoConfigureMockMvc
 public class DeploymentRestControllerIT {
@@ -101,6 +104,27 @@ public class DeploymentRestControllerIT {
 
 	@MockBean
 	ApplicationDeployer applicationDeployer;
+
+	@Autowired
+	DeploymentRepository deploymentRepository;
+
+	@Autowired
+	AccountRepository accountRepository;
+
+	@MockBean
+	DeploymentApplication deploymentApplication;
+
+	@Value("${pantherUserName}")
+	private String pantherUserName;
+
+	@Value("${pantherPassword}")
+	private String pantherPassword;
+
+	@Test
+	public void saveDeployment() throws Exception {
+		Account account = accountRepository.findOne(10001L);
+		assertThat(account.getEmail(), containsString("embl.ebi.tsi@gmail.com"));
+	}
 
 	@Test
 	public void canCreateDeployment() throws Exception{
@@ -183,6 +207,12 @@ public class DeploymentRestControllerIT {
 				.andReturn().getResponse().getContentAsString();
 		DeploymentResource karoDeploymentResource = mapper.readValue(deploymentResponse, DeploymentResource.class);
 		assertThat(karoDeploymentResource.accountEmail, containsString("embl.ebi.tsi@gmail.com"));
+		//assertThat(deploymentRepository.findByReference(karoDeploymentResource.reference).get().getReference(), is(karoDeploymentResource.reference));
+		logger.info(deploymentRepository.findAll().size() + "SDASDas");
+		deploymentRepository.findAll().forEach(d -> {
+			logger.info("referenceshdhss " + d.getReference());
+		});
+	//assertThat(deploymentRepository.findAll().size(), is(1));
 	}
 
 	@Test

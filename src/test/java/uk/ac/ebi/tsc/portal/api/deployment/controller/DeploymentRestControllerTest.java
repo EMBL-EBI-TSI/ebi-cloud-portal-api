@@ -176,7 +176,7 @@ public class DeploymentRestControllerTest
 	ApplicationDeployerHelper applicationDeployerHelper;
 
 	String cppReference = "cppReference";
-	@Before 
+	@Before
 	public void setUp() {
 		ReflectionTestUtils.setField(subject, "deploymentService", deploymentService);
 		ReflectionTestUtils.setField(subject, "cloudProviderParametersCopyService", cloudProviderParametersCopyService);
@@ -255,7 +255,7 @@ public class DeploymentRestControllerTest
 	NoSuchPaddingException, InvalidKeyException, NoSuchAlgorithmException, IllegalBlockSizeException,
 	BadPaddingException, InvalidAlgorithmParameterException, InvalidKeySpecException {
 		String aNonExistentDeployment = "foo";
-		when(deploymentService.findByReference(aNonExistentDeployment)).thenThrow(DeploymentNotFoundException.class);
+		when(deploymentService.findByReferenceAuth(aNonExistentDeployment)).thenThrow(DeploymentNotFoundException.class);
 		when(subject.readyToTearDown(tempKey, aNonExistentDeployment)).thenCallRealMethod();
 		subject.readyToTearDown(tempKey, aNonExistentDeployment);
 	}
@@ -738,7 +738,7 @@ public class DeploymentRestControllerTest
 		when(mockAccount.getUsername()).thenReturn(A_USER_NAME);
 		when(mockDeployment.getAccount()).thenReturn(mockAccount);
 		when(mockDeploymentApp.getAccount()).thenReturn(mockAccount);
-		when(deploymentService.findByReference(reference)).thenReturn(mockDeployment);
+		when(deploymentService.findByReferenceAuth(reference)).thenReturn(mockDeployment);
 		when(mockDeployment.getCloudProviderParametersReference()).thenReturn(cppReference);
 		DeploymentConfiguration deploymentConfiguration = mock(DeploymentConfiguration.class);
 		when(mockDeployment.getDeploymentConfiguration()).thenReturn(deploymentConfiguration);

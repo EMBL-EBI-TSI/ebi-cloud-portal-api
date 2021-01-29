@@ -5,6 +5,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter;
@@ -23,7 +24,7 @@ public class WebConfiguration extends WebMvcConfigurerAdapter {
     List<String> origins;
 
     @Autowired
-    uk.ac.ebi.tsc.portal.config.ECPApplicationProperties ecpApplicationProperties;
+    uk.ac.ebi.tsc.portal.config.AAPDomainsConfiguration aapDomainsConfiguration;
 
     @Override
     public void addCorsMappings(CorsRegistry registry) {
@@ -56,7 +57,7 @@ public class WebConfiguration extends WebMvcConfigurerAdapter {
 
     @Bean
     public String viewDeploymentsRole(){
-        return ecpApplicationProperties.getView();
+        return aapDomainsConfiguration.getDeployments().getView();
     }
 
 }

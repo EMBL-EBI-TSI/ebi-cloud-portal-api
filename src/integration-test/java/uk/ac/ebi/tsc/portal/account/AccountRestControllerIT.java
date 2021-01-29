@@ -1,4 +1,4 @@
-package uk.ac.ebi.tsi.portal.api.account;
+package uk.ac.ebi.tsc.portal.account;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import org.apache.log4j.Logger;

@@ -580,7 +580,7 @@ public class DeploymentRestController {
 		logger.info("Deployment " + reference + " for user " + userId + " requested");
 		this.accountService.findByUsername(userId);
 
-		Deployment theDeployment = this.deploymentService.findByReference(reference);
+		Deployment theDeployment = this.deploymentService.findByReferenceAuth(reference);
 		if(theDeployment.getCloudProviderParametersReference() != null){
 			try{
 				CloudProviderParamsCopy cppCopy = this.cloudProviderParametersCopyService.findByCloudProviderParametersReference(theDeployment.getCloudProviderParametersReference());
@@ -604,7 +604,7 @@ public class DeploymentRestController {
 		String userId = principal.getName();
 		this.accountService.findByUsername(userId);
 
-		Deployment theDeployment = this.deploymentService.findByReference(reference);
+		Deployment theDeployment = this.deploymentService.findByReferenceAuth(reference);
 
 		DeploymentIndexService deploymentIndexService = new DeploymentIndexService(
 				new RestTemplate(),
@@ -625,7 +625,7 @@ public class DeploymentRestController {
 		String userId = principal.getName();
 		this.accountService.findByUsername(userId);
 
-		Deployment theDeployment = this.deploymentService.findByReference(reference);
+		Deployment theDeployment = this.deploymentService.findByReferenceAuth(reference);
 
 		return new Resources<>(
 				theDeployment.getGeneratedOutputs().stream().map(DeploymentGeneratedOutputResource::new).collect(Collectors.toList())
@@ -649,7 +649,7 @@ public class DeploymentRestController {
 		String userId = principal.getName();
 		this.accountService.findByUsername(userId);
 
-		Deployment theDeployment = this.deploymentService.findByReference(reference);
+		Deployment theDeployment = this.deploymentService.findByReferenceAuth(reference);
 
 		StringBuilder logBuilder = new StringBuilder();
 		if (new File(this.deploymentsRoot+File.separator+theDeployment.getReference()+File.separator+"output.log").exists()) {
@@ -670,7 +670,7 @@ public class DeploymentRestController {
 		String userId = principal.getName();
 		this.accountService.findByUsername(userId);
 
-		Deployment theDeployment = this.deploymentService.findByReference(reference);
+		Deployment theDeployment = this.deploymentService.findByReferenceAuth(reference);
 
 		StringBuilder logBuilder = new StringBuilder();
 		if (new File(this.deploymentsRoot+File.separator+theDeployment.getReference()+File.separator+"destroy.log").exists()) {
@@ -753,7 +753,7 @@ public class DeploymentRestController {
 
 		logger.info("Deleting deployment '" + reference + "'");
 
-		Deployment theDeployment = this.deploymentService.findByReference(reference);
+		Deployment theDeployment = this.deploymentService.findByReferenceAuth(reference);
 
 		String cppReference = theDeployment.getCloudProviderParametersReference();
 
@@ -793,7 +793,7 @@ public class DeploymentRestController {
 		}
 
 		String reference = findReference(referenceOrIp);
-		Deployment theDeployment = this.deploymentService.findByReference(reference);
+		Deployment theDeployment = this.deploymentService.findByReferenceAuth(reference);
 		String cppReference = theDeployment.getCloudProviderParametersReference();
 		String cdpsReference = theDeployment.getDeploymentConfiguration().getConfigDeploymentParametersReference();
 		this.deploymentService.delete(theDeployment.getId());

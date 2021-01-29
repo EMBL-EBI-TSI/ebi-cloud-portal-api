@@ -65,12 +65,17 @@ public class DeploymentService {
                 () -> new DeploymentStatusNotFoundException(deploymentId));
     }
 
-    @PostAuthorize(value = "hasAuthority(@viewDeploymentsRole)" +
-            " or returnObject.account.username == authentication.name")
     public Deployment findByReference(String reference) {
         return this.deploymentRepository.findByReference(reference).orElseThrow(
                 () -> new DeploymentNotFoundException(reference));
     }
+
+    @PostAuthorize(value = "hasAuthority(@viewDeploymentsRole)" +
+            " or returnObject.account.username == authentication.name")
+    public Deployment findByReferenceAuth(String reference) {
+        return findByReference(reference);
+    }
+
 
     public Deployment findByAccessIp(String ip) {
         return this.deploymentRepository.findByAccessIp(ip).orElseThrow(
