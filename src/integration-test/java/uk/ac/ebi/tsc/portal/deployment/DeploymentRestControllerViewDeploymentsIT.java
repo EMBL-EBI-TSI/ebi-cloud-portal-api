@@ -41,7 +41,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 
 @RunWith(SpringRunner.class)
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, classes = {WebConfiguration.class, BePortalApiApplication.class})
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @TestPropertySource("classpath:integrationTest.properties")
 @AutoConfigureMockMvc
 public class DeploymentRestControllerViewDeploymentsIT {
@@ -108,7 +108,7 @@ public class DeploymentRestControllerViewDeploymentsIT {
         ConfigurationDeploymentParameters configurationDeploymentParameters = new ConfigurationDeploymentParameters("dp-name", account);
         ConfigDeploymentParamsCopy configDeploymentParamsCopy = new ConfigDeploymentParamsCopy(configurationDeploymentParameters);
         Configuration configuration = new Configuration("conf-name", account, cloudProviderParameters.getName(), cloudProviderParameters.getReference(),
-                        "sshKey", null, null, configDeploymentParamsCopy);
+                "sshKey", null, null, configDeploymentParamsCopy);
         configuration.setReference("config-reference");
         configuration.setConfigDeployParamsReference("config-dp-reference");
         configuration = configurationRepository.save(configuration);
