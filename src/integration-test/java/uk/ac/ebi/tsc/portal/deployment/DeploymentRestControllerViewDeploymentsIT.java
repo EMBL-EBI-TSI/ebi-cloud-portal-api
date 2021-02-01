@@ -21,9 +21,7 @@ import uk.ac.ebi.tsc.portal.BePortalApiApplication;
 import uk.ac.ebi.tsc.portal.api.account.repo.Account;
 import uk.ac.ebi.tsc.portal.api.account.repo.AccountRepository;
 import uk.ac.ebi.tsc.portal.api.application.repo.Application;
-import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParameters;
-import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParametersField;
-import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParametersRepository;
+import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.*;
 import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigDeploymentParamsCopy;
 import uk.ac.ebi.tsc.portal.api.configuration.repo.Configuration;
 import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigurationDeploymentParameters;
@@ -87,6 +85,9 @@ public class DeploymentRestControllerViewDeploymentsIT {
     CloudProviderParametersRepository cloudProviderParametersRepository;
 
     @Autowired
+    CloudProviderParamsCopyRepository cloudProviderParametersCopyRepository;
+
+    @Autowired
     ConfigurationRepository configurationRepository;
 
     @Before
@@ -94,11 +95,16 @@ public class DeploymentRestControllerViewDeploymentsIT {
         Account account = accountRepository.findOne(10001L);
         deploymentRepository.deleteAll();
         cloudProviderParametersRepository.deleteAll();
+        cloudProviderParametersCopyRepository.deleteAll();
         configurationRepository.deleteAll();
         Application application = new Application("repoUri", "repoPath", "app-name", "app-reference", account);
         CloudProviderParameters cloudProviderParameters = new CloudProviderParameters("cpp-name", "cloudProvider", account);
         cloudProviderParameters.setReference("cpp-reference");
         cloudProviderParameters = cloudProviderParametersRepository.save(cloudProviderParameters);
+        CloudProviderParamsCopy cppCopy = new CloudProviderParamsCopy(cloudProviderParameters.getName(),
+                cloudProviderParameters.getCloudProvider(), account);
+        cppCopy.setCloudProviderParametersReference(cloudProviderParameters.getReference());
+        cloudProviderParametersCopyRepository.save(cppCopy);
         ConfigurationDeploymentParameters configurationDeploymentParameters = new ConfigurationDeploymentParameters("dp-name", account);
         ConfigDeploymentParamsCopy configDeploymentParamsCopy = new ConfigDeploymentParamsCopy(configurationDeploymentParameters);
         Configuration configuration = new Configuration("conf-name", account, cloudProviderParameters.getName(), cloudProviderParameters.getReference(),

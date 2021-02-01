@@ -22,8 +22,7 @@ import uk.ac.ebi.tsc.portal.BePortalApiApplication;
 import uk.ac.ebi.tsc.portal.config.WebConfiguration;
 
 @RunWith(SpringRunner.class)
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@ContextConfiguration(classes = {WebConfiguration.class, BePortalApiApplication.class})
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, classes = {WebConfiguration.class, BePortalApiApplication.class})
 @TestPropertySource("classpath:integrationTest.properties")
 @AutoConfigureMockMvc
 public class AccountRestControllerIT {

@@ -46,9 +46,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @RunWith(SpringRunner.class)
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, classes = {WebConfiguration.class, BePortalApiApplication.class})
 @AutoConfigureMockMvc
-@ContextConfiguration(classes = {WebConfiguration.class, BePortalApiApplication.class})
 @TestPropertySource(locations = {"classpath:integrationTest.properties"})
 public class TeamRestControllerIT {
 
