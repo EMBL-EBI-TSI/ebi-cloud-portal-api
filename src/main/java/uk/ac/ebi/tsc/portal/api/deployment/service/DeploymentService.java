@@ -3,6 +3,7 @@ package uk.ac.ebi.tsc.portal.api.deployment.service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PostAuthorize;
 import org.springframework.stereotype.Service;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.*;
 
@@ -67,6 +68,12 @@ public class DeploymentService {
     public Deployment findByReference(String reference) {
         return this.deploymentRepository.findByReference(reference).orElseThrow(
                 () -> new DeploymentNotFoundException(reference));
+    }
+
+    @PostAuthorize(value = "hasAuthority(@viewDeploymentsRole)" +
+            " or returnObject.account.username == authentication.name")
+    public Deployment findByReferenceAuth(String reference) {
+        return findByReference(reference);
     }
 
     public Deployment findByAccessIp(String ip) {

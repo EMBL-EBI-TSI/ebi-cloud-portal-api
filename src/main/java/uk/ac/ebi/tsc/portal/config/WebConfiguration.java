@@ -1,5 +1,6 @@
 package uk.ac.ebi.tsc.portal.config;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.client.RestTemplateBuilder;
@@ -21,6 +22,9 @@ public class WebConfiguration extends WebMvcConfigurerAdapter {
 
     @Value("#{'${be.friendly.origins}'.split(',')}")
     List<String> origins;
+
+    @Autowired
+    uk.ac.ebi.tsc.portal.config.AAPDomainsConfiguration aapDomainsConfiguration;
 
     @Override
     public void addCorsMappings(CorsRegistry registry) {
@@ -51,4 +55,8 @@ public class WebConfiguration extends WebMvcConfigurerAdapter {
        return elasticsearchpassword;
     }
 
+    @Bean
+    public String viewDeploymentsRole(){
+        return aapDomainsConfiguration.getDeployments().getView();
+    }
 }
