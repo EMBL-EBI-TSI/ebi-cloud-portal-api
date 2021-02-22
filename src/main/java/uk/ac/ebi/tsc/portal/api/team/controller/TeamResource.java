@@ -1,9 +1,11 @@
 package uk.ac.ebi.tsc.portal.api.team.controller;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.springframework.security.core.context.SecurityContextHolder;
 import uk.ac.ebi.tsc.portal.api.team.repo.Team;
 
 /**
@@ -22,6 +24,7 @@ public class TeamResource {
 	private Collection<String> configurationDeploymentParameterNames;
 	private String domainReference;
 	private List<String> managerUserNames;
+	private Collection<String> teamContactEmails;
 	
 	public TeamResource() {
 	}
@@ -41,6 +44,10 @@ public class TeamResource {
 		this.configurationDeploymentParameterNames = team.getConfigDepParamsBelongingToTeam().stream().map(
 				configurationDeploymentParameterName -> configurationDeploymentParameterName.getName()).collect(Collectors.toList());
 		this.domainReference = team.getDomainReference();
+		this.teamContactEmails = new ArrayList<>();
+		if(isOwner(team)){
+			this.teamContactEmails = team.getTeamContactEmails();
+		}
 	}
 
 	public String getName() {
@@ -115,5 +122,21 @@ public class TeamResource {
 		this.managerUserNames = managerUserNames;
 	}
 
-	
+	public Collection<String> getTeamContactEmails() {
+		return teamContactEmails;
+	}
+
+	public void setTeamContactEmails(Collection<String> teamContactEmails) {
+		this.teamContactEmails = teamContactEmails;
+	}
+
+	private boolean isOwner(Team team) {
+		uk.ac.ebi.tsc.aap.client.model.User user = (uk.ac.ebi.tsc.aap.client.model.User) SecurityContextHolder.getContext().getAuthentication().getDetails();
+			if (user.getUserReference().equals(team.getAccount().getUsername())) {
+			return true;
+		}
+		return false;
+	}
+
+
 }

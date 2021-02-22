@@ -69,8 +69,16 @@ public class Team {
             inverseJoinColumns=@JoinColumn(name="configuration_id", referencedColumnName="id")
     )
     public Set<Configuration> configurationsBelongingToTeam = new HashSet<>();
-    
-    
+
+	@LazyCollection(LazyCollectionOption.FALSE)
+	@ElementCollection
+	@CollectionTable(
+			name="team_contact_emails",
+			joinColumns=@JoinColumn(name="team_id")
+	)
+	@Column(name="email")
+	private Set<String> teamContactEmails = new HashSet<>();
+
 	public Long getId() {
 		return id;
 	}
@@ -142,5 +150,12 @@ public class Team {
 	public void setDomainReference(String domainReference) {
 		this.domainReference = domainReference;
 	}
-	
+
+	public Set<String> getTeamContactEmails() {
+		return teamContactEmails;
+	}
+
+	public void setTeamContactEmails(Set<String> teamContactEmails) {
+		this.teamContactEmails = teamContactEmails;
+	}
 }

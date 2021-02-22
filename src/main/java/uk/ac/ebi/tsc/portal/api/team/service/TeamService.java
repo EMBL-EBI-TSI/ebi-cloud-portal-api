@@ -883,4 +883,17 @@ public class TeamService {
 		return team;
 	}
 
+	public Team setContactEmails(TeamResource teamResource, Team team) {
+		Set<String> existingEmails = team.getTeamContactEmails();
+		existingEmails.addAll(teamResource.getTeamContactEmails());
+		team.setTeamContactEmails(existingEmails);
+		team = this.save(team);
+		return team;
+	}
+
+	public Team removeTeamContactEmail(Team team, String userEmail) {
+		team.getTeamContactEmails().remove(userEmail);
+		team = this.save(team);
+		return team;
+	}
 }

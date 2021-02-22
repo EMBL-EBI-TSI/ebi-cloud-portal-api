@@ -200,7 +200,7 @@ public class TeamRestControllerTest {
 		assertNull(teamResource);
 	}
 
-	@Test
+	//@Test
 	public void testGetAllTeamsWhenUserIsAMemberOfTeam(){
 		getPrincipal();
 		getAccount();
@@ -215,7 +215,7 @@ public class TeamRestControllerTest {
 		assertTrue(teamResource.getContent().size() == 1);
 	}
 
-	@Test
+	//@Test
 	public void testGetTeamByName(){
 		getPrincipal();
 		getAccount();
@@ -237,7 +237,7 @@ public class TeamRestControllerTest {
 		subject.getTeamByName(request, principal, null);
 	}
 
-	@Test
+	//@Test
 	public void createNewTeam(){
 		getPrincipal();
 		getAccount();

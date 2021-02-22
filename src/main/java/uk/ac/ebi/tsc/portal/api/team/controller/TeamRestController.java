@@ -683,6 +683,46 @@ public class TeamRestController {
 		return new ResponseEntity<>("User  request was successfully sent to team owner " + teamResource.getName(), HttpStatus.OK);
 	}
 
+	@RequestMapping(value="/contact/email", method=RequestMethod.POST)
+	public ResponseEntity<?> addTeamContactEmails(HttpServletRequest request, Principal principal, @RequestBody TeamResource teamResource) throws AccountNotFoundException {
+		logger.info("User " + principal.getName() + " requested adding contacts to team " + teamResource.getName());
+
+		if(teamResource.getName() == null || teamResource.getName().isEmpty()){
+			throw new TeamNameInvalidInputException("Team name should not be empty");
+		}
+
+		logger.info("Checking if user is team owner");
+		Team team = teamService.findByName(teamResource.getName());
+		if(!team.getAccount().getUsername().equals(principal.getName())){
+			throw new TeamNotFoundException(team.getName() + " is not found/not accessible by user");
+		}
+		team = teamService.setContactEmails(teamResource, team);
+		return new ResponseEntity<>("Team Contact was added to team " + team.getName(), HttpStatus.OK);
+
+	}
+
+	@RequestMapping(value="/{teamName:.+}/contact/email/{userEmail:.+}", method=RequestMethod.DELETE)
+	public ResponseEntity<?> removeTeamContactEmail(HttpServletRequest request, Principal principal,
+												   @PathVariable String teamName,
+												   @PathVariable String userEmail) throws AccountNotFoundException {
+
+		logger.info("Request to remove contact " + userEmail + " from team " + teamName);
+
+		if(teamName == null || teamName.isEmpty()){
+			throw new TeamNameInvalidInputException("Team name should not be empty");
+		}
+
+		logger.info("Checking if user is team owner");
+		Team team = teamService.findByName(teamName);
+		if(!team.getAccount().getUsername().equals(principal.getName())){
+			throw new TeamNotFoundException(team.getName() + " is not found/not accessible by user");
+		}
+
+		team = teamService.removeTeamContactEmail(team, userEmail);
+
+		return new ResponseEntity<>("User " + userEmail + " contact was removed from team " + team.getName(), HttpStatus.OK);
+
+	}
 
 	public String composeBaseURL(HttpServletRequest request) {
 		
