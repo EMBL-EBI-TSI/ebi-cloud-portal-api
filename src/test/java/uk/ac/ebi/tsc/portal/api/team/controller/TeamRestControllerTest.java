@@ -827,21 +827,6 @@ public class TeamRestControllerTest {
 	}
 
 	@Test(expected = TeamNotFoundException.class)
-	public void testAddTeamContactTeamNotOwnerFail() throws AccountNotFoundException {
-		getAccount();
-		getPrincipal();
-		getRequest();
-		getTeamResoure(team);
-		Account notTeamOwner = mock(Account.class);
-		given(notTeamOwner.getUsername()).willReturn("notowner");
-		given(team.getAccount()).willReturn(notTeamOwner);
-		given(teamService.findByName(teamResource.getName())).willReturn(team);
-		String emails = "contact1@ebi,contact2@ebi";
-		given(subject.addTeamContactEmails(request, principal, team.getName(), emails)).willCallRealMethod();
-		subject.addTeamContactEmails(request, principal, team.getName(), emails);
-	}
-
-	@Test(expected = TeamNotFoundException.class)
 	public void testRemoveTeamContactTeamNotOwnerFail() throws AccountNotFoundException {
 		getAccount();
 		getPrincipal();
