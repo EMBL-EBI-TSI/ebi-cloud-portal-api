@@ -20,27 +20,23 @@ import uk.ac.ebi.tsc.portal.api.account.repo.Account;
 import uk.ac.ebi.tsc.portal.api.account.service.AccountService;
 import uk.ac.ebi.tsc.portal.api.application.controller.ApplicationResource;
 import uk.ac.ebi.tsc.portal.api.application.repo.Application;
-import uk.ac.ebi.tsc.portal.api.application.repo.ApplicationRepository;
 import uk.ac.ebi.tsc.portal.api.application.service.ApplicationService;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.controller.CloudProviderParametersResource;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParameters;
-import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParametersRepository;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.service.CloudProviderParametersService;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.service.CloudProviderParamsCopyService;
 import uk.ac.ebi.tsc.portal.api.configuration.controller.ConfigurationDeploymentParametersResource;
 import uk.ac.ebi.tsc.portal.api.configuration.controller.ConfigurationResource;
 import uk.ac.ebi.tsc.portal.api.configuration.repo.Configuration;
 import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigurationDeploymentParameters;
-import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigurationDeploymentParametersRepository;
-import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigurationRepository;
 import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigurationDeploymentParametersService;
 import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigurationService;
-import uk.ac.ebi.tsc.portal.api.deployment.repo.*;
+import uk.ac.ebi.tsc.portal.api.deployment.repo.Deployment;
+import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentConfiguration;
 import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentConfigurationService;
 import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentService;
 import uk.ac.ebi.tsc.portal.api.encryptdecrypt.security.EncryptionService;
 import uk.ac.ebi.tsc.portal.api.team.repo.Team;
-import uk.ac.ebi.tsc.portal.api.team.repo.TeamRepository;
 import uk.ac.ebi.tsc.portal.api.team.service.*;
 import uk.ac.ebi.tsc.portal.api.utils.SendMail;
 import uk.ac.ebi.tsc.portal.clouddeployment.exceptions.ApplicationDeployerException;
@@ -62,8 +58,8 @@ import java.util.*;
 
 import static org.junit.Assert.*;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Matchers.isA;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Matchers.*;
 
 @ContextConfiguration
 @RunWith(SpringJUnit4ClassRunner.class)
@@ -200,7 +196,7 @@ public class TeamRestControllerTest {
 		assertNull(teamResource);
 	}
 
-	//@Test
+	@Test
 	public void testGetAllTeamsWhenUserIsAMemberOfTeam(){
 		getPrincipal();
 		getAccount();
@@ -215,7 +211,7 @@ public class TeamRestControllerTest {
 		assertTrue(teamResource.getContent().size() == 1);
 	}
 
-	//@Test
+	@Test
 	public void testGetTeamByName(){
 		getPrincipal();
 		getAccount();
@@ -224,6 +220,8 @@ public class TeamRestControllerTest {
 		given(teamService.findByName(teamName)).willReturn(team);
 		given(subject.getTeamByName(request, principal, teamName)).willCallRealMethod();
 		given(teamService.setManagerUserNames(isA(TeamResource.class), isA(String.class))).willCallRealMethod();
+		given(teamService.populateTeamContactEmails(isA(TeamResource.class), isA(Principal.class))).willReturn(teamResource);
+		given(teamService.findByDomainReference(team.getDomainReference())).willReturn(team);
 		TeamResource teamResource = subject.getTeamByName(request, principal, teamName);
 		assertTrue(teamResource.getName().equals(teamName));
 	}
@@ -237,7 +235,7 @@ public class TeamRestControllerTest {
 		subject.getTeamByName(request, principal, null);
 	}
 
-	//@Test
+	@Test
 	public void createNewTeam(){
 		getPrincipal();
 		getAccount();
@@ -788,6 +786,74 @@ public class TeamRestControllerTest {
 		ResponseEntity<?> response = subject.removeConfigurationDeploymentParametersFromTeam(principal, teamName, name);
 		assertTrue(toRemove.getSharedWithTeams().size() == 0);
 		assertTrue(response.getStatusCode().equals(HttpStatus.OK));
+	}
+
+	@Test
+	public void testAddTeamContactTeamOwnerPass() throws AccountNotFoundException {
+		getAccount();
+		getPrincipal();
+		getRequest();
+		getTeamResoure(team);
+		Set<String> teamContactEmails = new HashSet<>();
+		teamContactEmails.add("anyteamcontactemail");
+		given(team.getAccount()).willReturn(account);
+		teamResource.setTeamContactEmails(teamContactEmails);
+		given(teamService.findByName(teamResource.getName())).willReturn(team);
+		given(teamService.setManagerUserNames(isA(TeamResource.class), isA(String.class))).willCallRealMethod();
+		given(teamService.populateTeamContactEmails(isA(TeamResource.class), isA(Principal.class))).willReturn(teamResource);
+		given(teamService.findByDomainReference(team.getDomainReference())).willReturn(team);
+		given(teamService.setContactEmails(isA(Set.class), isA(Team.class))).willCallRealMethod();
+		given(teamService.save(team)).willReturn(team);
+		String emails = "contact1@ebi,contact2@ebi";
+		given(subject.addTeamContactEmails(request, principal, team.getName(), emails)).willCallRealMethod();
+		ResponseEntity<?> response = subject.addTeamContactEmails(request, principal, team.getName(), emails);
+		assertTrue(response.getStatusCode().equals(HttpStatus.OK));
+	}
+
+	@Test(expected = TeamNotFoundException.class)
+	public void testAddTeamContactNonTeamOwnerFail() {
+		getAccount();
+		getPrincipal();
+		getRequest();
+		getTeamResoure(team);
+		Account notTeamOwner = mock(Account.class);
+		given(notTeamOwner.getUsername()).willReturn("notowner");
+		given(team.getAccount()).willReturn(notTeamOwner);
+		given(teamService.findByName(teamResource.getName())).willReturn(team);
+		given(teamService.findByDomainReference(team.getDomainReference())).willReturn(team);
+		String emails = "contact1@ebi,contact2@ebi";
+		given(subject.addTeamContactEmails(request, principal, team.getName(), emails)).willCallRealMethod();
+		subject.addTeamContactEmails(request, principal, team.getName(), emails);
+	}
+
+	@Test(expected = TeamNotFoundException.class)
+	public void testAddTeamContactTeamNotOwnerFail() throws AccountNotFoundException {
+		getAccount();
+		getPrincipal();
+		getRequest();
+		getTeamResoure(team);
+		Account notTeamOwner = mock(Account.class);
+		given(notTeamOwner.getUsername()).willReturn("notowner");
+		given(team.getAccount()).willReturn(notTeamOwner);
+		given(teamService.findByName(teamResource.getName())).willReturn(team);
+		String emails = "contact1@ebi,contact2@ebi";
+		given(subject.addTeamContactEmails(request, principal, team.getName(), emails)).willCallRealMethod();
+		subject.addTeamContactEmails(request, principal, team.getName(), emails);
+	}
+
+	@Test(expected = TeamNotFoundException.class)
+	public void testRemoveTeamContactTeamNotOwnerFail() throws AccountNotFoundException {
+		getAccount();
+		getPrincipal();
+		getRequest();
+		getTeamResoure(team);
+		Account notTeamOwner = mock(Account.class);
+		given(notTeamOwner.getUsername()).willReturn("notowner");
+		given(team.getAccount()).willReturn(notTeamOwner);
+		given(teamService.findByName(teamResource.getName())).willReturn(team);
+		String emailToRemove = "someemail";
+		given(subject.removeTeamContactEmail(request, principal, teamName, emailToRemove)).willCallRealMethod();
+		subject.removeTeamContactEmail(request, principal, teamName, emailToRemove);
 	}
 
 	/*@Test

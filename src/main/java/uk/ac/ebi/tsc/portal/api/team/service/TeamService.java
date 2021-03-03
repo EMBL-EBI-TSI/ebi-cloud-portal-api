@@ -780,6 +780,7 @@ public class TeamService {
 
 		List<String> toNotify = new ArrayList();
 		toNotify.add(team.getAccount().getEmail());
+		toNotify.addAll(team.getTeamContactEmails());
 
 		String loginURL = baseURL + "login";
 		String teamURL = baseURL + "team" + "/" + team.getName() ;
@@ -883,9 +884,9 @@ public class TeamService {
 		return team;
 	}
 
-	public Team setContactEmails(TeamResource teamResource, Team team) {
+	public Team setContactEmails(Set<String> emails, Team team) {
 		Set<String> existingEmails = team.getTeamContactEmails();
-		existingEmails.addAll(teamResource.getTeamContactEmails());
+		existingEmails.addAll(emails);
 		team.setTeamContactEmails(existingEmails);
 		team = this.save(team);
 		return team;
@@ -895,5 +896,23 @@ public class TeamService {
 		team.getTeamContactEmails().remove(userEmail);
 		team = this.save(team);
 		return team;
+	}
+
+	public Collection<TeamResource> populateTeamContactEmails(Collection<Team> teams, Principal principal) {
+
+		Collection<TeamResource> teamResources = teams.stream().map(TeamResource::new).collect(Collectors.toList());
+		teamResources.forEach(tr -> {
+			populateTeamContactEmails(tr, principal);
+		});
+		return teamResources;
+	}
+
+	public TeamResource populateTeamContactEmails(TeamResource teamResource, Principal principal) {
+
+		Team team = findByDomainReference(teamResource.getDomainReference());
+		if (team.getAccount().getUsername().equals(principal.getName())) {
+			teamResource.setTeamContactEmails(team.getTeamContactEmails());
+		}
+		return teamResource;
 	}
 }

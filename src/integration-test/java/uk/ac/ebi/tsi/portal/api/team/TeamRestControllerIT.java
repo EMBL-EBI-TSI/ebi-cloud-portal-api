@@ -1,13 +1,6 @@
 package uk.ac.ebi.tsi.portal.api.team;
 
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-
-import java.sql.Date;
-
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.log4j.Logger;
 import org.junit.Before;
 import org.junit.Test;
@@ -16,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -25,14 +19,19 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
-
+import org.springframework.web.util.NestedServletException;
+import uk.ac.ebi.tsc.aap.client.model.Domain;
+import uk.ac.ebi.tsc.aap.client.repo.DomainService;
 import uk.ac.ebi.tsc.portal.BePortalApiApplication;
-import uk.ac.ebi.tsc.portal.api.account.repo.Account;
-import uk.ac.ebi.tsc.portal.api.account.service.AccountService;
-import uk.ac.ebi.tsc.portal.api.team.repo.Team;
+import uk.ac.ebi.tsc.portal.api.team.service.TeamNotFoundException;
 import uk.ac.ebi.tsc.portal.config.WebConfiguration;
+
+import static org.junit.Assert.assertEquals;
+import static org.mockito.Matchers.*;
+import static org.mockito.Mockito.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -64,6 +63,18 @@ public class TeamRestControllerIT {
 		private String token;
 		
 		String teamName = "SOME_TEAM_NAME";
+
+	@Value("${ajayUserName}")
+    private String ajayUserName;
+
+    @Value("${ajayPassword}")
+    private String ajayPassword;
+
+    @MockBean
+	private DomainService domainService;
+
+    @MockBean
+	private Domain domain;
 		
 		@Before
 		public void setup() throws Exception{
@@ -86,21 +97,112 @@ public class TeamRestControllerIT {
 
 			logger.info("Response "  +response);
 		}
-		
-		
-		public void can_create_a_team() throws Exception{
-			Team team = new Team();
-			team.setName(teamName);
-			String json = mapper.writeValueAsString(team);
-			mockMvc.perform(
-					post("/team")
-					.headers(createHeaders(token))
-					.contentType(MediaType.APPLICATION_JSON)
-					.content(json)
-					.accept(MediaType.APPLICATION_JSON))
-			.andExpect(jsonPath("name").value(teamName))
-			.andReturn();
-		}
+
+    @Test
+    public void team_owner_can_add_team_contact_emails() throws Exception {
+
+		String emails = "contact1@ebi,contact2@ebi";
+        mockMvc.perform(
+				put("/team/"+"test-team1"+"/contactemail/")
+                        .headers(createHeaders(getToken(ajayUserName, ajayPassword)))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(emails)
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk());
+
+    }
+
+	@Test
+	public void team_owner_can_remove_team_contact_emails() throws Exception {
+
+		String deleteURL = "/team/" + "test-team1" + "/contactemail/" + "contact@ebi";
+		mockMvc.perform(
+				delete(deleteURL)
+						.headers(createHeaders(getToken(ajayUserName, ajayPassword)))
+						.contentType(MediaType.APPLICATION_JSON)
+						.accept(MediaType.APPLICATION_JSON))
+				.andExpect(status().isOk());
+	}
+
+    @Test
+    public void non_team_owner_cannot_add_team_contact_emails() throws Exception {
+
+        String emails = "contact1@ebi,contact2@ebi";
+        try {
+            mockMvc.perform(
+                    put("/team/"+"test-team1"+"/contactemail/")
+                            .headers(createHeaders(token))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(emails)
+                            .accept(MediaType.APPLICATION_JSON))
+            ;
+        } catch (NestedServletException e) {
+            assertEquals(e.getCause().getClass(), TeamNotFoundException.class);
+        }
+    }
+
+    @Test
+    public void non_team_owner_cannot_remove_team_contact_emails() throws Exception {
+
+        String deleteURL = "/team/"+"test-team1"+"/contactemail/"+"contact@ebi";
+        try {
+            mockMvc.perform(
+                    post(deleteURL)
+                            .headers(createHeaders(token))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .accept(MediaType.APPLICATION_JSON))
+            ;
+        } catch (NestedServletException e) {
+            assertEquals(e.getCause().getClass(), TeamNotFoundException.class);
+        }
+    }
+
+    @Test
+	public void can_create_a_team() throws Exception{
+
+		doReturn(domain).when(domainService).createDomain(anyString(), anyString(), anyString());
+		when(domain.getDomainReference()).thenReturn("ref");
+		String json = "{\"name\":\"test-team3\"}";
+		mockMvc.perform(
+				post("/team/")
+						.headers(createHeaders(token))
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(json)
+						.accept(MediaType.APPLICATION_JSON)
+		)
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("name").value("test-team3"));
+	}
+
+	@Test
+	public void getAllTeamsForCurrentUser() throws Exception {
+		mockMvc.perform(
+				get("/team/all")
+						.headers(createHeaders(token))
+						.contentType(MediaType.APPLICATION_JSON)
+						.accept(MediaType.APPLICATION_JSON)
+		)
+				.andExpect(status().isOk());
+	}
+
+	@Test
+	public void can_delete_a_team() throws Exception{
+		when(domainService.deleteDomain(anyObject(), anyString())).thenReturn(domain);
+		mockMvc.perform(
+				delete("/team/"+"test-team3")
+						.headers(createHeaders(token))
+						.contentType(MediaType.APPLICATION_JSON)
+						.accept(MediaType.APPLICATION_JSON))
+				.andExpect(status().isOk());
+	}
+
+    private String getToken(String username, String password) {
+        ResponseEntity<String> response = restTemplate.withBasicAuth(username, password)
+                .getForEntity(aapUrl, String.class);
+        return response.getBody();
+    }
+
+
 		
 		/*@Test
 		public void add_member_to_team() throws Exception{
@@ -132,15 +234,8 @@ public class TeamRestControllerIT {
 
 		}*/
 
-		
-		public void can_delete_a_team() throws Exception{
-			mockMvc.perform(
-					delete("/team/" , teamName)
-					.headers(createHeaders(token))
-					.contentType(MediaType.APPLICATION_JSON)
-					.accept(MediaType.APPLICATION_JSON))
-			.andExpect(status().isOk());
-		}
+
+
 		
 		protected HttpHeaders createHeaders(String token) {
 			return new HttpHeaders() {

@@ -1,12 +1,11 @@
 package uk.ac.ebi.tsc.portal.api.team.controller;
 
+import uk.ac.ebi.tsc.portal.api.team.repo.Team;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
-
-import org.springframework.security.core.context.SecurityContextHolder;
-import uk.ac.ebi.tsc.portal.api.team.repo.Team;
 
 /**
  * @author Jose A. Dianes <jdianes@ebi.ac.uk>
@@ -45,9 +44,6 @@ public class TeamResource {
 				configurationDeploymentParameterName -> configurationDeploymentParameterName.getName()).collect(Collectors.toList());
 		this.domainReference = team.getDomainReference();
 		this.teamContactEmails = new ArrayList<>();
-		if(isOwner(team)){
-			this.teamContactEmails = team.getTeamContactEmails();
-		}
 	}
 
 	public String getName() {
@@ -128,14 +124,6 @@ public class TeamResource {
 
 	public void setTeamContactEmails(Collection<String> teamContactEmails) {
 		this.teamContactEmails = teamContactEmails;
-	}
-
-	private boolean isOwner(Team team) {
-		uk.ac.ebi.tsc.aap.client.model.User user = (uk.ac.ebi.tsc.aap.client.model.User) SecurityContextHolder.getContext().getAuthentication().getDetails();
-			if (user.getUserReference().equals(team.getAccount().getUsername())) {
-			return true;
-		}
-		return false;
 	}
 
 

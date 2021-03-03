@@ -128,20 +128,16 @@ public class TeamRestController {
 	public Resources<TeamResource> getAllTeamsForCurrentUser(Principal principal){
 
 		Collection<Team> teams = teamService.findByAccountUsername(principal.getName());
-		return new Resources<>(teams.stream().map(
-				TeamResource::new
-				).collect(Collectors.toList())
-				);
+		Collection<TeamResource> teamResources = teamService.populateTeamContactEmails(teams, principal);
+		return new Resources<>(teamResources);
 	}
 
 	@RequestMapping(value="/all",method=RequestMethod.GET)
 	public Resources<TeamResource> getAllTeams(Principal principal){
 
 		Collection<Team> teams = teamService.findAll();
-		return new Resources<>(teams.stream().map(
-				TeamResource::new
-				).collect(Collectors.toList())
-				);
+		Collection<TeamResource> teamResources = teamService.populateTeamContactEmails(teams, principal);
+		return new Resources<>(teamResources);
 	}
 
 	@RequestMapping(method=RequestMethod.POST)
@@ -195,7 +191,9 @@ public class TeamRestController {
 		if(team == null){
 			throw new TeamNotFoundException(teamName);
 		}
-		return teamService.setManagerUserNames(new TeamResource(team), getToken(request));
+		TeamResource teamResource = teamService.setManagerUserNames(new TeamResource(team), getToken(request));
+		teamResource = teamService.populateTeamContactEmails(teamResource, principal);
+		return teamResource;
 	}
 
 	@RequestMapping(value="/{teamName}", method=RequestMethod.DELETE)
@@ -272,7 +270,9 @@ public class TeamRestController {
 
 		List<TeamResource> resourceList = new ArrayList<>();
 		for (Team team: memberTeams){
-			resourceList.add(teamService.setManagerUserNames(new TeamResource(team), token));
+			TeamResource teamResource = teamService.setManagerUserNames(new TeamResource(team), token);
+			teamResource = teamService.populateTeamContactEmails(teamResource, principal);
+			resourceList.add(teamResource);
 		}
 		return new Resources<>(resourceList);
 	}
@@ -683,28 +683,31 @@ public class TeamRestController {
 		return new ResponseEntity<>("User  request was successfully sent to team owner " + teamResource.getName(), HttpStatus.OK);
 	}
 
-	@RequestMapping(value="/contact/email", method=RequestMethod.POST)
-	public ResponseEntity<?> addTeamContactEmails(HttpServletRequest request, Principal principal, @RequestBody TeamResource teamResource) throws AccountNotFoundException {
-		logger.info("User " + principal.getName() + " requested adding contacts to team " + teamResource.getName());
+	@RequestMapping(value = "/{teamName:.+}/contactemail/", method = RequestMethod.PUT)
+	public ResponseEntity<?> addTeamContactEmails(HttpServletRequest request, Principal principal,
+												  @PathVariable("teamName") String teamName,
+												  @RequestBody String emails) {
+		logger.info("User " + principal.getName() + " requested adding contacts to team " + teamName);
 
-		if(teamResource.getName() == null || teamResource.getName().isEmpty()){
+		if(teamName == null || teamName.isEmpty()){
 			throw new TeamNameInvalidInputException("Team name should not be empty");
 		}
 
 		logger.info("Checking if user is team owner");
-		Team team = teamService.findByName(teamResource.getName());
+		Team team = teamService.findByName(teamName);
 		if(!team.getAccount().getUsername().equals(principal.getName())){
 			throw new TeamNotFoundException(team.getName() + " is not found/not accessible by user");
 		}
-		team = teamService.setContactEmails(teamResource, team);
+		Set<String> emailSet = Arrays.stream(emails.split(",")).collect(Collectors.toSet());
+		team = teamService.setContactEmails(emailSet, team);
 		return new ResponseEntity<>("Team Contact was added to team " + team.getName(), HttpStatus.OK);
 
 	}
 
-	@RequestMapping(value="/{teamName:.+}/contact/email/{userEmail:.+}", method=RequestMethod.DELETE)
+	@RequestMapping(value="/{teamName:.+}/contactemail/{userEmail:.+}", method=RequestMethod.DELETE)
 	public ResponseEntity<?> removeTeamContactEmail(HttpServletRequest request, Principal principal,
 												   @PathVariable String teamName,
-												   @PathVariable String userEmail) throws AccountNotFoundException {
+												   @PathVariable String userEmail) {
 
 		logger.info("Request to remove contact " + userEmail + " from team " + teamName);
 
