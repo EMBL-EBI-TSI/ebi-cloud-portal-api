@@ -70,8 +70,7 @@ public class Team {
     )
     public Set<Configuration> configurationsBelongingToTeam = new HashSet<>();
 
-	@LazyCollection(LazyCollectionOption.TRUE)
-	@ElementCollection
+	@ElementCollection(fetch = FetchType.LAZY)
 	@CollectionTable(
 			name="team_contact_emails",
 			joinColumns=@JoinColumn(name="team_id")
