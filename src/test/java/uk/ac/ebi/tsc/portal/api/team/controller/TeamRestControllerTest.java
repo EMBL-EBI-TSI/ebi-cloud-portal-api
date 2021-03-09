@@ -810,7 +810,19 @@ public class TeamRestControllerTest {
 		assertTrue(response.getStatusCode().equals(HttpStatus.OK));
 	}
 
-	@Test(expected = TeamNotFoundException.class)
+	@Test
+	public void testRemoveTeamContactTeamOwnerPass() throws AccountNotFoundException {
+		getAccount();
+		getPrincipal();
+		getRequest();
+		getTeamResoure(team);
+		given(teamService.findByName(teamResource.getName())).willReturn(team);
+		String emailToRemove = "someemail";
+		given(subject.removeTeamContactEmail(request, principal, teamName, emailToRemove)).willCallRealMethod();
+		subject.removeTeamContactEmail(request, principal, teamName, emailToRemove);
+	}
+
+	@Test(expected = TeamAccessDeniedException.class)
 	public void testAddTeamContactNonTeamOwnerFail() {
 		getAccount();
 		getPrincipal();
@@ -826,7 +838,7 @@ public class TeamRestControllerTest {
 		subject.addTeamContactEmails(request, principal, team.getName(), emails);
 	}
 
-	@Test(expected = TeamNotFoundException.class)
+	@Test(expected = TeamAccessDeniedException.class)
 	public void testRemoveTeamContactTeamNotOwnerFail() throws AccountNotFoundException {
 		getAccount();
 		getPrincipal();

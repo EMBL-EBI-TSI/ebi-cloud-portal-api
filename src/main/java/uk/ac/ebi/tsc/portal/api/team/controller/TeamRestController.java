@@ -128,16 +128,20 @@ public class TeamRestController {
 	public Resources<TeamResource> getAllTeamsForCurrentUser(Principal principal){
 
 		Collection<Team> teams = teamService.findByAccountUsername(principal.getName());
-		Collection<TeamResource> teamResources = teamService.populateTeamContactEmails(teams, principal);
-		return new Resources<>(teamResources);
+		return new Resources<>(teams.stream().map(
+				TeamResource::new
+		).collect(Collectors.toList())
+		);
 	}
 
 	@RequestMapping(value="/all",method=RequestMethod.GET)
 	public Resources<TeamResource> getAllTeams(Principal principal){
 
 		Collection<Team> teams = teamService.findAll();
-		Collection<TeamResource> teamResources = teamService.populateTeamContactEmails(teams, principal);
-		return new Resources<>(teamResources);
+		return new Resources<>(teams.stream().map(
+				TeamResource::new
+		).collect(Collectors.toList())
+		);
 	}
 
 	@RequestMapping(method=RequestMethod.POST)
@@ -270,9 +274,7 @@ public class TeamRestController {
 
 		List<TeamResource> resourceList = new ArrayList<>();
 		for (Team team: memberTeams){
-			TeamResource teamResource = teamService.setManagerUserNames(new TeamResource(team), token);
-			teamResource = teamService.populateTeamContactEmails(teamResource, principal);
-			resourceList.add(teamResource);
+			resourceList.add(teamService.setManagerUserNames(new TeamResource(team), token));
 		}
 		return new Resources<>(resourceList);
 	}
@@ -689,41 +691,41 @@ public class TeamRestController {
 												  @RequestBody String emails) {
 		logger.info("User " + principal.getName() + " requested adding contacts to team " + teamName);
 
-		if(teamName == null || teamName.isEmpty()){
+		if (teamName == null || teamName.isEmpty()) {
 			throw new TeamNameInvalidInputException("Team name should not be empty");
 		}
 
 		logger.info("Checking if user is team owner");
 		Team team = teamService.findByName(teamName);
-		if(!team.getAccount().getUsername().equals(principal.getName())){
-			throw new TeamNotFoundException(team.getName() + " is not found/not accessible by user");
+		if (!team.getAccount().getUsername().equals(principal.getName())) {
+			throw new TeamAccessDeniedException(team.getName());
 		}
 		Set<String> emailSet = Arrays.stream(emails.split(",")).collect(Collectors.toSet());
 		team = teamService.setContactEmails(emailSet, team);
-		return new ResponseEntity<>("Team Contact was added to team " + team.getName(), HttpStatus.OK);
+		return new ResponseEntity<>(new TeamResource(team), HttpStatus.OK);
 
 	}
 
-	@RequestMapping(value="/{teamName:.+}/contactemail/{userEmail:.+}", method=RequestMethod.DELETE)
+	@RequestMapping(value = "/{teamName:.+}/contactemail/{userEmail:.+}", method = RequestMethod.DELETE)
 	public ResponseEntity<?> removeTeamContactEmail(HttpServletRequest request, Principal principal,
-												   @PathVariable String teamName,
-												   @PathVariable String userEmail) {
+													@PathVariable String teamName,
+													@PathVariable String userEmail) {
 
 		logger.info("Request to remove contact " + userEmail + " from team " + teamName);
 
-		if(teamName == null || teamName.isEmpty()){
+		if (teamName == null || teamName.isEmpty()) {
 			throw new TeamNameInvalidInputException("Team name should not be empty");
 		}
 
 		logger.info("Checking if user is team owner");
 		Team team = teamService.findByName(teamName);
-		if(!team.getAccount().getUsername().equals(principal.getName())){
-			throw new TeamNotFoundException(team.getName() + " is not found/not accessible by user");
+		if (!team.getAccount().getUsername().equals(principal.getName())) {
+			throw new TeamAccessDeniedException(team.getName());
 		}
 
-		team = teamService.removeTeamContactEmail(team, userEmail);
+		teamService.removeTeamContactEmail(team, userEmail);
 
-		return new ResponseEntity<>("User " + userEmail + " contact was removed from team " + team.getName(), HttpStatus.OK);
+		return new ResponseEntity<>(HttpStatus.NO_CONTENT);
 
 	}
 
