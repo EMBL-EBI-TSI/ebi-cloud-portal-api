@@ -196,7 +196,7 @@ public class TeamRestController {
 			throw new TeamNotFoundException(teamName);
 		}
 		TeamResource teamResource = teamService.setManagerUserNames(new TeamResource(team), getToken(request));
-		teamResource = teamService.populateTeamContactEmails(teamResource, principal);
+		teamResource = teamService.populateTeamContactEmails(team, teamResource, principal.getName());
 		return teamResource;
 	}
 

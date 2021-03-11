@@ -898,19 +898,8 @@ public class TeamService {
 		return team;
 	}
 
-	public Collection<TeamResource> populateTeamContactEmails(Collection<Team> teams, Principal principal) {
-
-		Collection<TeamResource> teamResources = teams.stream().map(TeamResource::new).collect(Collectors.toList());
-		teamResources.forEach(tr -> {
-			populateTeamContactEmails(tr, principal);
-		});
-		return teamResources;
-	}
-
-	public TeamResource populateTeamContactEmails(TeamResource teamResource, Principal principal) {
-
-		Team team = findByDomainReference(teamResource.getDomainReference());
-		if (team.getAccount().getUsername().equals(principal.getName())) {
+	public TeamResource populateTeamContactEmails(Team team, TeamResource teamResource, String username) {
+		if (team.getAccount().getUsername().equals(username)) {
 			teamResource.setTeamContactEmails(team.getTeamContactEmails());
 		}
 		return teamResource;

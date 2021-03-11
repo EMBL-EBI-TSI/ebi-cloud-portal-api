@@ -220,7 +220,7 @@ public class TeamRestControllerTest {
 		given(teamService.findByName(teamName)).willReturn(team);
 		given(subject.getTeamByName(request, principal, teamName)).willCallRealMethod();
 		given(teamService.setManagerUserNames(isA(TeamResource.class), isA(String.class))).willCallRealMethod();
-		given(teamService.populateTeamContactEmails(isA(TeamResource.class), isA(Principal.class))).willReturn(teamResource);
+		given(teamService.populateTeamContactEmails(isA(Team.class), isA(TeamResource.class), isA(String.class))).willReturn(teamResource);
 		given(teamService.findByDomainReference(team.getDomainReference())).willReturn(team);
 		TeamResource teamResource = subject.getTeamByName(request, principal, teamName);
 		assertTrue(teamResource.getName().equals(teamName));
@@ -800,7 +800,7 @@ public class TeamRestControllerTest {
 		teamResource.setTeamContactEmails(teamContactEmails);
 		given(teamService.findByName(teamResource.getName())).willReturn(team);
 		given(teamService.setManagerUserNames(isA(TeamResource.class), isA(String.class))).willCallRealMethod();
-		given(teamService.populateTeamContactEmails(isA(TeamResource.class), isA(Principal.class))).willReturn(teamResource);
+		given(teamService.populateTeamContactEmails(isA(Team.class), isA(TeamResource.class), isA(String.class))).willReturn(teamResource);
 		given(teamService.findByDomainReference(team.getDomainReference())).willReturn(team);
 		given(teamService.setContactEmails(isA(Set.class), isA(Team.class))).willCallRealMethod();
 		given(teamService.save(team)).willReturn(team);

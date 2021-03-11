@@ -27,12 +27,7 @@ import uk.ac.ebi.tsc.portal.api.team.service.TeamAccessDeniedException;
 import uk.ac.ebi.tsc.portal.config.WebConfiguration;
 
 import static org.junit.Assert.assertEquals;
-import static org.mockito.Matchers.anyObject;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @RunWith(SpringRunner.class)
@@ -160,23 +155,6 @@ public class TeamRestControllerIT {
 	}
 
 	@Test
-	public void can_create_a_team() throws Exception {
-
-		doReturn(domain).when(domainService).createDomain(anyString(), anyString(), anyString());
-		when(domain.getDomainReference()).thenReturn("ref");
-		String json = "{\"name\":\"test-team3\"}";
-		mockMvc.perform(
-				post("/team/")
-						.headers(createHeaders(token))
-						.contentType(MediaType.APPLICATION_JSON)
-						.content(json)
-						.accept(MediaType.APPLICATION_JSON)
-		)
-				.andExpect(status().isOk())
-				.andExpect(jsonPath("name").value("test-team3"));
-	}
-
-	@Test
 	public void getAllTeamsForCurrentUser() throws Exception {
 		mockMvc.perform(
 				get("/team/all")
@@ -184,17 +162,6 @@ public class TeamRestControllerIT {
 						.contentType(MediaType.APPLICATION_JSON)
 						.accept(MediaType.APPLICATION_JSON)
 		)
-				.andExpect(status().isOk());
-	}
-
-	@Test
-	public void can_delete_a_team() throws Exception {
-		when(domainService.deleteDomain(anyObject(), anyString())).thenReturn(domain);
-		mockMvc.perform(
-				delete("/team/" + "test-team3")
-						.headers(createHeaders(token))
-						.contentType(MediaType.APPLICATION_JSON)
-						.accept(MediaType.APPLICATION_JSON))
 				.andExpect(status().isOk());
 	}
 
