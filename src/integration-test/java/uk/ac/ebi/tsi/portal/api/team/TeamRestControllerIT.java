@@ -9,7 +9,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -20,8 +19,6 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.util.NestedServletException;
-import uk.ac.ebi.tsc.aap.client.model.Domain;
-import uk.ac.ebi.tsc.aap.client.repo.DomainService;
 import uk.ac.ebi.tsc.portal.BePortalApiApplication;
 import uk.ac.ebi.tsc.portal.api.team.service.TeamAccessDeniedException;
 import uk.ac.ebi.tsc.portal.config.WebConfiguration;
@@ -66,12 +63,6 @@ public class TeamRestControllerIT {
 
 	@Value("${ajayPassword}")
 	private String ajayPassword;
-
-	@MockBean
-	private DomainService domainService;
-
-	@MockBean
-	private Domain domain;
 		
 		@Before
 		public void setup() throws Exception{
