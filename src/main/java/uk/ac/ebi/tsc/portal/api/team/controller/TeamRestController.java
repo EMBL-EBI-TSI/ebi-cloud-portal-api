@@ -195,7 +195,10 @@ public class TeamRestController {
 		if(team == null){
 			throw new TeamNotFoundException(teamName);
 		}
-		return teamService.setManagerUserNames(new TeamResource(team), getToken(request));
+		String token = getToken(request);
+		TeamResource teamResource = teamService.setManagerUserNames(new TeamResource(team), token);
+		teamResource = teamService.setManagerEmails(teamResource, token, principal);
+		return teamResource;
 	}
 
 	@RequestMapping(value="/{teamName}", method=RequestMethod.DELETE)

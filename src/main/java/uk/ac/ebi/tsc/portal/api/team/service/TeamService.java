@@ -854,7 +854,20 @@ public class TeamService {
 		teamResource.setManagerUserNames(managerUserNames);
 		return teamResource;
 	}
-	
+
+	public TeamResource setManagerEmails(TeamResource teamResource, String token, Principal principal) {
+		List<String> managerEmails = new ArrayList<>();
+		try {
+			checkIfOwnerOrManagerOfTeam(teamResource.getName(), principal, token);
+			Collection<User> managers = this.domainService.getAllManagersFromDomain(teamResource.getDomainReference(), token);
+			managerEmails = managers.parallelStream().map(manager -> manager.getEmail()).collect(Collectors.toList());
+		} catch (TeamNotFoundException e) {
+			logger.debug("User is not a owner or manager of the team " + teamResource.getName());
+		}
+		teamResource.setManagerEmails(managerEmails);
+		return teamResource;
+	}
+
 	public Team checkIfOwnerOrManagerOfTeam(String teamName, 
 			Principal principal, 
 			String token ) throws TeamNotFoundException {
