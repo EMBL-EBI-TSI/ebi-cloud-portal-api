@@ -859,7 +859,7 @@ public class TeamService {
 		List<String> managerEmails = new ArrayList<>();
 		try {
 			checkIfOwnerOrManagerOfTeam(teamResource.getName(), principal, token);
-			Collection<User> managers = this.domainService.getAllManagersFromDomain(teamResource.getDomainReference(), token);
+			Collection<User> managers = domainService.getAllManagersFromDomain(teamResource.getDomainReference(), token);
 			managerEmails = managers.parallelStream().map(manager -> manager.getEmail()).collect(Collectors.toList());
 		} catch (TeamNotFoundException e) {
 			logger.debug("User is not a owner or manager of the team " + teamResource.getName());
