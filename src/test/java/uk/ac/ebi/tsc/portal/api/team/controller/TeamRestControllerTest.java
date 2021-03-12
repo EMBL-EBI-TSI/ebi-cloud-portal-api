@@ -4,6 +4,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.hateoas.Resources;
 import org.springframework.http.HttpHeaders;
@@ -20,28 +22,27 @@ import uk.ac.ebi.tsc.portal.api.account.repo.Account;
 import uk.ac.ebi.tsc.portal.api.account.service.AccountService;
 import uk.ac.ebi.tsc.portal.api.application.controller.ApplicationResource;
 import uk.ac.ebi.tsc.portal.api.application.repo.Application;
-import uk.ac.ebi.tsc.portal.api.application.repo.ApplicationRepository;
 import uk.ac.ebi.tsc.portal.api.application.service.ApplicationService;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.controller.CloudProviderParametersResource;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParameters;
-import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParametersRepository;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.service.CloudProviderParametersService;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.service.CloudProviderParamsCopyService;
 import uk.ac.ebi.tsc.portal.api.configuration.controller.ConfigurationDeploymentParametersResource;
 import uk.ac.ebi.tsc.portal.api.configuration.controller.ConfigurationResource;
 import uk.ac.ebi.tsc.portal.api.configuration.repo.Configuration;
 import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigurationDeploymentParameters;
-import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigurationDeploymentParametersRepository;
-import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigurationRepository;
 import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigurationDeploymentParametersService;
 import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigurationService;
-import uk.ac.ebi.tsc.portal.api.deployment.repo.*;
+import uk.ac.ebi.tsc.portal.api.deployment.repo.Deployment;
+import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentConfiguration;
 import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentConfigurationService;
 import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentService;
 import uk.ac.ebi.tsc.portal.api.encryptdecrypt.security.EncryptionService;
 import uk.ac.ebi.tsc.portal.api.team.repo.Team;
-import uk.ac.ebi.tsc.portal.api.team.repo.TeamRepository;
-import uk.ac.ebi.tsc.portal.api.team.service.*;
+import uk.ac.ebi.tsc.portal.api.team.service.TeamMemberNotAddedException;
+import uk.ac.ebi.tsc.portal.api.team.service.TeamNameInvalidInputException;
+import uk.ac.ebi.tsc.portal.api.team.service.TeamNotCreatedException;
+import uk.ac.ebi.tsc.portal.api.team.service.TeamService;
 import uk.ac.ebi.tsc.portal.api.utils.SendMail;
 import uk.ac.ebi.tsc.portal.clouddeployment.exceptions.ApplicationDeployerException;
 
@@ -62,8 +63,8 @@ import java.util.*;
 
 import static org.junit.Assert.*;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Matchers.isA;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Matchers.*;
 
 @ContextConfiguration
 @RunWith(SpringJUnit4ClassRunner.class)
@@ -151,24 +152,24 @@ public class TeamRestControllerTest {
 
 	@MockBean
 	Domain domain;
-	
+
 	@MockBean
 	DeploymentConfigurationService depConfigService;
 
 	@MockBean
 	DeploymentService deploymentService;
-	
+
 	@MockBean
 	private CloudProviderParamsCopyService cppCopyService;
-	
+
 	@MockBean
 	private EncryptionService encryptionService;
-	
+
 	@MockBean
 	private SendMail sendMail;
-	
+
 	String baseURL = "something.api";
-	
+
 	@Before
 	public void setUp(){
 
@@ -186,6 +187,7 @@ public class TeamRestControllerTest {
 		ReflectionTestUtils.setField(cppCopyService, "encryptionService", encryptionService);
 		ReflectionTestUtils.setField(cppService, "encryptionService", encryptionService);
 		ReflectionTestUtils.setField(teamService, "sendMail", sendMail);
+		ReflectionTestUtils.setField(teamService, "domainService", domainService);
 		toRemove = mock(Team.class);
 	}
 
@@ -210,7 +212,7 @@ public class TeamRestControllerTest {
 		getTeamResoure(team);
 		given(subject.getAllTeamsForCurrentUser(principal)).willCallRealMethod();
 		Resources<TeamResource> teamResource = subject.getAllTeamsForCurrentUser(principal);
-		
+
 		assertTrue(teamResource != null);
 		assertTrue(teamResource.getContent().size() == 1);
 	}
@@ -224,6 +226,7 @@ public class TeamRestControllerTest {
 		given(teamService.findByName(teamName)).willReturn(team);
 		given(subject.getTeamByName(request, principal, teamName)).willCallRealMethod();
 		given(teamService.setManagerUserNames(isA(TeamResource.class), isA(String.class))).willCallRealMethod();
+		given(teamService.setManagerEmails(isA(TeamResource.class), isA(String.class), isA(Principal.class))).willCallRealMethod();
 		TeamResource teamResource = subject.getTeamByName(request, principal, teamName);
 		assertTrue(teamResource.getName().equals(teamName));
 	}
@@ -251,8 +254,8 @@ public class TeamRestControllerTest {
 		ResponseEntity<?> newTeam  = subject.createNewTeam(request, response, principal, teamResource);
 		assertTrue(newTeam.getStatusCode().equals(HttpStatus.OK));
 	}
-	
-	@Test(expected = TeamNameInvalidInputException.class ) 
+
+	@Test(expected = TeamNameInvalidInputException.class )
 	public void createNewTeamInvalidName(){
 		getPrincipal();
 		getAccount();
@@ -293,7 +296,7 @@ public class TeamRestControllerTest {
 		subject.createNewTeam(request, response, principal, teamResource);
 	}
 
-	@Test(expected = TeamNameInvalidInputException.class )   
+	@Test(expected = TeamNameInvalidInputException.class )
 	public void createNewTeamInvalidTeamName(){
 		getPrincipal();
 		getAccount();
@@ -372,7 +375,7 @@ public class TeamRestControllerTest {
 		ResponseEntity<?> memberAdded = subject.addMember(request, principal, teamResource);
 		assertTrue(team.getAccountsBelongingToTeam().size() == 3);
 	}
-	
+
 	@Test
 	public void addMemberToTeamOnRequestPass() throws IOException{
 		String someAccountEmail = userEmail;
@@ -667,7 +670,7 @@ public class TeamRestControllerTest {
 		given(team.getAccount().getUsername()).willReturn(principalName);
 		given(teamService.findByNameAndAccountUsername(teamName, principalName)).willReturn(team);
 		given(teamService.save(team)).willReturn(team);
-		
+
 		//set deployments
 		List<Deployment> deployments = new ArrayList<>();
 		Deployment deployment = mock(Deployment.class);
@@ -675,7 +678,7 @@ public class TeamRestControllerTest {
 		given(deployment.getReference()).willReturn(deploymentReference);
 		deployments.add(deployment);
 		given(deploymentService.findAll()).willReturn(deployments);
-		
+
 		given(subject.removeCloudProviderParametersFromTeam(principal, teamName, name)).willCallRealMethod();
 		ResponseEntity<?> response = subject.removeCloudProviderParametersFromTeam(principal, teamName, name);
 		assertTrue(toRemove.getSharedWithTeams().size() == 0);
@@ -695,7 +698,7 @@ public class TeamRestControllerTest {
 		given(teamService.findByNameAndAccountUsername(Mockito.anyString(), Mockito.anyString())).willReturn(team);
 		given(teamService.save(team)).willReturn(team);
 		given(cppService.findByNameAndAccountUsername(cppName, principalName)).willReturn(cpp);
-		
+
 		given(configDepParamsService.findByNameAndAccountUserName(configDepParamsName, principalName)).willReturn(configDepParams);
 
 		given(configurationService.findByNameAndAccountUsername(Mockito.anyString(), Mockito.anyString())).willReturn(configuration);
@@ -737,7 +740,7 @@ public class TeamRestControllerTest {
 		given(team.getAccount().getUsername()).willReturn(principalName);
 		given(teamService.findByNameAndAccountUsername(teamName, principalName)).willReturn(team);
 		given(teamService.save(team)).willReturn(team);
-		
+
 		//set deployments
 		List<DeploymentConfiguration> deploymentConfigurations = new ArrayList<>();
 		Deployment deployment = mock(Deployment.class);
@@ -790,6 +793,15 @@ public class TeamRestControllerTest {
 		assertTrue(response.getStatusCode().equals(HttpStatus.OK));
 	}
 
+	private Set<User> getManagers(){
+		Set<User> managers =  new HashSet<>();
+		User managerOne = mock(User.class);
+		given(managerOne.getEmail()).willReturn("somemangeremail");
+		given(managerOne.getUserName()).willReturn("somemangerusername");
+		managers.add(managerOne);
+		return managers;
+	}
+	
 	/*@Test
 	public void testLeaveTeam() throws Exception{
 		getPrincipal();
