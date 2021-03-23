@@ -1,18 +1,13 @@
 package uk.ac.ebi.tsi.portal.api.team;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import org.apache.log4j.Logger;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -27,7 +22,6 @@ import uk.ac.ebi.tsc.portal.api.team.service.TeamAccessDeniedException;
 import uk.ac.ebi.tsc.portal.config.WebConfiguration;
 import uk.ac.ebi.tsc.portal.security.EcpAuthenticationService;
 
-import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.when;
@@ -37,35 +31,17 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @RunWith(SpringRunner.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ContextConfiguration(classes = {WebConfiguration.class, BePortalApiApplication.class})
-@TestPropertySource(value = "classpath:integrationTest.properties", properties = {"aap.domains.url = http://localhost:9000"})
+@TestPropertySource(value = "classpath:integrationTest.properties")
 @AutoConfigureMockMvc
 public class TeamRestControllerIT {
 	
 	private static final Logger logger = Logger.getLogger(TeamRestControllerIT.class);
 
 	@Autowired
-	private TestRestTemplate restTemplate;
-
-	@Autowired
 	private MockMvc mockMvc;
-
-	@Autowired
-	private ObjectMapper mapper;
-
-	@Value("${aapUserName}")
-	private String aapUserName;
-
-	@Value("${aapPassword}")
-	private String aapPassword;
-
-	@Value("${aapUrl}")
-	private String aapUrl;
 
 	@MockBean
 	private EcpAuthenticationService authenticationService;
-
-	@Rule
-	public WireMockRule mockDomainService = new WireMockRule(wireMockConfig().port(9000));
 
 	@Before
 	public void setup() {
