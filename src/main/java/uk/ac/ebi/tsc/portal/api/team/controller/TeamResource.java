@@ -1,8 +1,9 @@
 package uk.ac.ebi.tsc.portal.api.team.controller;
 
 import uk.ac.ebi.tsc.portal.api.team.repo.Team;
-
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 import java.util.stream.Collectors;
 
 /**
@@ -22,7 +23,8 @@ public class TeamResource {
 	private String domainReference;
 	private List<String> managerUserNames;
 	private List<String> managerEmails;
-	
+	private Collection<String> teamContactEmails;
+
 	public TeamResource() {
 	}
 
@@ -42,6 +44,7 @@ public class TeamResource {
 				configurationDeploymentParameterName -> configurationDeploymentParameterName.getName()).collect(Collectors.toList());
 		this.domainReference = team.getDomainReference();
 		this.managerEmails = new ArrayList<>();
+		this.teamContactEmails = new ArrayList<>();
 	}
 
 	public String getName() {
@@ -123,4 +126,13 @@ public class TeamResource {
 	public void setManagerEmails(List<String> managerEmails) {
 		this.managerEmails = managerEmails;
 	}
+
+	public Collection<String> getTeamContactEmails() {
+		return teamContactEmails;
+	}
+
+	public void setTeamContactEmails(Collection<String> teamContactEmails) {
+		this.teamContactEmails = teamContactEmails;
+	}
+
 }

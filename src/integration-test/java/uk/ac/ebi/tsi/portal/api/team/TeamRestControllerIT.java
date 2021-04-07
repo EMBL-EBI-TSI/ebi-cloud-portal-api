@@ -17,7 +17,6 @@ import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.test.context.support.WithMockUser;
@@ -30,6 +29,7 @@ import org.springframework.web.util.NestedServletException;
 import uk.ac.ebi.tsc.aap.client.model.User;
 import uk.ac.ebi.tsc.portal.BePortalApiApplication;
 import uk.ac.ebi.tsc.portal.api.team.repo.Team;
+import uk.ac.ebi.tsc.portal.api.team.service.TeamAccessDeniedException;
 import uk.ac.ebi.tsc.portal.config.WebConfiguration;
 import uk.ac.ebi.tsc.portal.security.EcpAuthenticationService;
 
@@ -58,26 +58,10 @@ public class TeamRestControllerIT {
     private static final Logger logger = Logger.getLogger(TeamRestControllerIT.class);
 
     @Autowired
-    private TestRestTemplate restTemplate;
-
-    @Autowired
     private MockMvc mockMvc;
 
     @Autowired
     private ObjectMapper mapper;
-
-    @Value("${aapUserName}")
-    private String aapUserName;
-
-    @Value("${aapPassword}")
-    private String aapPassword;
-
-    @Value("${aapUrl}")
-    private String aapUrl;
-
-    private String token;
-
-    String teamName = "SOME_TEAM_NAME";
 
     @MockBean
     private EcpAuthenticationService authenticationService;
@@ -85,144 +69,140 @@ public class TeamRestControllerIT {
     @Rule
     public WireMockRule mockDomainService = new WireMockRule(wireMockConfig().port(9000));
 
-    @Before
-    public void setup() throws Exception {
-        //get jwt token
-        ResponseEntity<String> response = restTemplate.withBasicAuth(aapUserName, aapPassword)
-                .getForEntity(aapUrl, String.class);
-        token = response.getBody();
-        when(authenticationService.getAuthentication(any())).thenReturn(SecurityContextHolder.getContext().getAuthentication());
-    }
 
+	@Before
+	public void setup() {
+		when(authenticationService.getAuthentication(any())).thenReturn(SecurityContextHolder.getContext().getAuthentication());
+	}
 
-    public void can_get_a_team() throws Exception {
-        MockHttpServletResponse response = mockMvc.perform(
-                get("/team")
-                        .headers(createHeaders(token))
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .accept(MediaType.APPLICATION_JSON)
-        )
-                .andExpect(status().isOk())
-                .andReturn().getResponse();
-
-        logger.info("Response " + response);
-    }
-
-
-    public void can_create_a_team() throws Exception {
-        Team team = new Team();
-        team.setName(teamName);
-        String json = mapper.writeValueAsString(team);
-        mockMvc.perform(
-                post("/team")
-                        .headers(createHeaders(token))
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(json)
-                        .accept(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("name").value(teamName))
-                .andReturn();
-    }
-
-
-    @Test
-    @WithMockUser(username = "usr-e8c1d6d5-6bf4-4636-a70e-41b8f32c70b4")
-    public void team_owner_can_see_team_manager_emails() throws Exception {
-
-        String domainManagersUrl = "/domains/dom-e0de1881-d284-401a-935e-8979b328b158/managers";
-        String managersString = mapper.writeValueAsString(getManagers());
-        mockDomainService.givenThat(WireMock.get(domainManagersUrl).willReturn(okJson(managersString)));
-        mockMvc.perform(
-                get("/team/test-team1")
+	@Test
+	@WithMockUser(username = "usr-e8c1d6d5-6bf4-4636-a70e-41b8f32c70b4")
+	public void can_get_a_team() throws Exception {
+		MockHttpServletResponse response = mockMvc.perform(
+				get("/team")
 						.header("Authorization", "Bearer sometoken")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .accept(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.managerEmails", hasSize(1)));
-    }
+						.contentType(MediaType.APPLICATION_JSON)
+						.accept(MediaType.APPLICATION_JSON)
+		)
+				.andExpect(status().isOk())
+				.andReturn().getResponse();
 
-    @Test
-    @WithMockUser(username = "usr-b070585b-a340-4a98-aff1-f3de48da8c38")
-    public void non_team_owner_can_see_team_manager_emails() throws Exception {
+		logger.info("Response " + response);
+	}
 
-        String domainManagersUrl = "/domains/dom-e0de1881-d284-401a-935e-8979b328b158/managers";
-        mockDomainService.givenThat(WireMock.get(domainManagersUrl).willReturn(aResponse().withStatus(HttpStatus.FORBIDDEN.value())));
-        try{
-            mockMvc.perform(
-                    get("/team/test-team1")
-                            .header("Authorization", "Bearer sometoken")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .accept(MediaType.APPLICATION_JSON))
-                    .andExpect(status().isForbidden())
-                    .andReturn();
-        }catch (NestedServletException e) {
-            assertEquals(e.getCause().getClass(), HttpClientErrorException.class);
-        }
-    }
+	@Test
+	@WithMockUser(username = "usr-e8c1d6d5-6bf4-4636-a70e-41b8f32c70b4")
+	public void team_owner_can_add_team_contact_emails() throws Exception {
 
-    private String getToken(String username, String password) {
-        ResponseEntity<String> response = restTemplate.withBasicAuth(username, password)
-                .getForEntity(aapUrl, String.class);
-        return response.getBody();
-    }
+		String emails = "contact1@ebi,contact2@ebi";
+		mockMvc.perform(
+				put("/team/" + "test-team1" + "/contactemail/")
+						.header("Authorization", "Bearer sometoken")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(emails)
+						.accept(MediaType.APPLICATION_JSON))
+				.andExpect(status().isOk());
+	}
 
-    private Collection<User> getManagers(){
+	@Test
+	@WithMockUser(username = "usr-e8c1d6d5-6bf4-4636-a70e-41b8f32c70b4")
+	public void team_owner_can_remove_team_contact_emails() throws Exception {
+
+		String deleteURL = "/team/" + "test-team1" + "/contactemail/" + "contact@ebi";
+		mockMvc.perform(
+				delete(deleteURL)
+						.header("Authorization", "Bearer sometoken")
+						.contentType(MediaType.APPLICATION_JSON)
+						.accept(MediaType.APPLICATION_JSON))
+				.andExpect(status().isNoContent());
+	}
+
+	@Test
+	@WithMockUser(username = "usr-b070585b-a340-4a98-aff1-f3de48da8c38")
+	public void non_team_owner_cannot_add_team_contact_emails() throws Exception {
+
+		String emails = "contact1@ebi,contact2@ebi";
+		try {
+			mockMvc.perform(
+					put("/team/" + "test-team1" + "/contactemail/")
+							.header("Authorization", "Bearer sometoken")
+							.contentType(MediaType.APPLICATION_JSON)
+							.content(emails)
+							.accept(MediaType.APPLICATION_JSON))
+			;
+		} catch (NestedServletException e) {
+			assertEquals(e.getCause().getClass(), TeamAccessDeniedException.class);
+		}
+	}
+
+	@Test
+	@WithMockUser(username = "usr-b070585b-a340-4a98-aff1-f3de48da8c38")
+	public void non_team_owner_cannot_remove_team_contact_emails() throws Exception {
+
+		String deleteURL = "/team/" + "test-team1" + "/contactemail/" + "contact@ebi";
+		try {
+			mockMvc.perform(
+					post(deleteURL)
+							.header("Authorization", "Bearer sometoken")
+							.contentType(MediaType.APPLICATION_JSON)
+							.accept(MediaType.APPLICATION_JSON))
+			;
+		} catch (NestedServletException e) {
+			assertEquals(e.getCause().getClass(), TeamAccessDeniedException.class);
+		}
+	}
+
+	@Test
+	@WithMockUser(username = "usr-b070585b-a340-4a98-aff1-f3de48da8c38")
+	public void getAllTeamsForCurrentUser() throws Exception {
+		mockMvc.perform(
+				get("/team/all")
+						.header("Authorization", "Bearer sometoken")
+						.contentType(MediaType.APPLICATION_JSON)
+						.accept(MediaType.APPLICATION_JSON)
+		)
+				.andExpect(status().isOk());
+	}
+
+	@Test
+	@WithMockUser(username = "usr-e8c1d6d5-6bf4-4636-a70e-41b8f32c70b4")
+	public void team_owner_can_see_team_manager_emails() throws Exception {
+
+		String domainManagersUrl = "/domains/dom-e0de1881-d284-401a-935e-8979b328b158/managers";
+		String managersString = mapper.writeValueAsString(getManagers());
+		mockDomainService.givenThat(WireMock.get(domainManagersUrl).willReturn(okJson(managersString)));
+		mockMvc.perform(
+				get("/team/test-team1")
+						.header("Authorization", "Bearer sometoken")
+						.contentType(MediaType.APPLICATION_JSON)
+						.accept(MediaType.APPLICATION_JSON))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.managerEmails", hasSize(1)));
+	}
+
+	@Test
+	@WithMockUser(username = "usr-b070585b-a340-4a98-aff1-f3de48da8c38")
+	public void non_team_owner_can_see_team_manager_emails() throws Exception {
+
+		String domainManagersUrl = "/domains/dom-e0de1881-d284-401a-935e-8979b328b158/managers";
+		mockDomainService.givenThat(WireMock.get(domainManagersUrl).willReturn(aResponse().withStatus(HttpStatus.FORBIDDEN.value())));
+		try{
+			mockMvc.perform(
+					get("/team/test-team1")
+							.header("Authorization", "Bearer sometoken")
+							.contentType(MediaType.APPLICATION_JSON)
+							.accept(MediaType.APPLICATION_JSON))
+					.andExpect(status().isForbidden())
+					.andReturn();
+		}catch (NestedServletException e) {
+			assertEquals(e.getCause().getClass(), HttpClientErrorException.class);
+		}
+	}
+
+	private Collection<User> getManagers(){
 		Set<User> managers = new HashSet<>();
 		User managerOne = new User("userName", "email", "userReference", "fullname", null);
 		managers.add(managerOne);
 		return managers;
 	}
-
-		/*@Test
-		public void add_member_to_team() throws Exception{
-			
-			String json = "{\"name\":\"" + teamName + "\", \"memberAccountEmails\":[\""+ email + "\"]}";
-			logger.info("In add member to team " + json);
-			mockMvc.perform(
-					post("/team/member") 
-					.headers(createHeaders(token))
-					.contentType(MediaType.APPLICATION_JSON)
-					.content(json)
-					.accept(MediaType.APPLICATION_JSON))
-
-			.andExpect(status().isOk());
-
-		}
-		
-
-		@Test
-		public void canRemoveMemberFromTeam() throws Exception{
-
-			String uri = "/team/" + teamName + "/member/" + email;
-			mockMvc.perform(
-					delete(uri) 
-					.headers(createHeaders(token))
-					.contentType(MediaType.APPLICATION_JSON)
-					.accept(MediaType.APPLICATION_JSON))
-			.andExpect(status().isOk());
-
-		}*/
-
-
-    public void can_delete_a_team() throws Exception {
-        mockMvc.perform(
-                delete("/team/", teamName)
-                        .headers(createHeaders(token))
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .accept(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk());
-    }
-
-    protected HttpHeaders createHeaders(String token) {
-        return new HttpHeaders() {
-            private static final long serialVersionUID = 1L;
-
-            {
-                String authHeader = "Bearer " + token;
-                set("Authorization", authHeader);
-                set("Content-Type", "application/json");
-                set("Accept", "application/hal+json");
-            }
-        };
-    }
-
 }

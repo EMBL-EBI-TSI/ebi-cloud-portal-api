@@ -42,10 +42,7 @@ import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentConfigurationServic
 import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentService;
 import uk.ac.ebi.tsc.portal.api.encryptdecrypt.security.EncryptionService;
 import uk.ac.ebi.tsc.portal.api.team.repo.Team;
-import uk.ac.ebi.tsc.portal.api.team.service.TeamNameInvalidInputException;
-import uk.ac.ebi.tsc.portal.api.team.service.TeamNotCreatedException;
-import uk.ac.ebi.tsc.portal.api.team.service.TeamNotFoundException;
-import uk.ac.ebi.tsc.portal.api.team.service.TeamService;
+import uk.ac.ebi.tsc.portal.api.team.service.*;
 import uk.ac.ebi.tsc.portal.clouddeployment.application.ApplicationDeployer;
 
 import javax.crypto.BadPaddingException;
@@ -133,8 +130,8 @@ public class TeamRestController {
 		Collection<Team> teams = teamService.findByAccountUsername(principal.getName());
 		return new Resources<>(teams.stream().map(
 				TeamResource::new
-				).collect(Collectors.toList())
-				);
+		).collect(Collectors.toList())
+		);
 	}
 
 	@RequestMapping(value="/all",method=RequestMethod.GET)
@@ -143,8 +140,8 @@ public class TeamRestController {
 		Collection<Team> teams = teamService.findAll();
 		return new Resources<>(teams.stream().map(
 				TeamResource::new
-				).collect(Collectors.toList())
-				);
+		).collect(Collectors.toList())
+		);
 	}
 
 	@RequestMapping(method=RequestMethod.POST)
@@ -198,9 +195,11 @@ public class TeamRestController {
 		if(team == null){
 			throw new TeamNotFoundException(teamName);
 		}
+
 		String token = getToken(request);
 		TeamResource teamResource = teamService.setManagerUserNames(new TeamResource(team), token);
 		teamResource = teamService.setManagerEmails(teamResource, token, principal);
+		teamResource = teamService.populateTeamContactEmails(team, teamResource, principal.getName());
 		return teamResource;
 	}
 
@@ -689,6 +688,49 @@ public class TeamRestController {
 		return new ResponseEntity<>("User  request was successfully sent to team owner " + teamResource.getName(), HttpStatus.OK);
 	}
 
+	@RequestMapping(value = "/{teamName:.+}/contactemail/", method = RequestMethod.PUT)
+	public ResponseEntity<?> addTeamContactEmails(HttpServletRequest request, Principal principal,
+												  @PathVariable("teamName") String teamName,
+												  @RequestBody String emails) {
+		logger.info("User " + principal.getName() + " requested adding contacts to team " + teamName);
+
+		if (teamName == null || teamName.isEmpty()) {
+			throw new TeamNameInvalidInputException("Team name should not be empty");
+		}
+
+		logger.info("Checking if user is team owner");
+		Team team = teamService.findByName(teamName);
+		if (!team.getAccount().getUsername().equals(principal.getName())) {
+			throw new TeamAccessDeniedException(team.getName());
+		}
+		Set<String> emailSet = Arrays.stream(emails.split(",")).collect(Collectors.toSet());
+		team = teamService.setContactEmails(emailSet, team);
+		return new ResponseEntity<>(new TeamResource(team), HttpStatus.OK);
+
+	}
+
+	@RequestMapping(value = "/{teamName:.+}/contactemail/{userEmail:.+}", method = RequestMethod.DELETE)
+	public ResponseEntity<?> removeTeamContactEmail(HttpServletRequest request, Principal principal,
+													@PathVariable String teamName,
+													@PathVariable String userEmail) {
+
+		logger.info("Request to remove contact " + userEmail + " from team " + teamName);
+
+		if (teamName == null || teamName.isEmpty()) {
+			throw new TeamNameInvalidInputException("Team name should not be empty");
+		}
+
+		logger.info("Checking if user is team owner");
+		Team team = teamService.findByName(teamName);
+		if (!team.getAccount().getUsername().equals(principal.getName())) {
+			throw new TeamAccessDeniedException(team.getName());
+		}
+
+		teamService.removeTeamContactEmail(team, userEmail);
+
+		return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+
+	}
 
 	public String composeBaseURL(HttpServletRequest request) {
 		

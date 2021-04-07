@@ -780,6 +780,7 @@ public class TeamService {
 
 		List<String> toNotify = new ArrayList();
 		toNotify.add(team.getAccount().getEmail());
+		toNotify.addAll(team.getTeamContactEmails());
 
 		String loginURL = baseURL + "login";
 		String teamURL = baseURL + "team" + "/" + team.getName() ;
@@ -896,4 +897,24 @@ public class TeamService {
 		return team;
 	}
 
+	public Team setContactEmails(Set<String> emails, Team team) {
+		Set<String> existingEmails = team.getTeamContactEmails();
+		existingEmails.addAll(emails);
+		team.setTeamContactEmails(existingEmails);
+		team = this.save(team);
+		return team;
+	}
+
+	public Team removeTeamContactEmail(Team team, String userEmail) {
+		team.getTeamContactEmails().remove(userEmail);
+		team = this.save(team);
+		return team;
+	}
+
+	public TeamResource populateTeamContactEmails(Team team, TeamResource teamResource, String username) {
+		if (team.getAccount().getUsername().equals(username)) {
+			teamResource.setTeamContactEmails(team.getTeamContactEmails());
+		}
+		return teamResource;
+	}
 }
