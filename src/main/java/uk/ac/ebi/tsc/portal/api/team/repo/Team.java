@@ -34,7 +34,7 @@ public class Team {
     @JoinColumn (name = "owner_account_id",referencedColumnName = "id")
     public Account account;
 
-	@LazyCollection(LazyCollectionOption.FALSE)
+	@LazyCollection(LazyCollectionOption.TRUE)
     @ManyToMany
     @JoinTable(name="account_team",
             joinColumns=@JoinColumn(name="team_id", referencedColumnName="id"),

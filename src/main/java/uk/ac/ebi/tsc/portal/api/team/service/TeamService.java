@@ -3,6 +3,7 @@ package uk.ac.ebi.tsc.portal.api.team.service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.hateoas.Resources;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
@@ -37,7 +38,6 @@ import uk.ac.ebi.tsc.portal.clouddeployment.exceptions.ApplicationDeployerExcept
 
 import javax.security.auth.login.AccountNotFoundException;
 import javax.xml.ws.http.HTTPException;
-
 import java.io.IOException;
 import java.security.Principal;
 import java.util.*;
@@ -901,6 +901,28 @@ public class TeamService {
 	public TeamResource populateTeamContactEmails(Team team, TeamResource teamResource, String username) {
 		if (team.getAccount().getUsername().equals(username)) {
 			teamResource.setTeamContactEmails(team.getTeamContactEmails());
+		}
+		return teamResource;
+	}
+
+	public Resources<TeamResource> populateMemberTeams(Collection<Team> teams, String username) {
+		ArrayList<TeamResource> resources = new ArrayList<>();
+		for (Team team : teams) {
+			TeamResource teamResource = new TeamResource(team);
+			if (username.equals(team.getAccount().getUsername())) {
+				teamResource.setMemberAccountEmails(team.accountsBelongingToTeam.stream()
+						.map(a -> a.getEmail()).collect(Collectors.toSet()));
+			}
+			resources.add(teamResource);
+		}
+		return new Resources<>(resources);
+	}
+
+	public TeamResource populateMemberTeam(Team team, TeamResource teamResource, String username) {
+
+		if (username.equals(team.getAccount().getUsername())) {
+			teamResource.setMemberAccountEmails(team.accountsBelongingToTeam.stream()
+					.map(a -> a.getEmail()).collect(Collectors.toSet()));
 		}
 		return teamResource;
 	}

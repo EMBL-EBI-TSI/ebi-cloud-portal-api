@@ -128,20 +128,14 @@ public class TeamRestController {
 	public Resources<TeamResource> getAllTeamsForCurrentUser(Principal principal){
 
 		Collection<Team> teams = teamService.findByAccountUsername(principal.getName());
-		return new Resources<>(teams.stream().map(
-				TeamResource::new
-		).collect(Collectors.toList())
-		);
+		return teamService.populateMemberTeams(teams, principal.getName());
 	}
 
 	@RequestMapping(value="/all",method=RequestMethod.GET)
 	public Resources<TeamResource> getAllTeams(Principal principal){
 
 		Collection<Team> teams = teamService.findAll();
-		return new Resources<>(teams.stream().map(
-				TeamResource::new
-		).collect(Collectors.toList())
-		);
+		return teamService.populateMemberTeams(teams, principal.getName());
 	}
 
 	@RequestMapping(method=RequestMethod.POST)
@@ -197,6 +191,7 @@ public class TeamRestController {
 		}
 		TeamResource teamResource = teamService.setManagerUserNames(new TeamResource(team), getToken(request));
 		teamResource = teamService.populateTeamContactEmails(team, teamResource, principal.getName());
+		teamService.populateMemberTeam(team, teamResource, principal.getName());
 		return teamResource;
 	}
 
@@ -274,7 +269,9 @@ public class TeamRestController {
 
 		List<TeamResource> resourceList = new ArrayList<>();
 		for (Team team: memberTeams){
-			resourceList.add(teamService.setManagerUserNames(new TeamResource(team), token));
+			TeamResource teamResource = teamService.setManagerUserNames(new TeamResource(team), token);
+			teamResource = teamService.populateMemberTeam(team, teamResource, principal.getName());
+			resourceList.add(teamResource);
 		}
 		return new Resources<>(resourceList);
 	}
