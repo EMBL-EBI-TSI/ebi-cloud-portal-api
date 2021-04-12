@@ -274,7 +274,9 @@ public class TeamRestController {
 
 		List<TeamResource> resourceList = new ArrayList<>();
 		for (Team team: memberTeams){
-			resourceList.add(teamService.setManagerUserNames(new TeamResource(team), token));
+			TeamResource teamResource = teamService.setManagerUserNames(new TeamResource(team), token);
+			teamResource = teamService.populateTeamContactEmails(team, teamResource, principal.getName());
+			resourceList.add(teamResource);
 		}
 		return new Resources<>(resourceList);
 	}
