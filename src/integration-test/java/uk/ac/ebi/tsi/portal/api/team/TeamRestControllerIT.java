@@ -187,7 +187,7 @@ public class TeamRestControllerIT {
 							.header("Authorization", "Bearer sometoken")
 							.contentType(MediaType.APPLICATION_JSON)
 							.accept(MediaType.APPLICATION_JSON))
-					.andExpect(status().isForbidden())
+					.andExpect(status().isOk())
 					.andReturn();
 		}catch (NestedServletException e) {
 			assertEquals(e.getCause().getClass(), HttpClientErrorException.class);

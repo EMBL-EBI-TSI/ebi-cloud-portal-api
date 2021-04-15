@@ -838,11 +838,14 @@ public class TeamService {
 		return null;
 	}
 
-	public TeamResource setManagerUserNames(TeamResource teamResource, String token) {
+	public TeamResource setManagerUsernamesAndEmails(TeamResource teamResource, String token) {
 		List<String> managerUserNames = new ArrayList<>();
+		List<String> managerEmails = new ArrayList<>();
 		try {
 			managerUserNames = this.domainService.getAllManagersFromDomain(teamResource.getDomainReference(), token)
 					.parallelStream().map(manager -> manager.getUserReference()).collect(Collectors.toList());
+			managerEmails = this.domainService.getAllManagersFromDomain(teamResource.getDomainReference(), token)
+					.parallelStream().map(manager -> manager.getEmail()).collect(Collectors.toList());
 		} catch (HttpClientErrorException e) {
 			if (e.getMessage().contains("403")) {
 				logger.debug("User is not manager of the team; Domain reference: " + teamResource.getDomainReference());
@@ -853,18 +856,6 @@ public class TeamService {
 			logger.error("Failed while getting Managers for domain from AAP;" + e.getMessage());
 		}
 		teamResource.setManagerUserNames(managerUserNames);
-		return teamResource;
-	}
-
-	public TeamResource setManagerEmails(TeamResource teamResource, String token, Principal principal) {
-		List<String> managerEmails = new ArrayList<>();
-		try {
-			checkIfOwnerOrManagerOfTeam(teamResource.getName(), principal, token);
-			Collection<User> managers = domainService.getAllManagersFromDomain(teamResource.getDomainReference(), token);
-			managerEmails = managers.parallelStream().map(manager -> manager.getEmail()).collect(Collectors.toList());
-		} catch (TeamNotFoundException e) {
-			logger.debug("User is not a owner or manager of the team " + teamResource.getName());
-		}
 		teamResource.setManagerEmails(managerEmails);
 		return teamResource;
 	}

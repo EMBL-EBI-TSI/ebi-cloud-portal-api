@@ -222,8 +222,7 @@ public class TeamRestControllerTest {
 		getTeamResoure(team);
 		given(teamService.findByName(teamName)).willReturn(team);
 		given(subject.getTeamByName(request, principal, teamName)).willCallRealMethod();
-		given(teamService.setManagerUserNames(isA(TeamResource.class), isA(String.class))).willCallRealMethod();
-		given(teamService.setManagerEmails(isA(TeamResource.class), isA(String.class), isA(Principal.class))).willCallRealMethod();
+		given(teamService.setManagerUsernamesAndEmails(isA(TeamResource.class), isA(String.class))).willCallRealMethod();
 		given(teamService.populateTeamContactEmails(isA(Team.class), isA(TeamResource.class), isA(String.class))).willReturn(teamResource);
 		given(teamService.findByDomainReference(team.getDomainReference())).willReturn(team);
 		TeamResource teamResource = subject.getTeamByName(request, principal, teamName);
@@ -814,11 +813,11 @@ public class TeamRestControllerTest {
 		};
 		given(teamService.findByNameAndAccountUsername(teamName, principalName)).willReturn(team);
 		given(teamService.findByName(teamName)).willReturn(team);
-		given(teamService.setManagerUserNames(isA(TeamResource.class), isA(String.class))).willCallRealMethod();
+		given(teamService.setManagerUsernamesAndEmails(isA(TeamResource.class), isA(String.class))).willCallRealMethod();
 		given(teamService.checkIfOwnerOrManagerOfTeam(teamName, principal, token)).willCallRealMethod();
 		when(domainService.getAllManagersFromDomain(domainReference, token)).thenAnswer(domainManagerAnswer);
 		given(teamService.populateTeamContactEmails(isA(Team.class), isA(TeamResource.class), isA(String.class))).willCallRealMethod();
-		given(teamService.setManagerEmails(isA(TeamResource.class), isA(String.class), isA(Principal.class))).willCallRealMethod();
+		//given(teamService.setManagerUsernamesAndEmails(isA(TeamResource.class), isA(String.class), isA(Principal.class))).willCallRealMethod();
 		given(subject.getTeamByName(request, principal, teamName)).willCallRealMethod();
 		TeamResource response = subject.getTeamByName(request, principal, teamName);
 		assertTrue(response.getManagerEmails().size() == 1);
@@ -861,10 +860,10 @@ public class TeamRestControllerTest {
 		};
 		given(teamService.findByNameAndAccountUsername(teamName, principalName)).willReturn(team);
 		given(teamService.findByName(teamName)).willReturn(team);
-		given(teamService.setManagerUserNames(isA(TeamResource.class), isA(String.class))).willCallRealMethod();
+		given(teamService.setManagerUsernamesAndEmails(isA(TeamResource.class), isA(String.class))).willCallRealMethod();
 		given(teamService.checkIfOwnerOrManagerOfTeam(teamName, principal, token)).willCallRealMethod();
 		when(domainService.getAllManagersFromDomain(domainReference, token)).thenAnswer(domainManagerAnswer);
-		given(teamService.setManagerEmails(isA(TeamResource.class), isA(String.class), isA(Principal.class))).willCallRealMethod();
+		//given(teamService.setManagerUsernamesAndEmails(isA(TeamResource.class), isA(String.class), isA(Principal.class))).willCallRealMethod();
 		given(teamService.populateTeamContactEmails(isA(Team.class), isA(TeamResource.class), isA(String.class))).willCallRealMethod();
 		given(subject.getTeamByName(request, principal, teamName)).willCallRealMethod();
 		TeamResource response = subject.getTeamByName(request, principal, teamName);
@@ -882,7 +881,7 @@ public class TeamRestControllerTest {
 		given(team.getAccount()).willReturn(account);
 		teamResource.setTeamContactEmails(teamContactEmails);
 		given(teamService.findByName(teamResource.getName())).willReturn(team);
-		given(teamService.setManagerUserNames(isA(TeamResource.class), isA(String.class))).willCallRealMethod();
+		given(teamService.setManagerUsernamesAndEmails(isA(TeamResource.class), isA(String.class))).willCallRealMethod();
 		given(teamService.populateTeamContactEmails(isA(Team.class), isA(TeamResource.class), isA(String.class))).willReturn(teamResource);
 		given(teamService.findByDomainReference(team.getDomainReference())).willReturn(team);
 		given(teamService.setContactEmails(isA(Set.class), isA(Team.class))).willCallRealMethod();

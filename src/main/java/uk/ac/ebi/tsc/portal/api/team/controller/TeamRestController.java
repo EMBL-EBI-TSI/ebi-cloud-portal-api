@@ -197,8 +197,7 @@ public class TeamRestController {
 		}
 
 		String token = getToken(request);
-		TeamResource teamResource = teamService.setManagerUserNames(new TeamResource(team), token);
-		teamResource = teamService.setManagerEmails(teamResource, token, principal);
+		TeamResource teamResource = teamService.setManagerUsernamesAndEmails(new TeamResource(team), token);
 		teamResource = teamService.populateTeamContactEmails(team, teamResource, principal.getName());
 		return teamResource;
 	}
@@ -277,9 +276,7 @@ public class TeamRestController {
 
 		List<TeamResource> resourceList = new ArrayList<>();
 		for (Team team: memberTeams){
-			TeamResource teamResource = teamService.setManagerUserNames(new TeamResource(team), token);
-			teamResource = teamService.setManagerEmails(teamResource, token, principal);
-			resourceList.add(teamResource);
+			resourceList.add(teamService.setManagerUsernamesAndEmails(new TeamResource(team), token));
 		}
 		return new Resources<>(resourceList);
 	}
