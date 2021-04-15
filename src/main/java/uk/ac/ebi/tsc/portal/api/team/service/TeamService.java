@@ -838,11 +838,14 @@ public class TeamService {
 		return null;
 	}
 
-	public TeamResource setManagerUserNames(TeamResource teamResource, String token) {
+	public TeamResource setManagerUsernamesAndEmails(TeamResource teamResource, String token) {
 		List<String> managerUserNames = new ArrayList<>();
+		List<String> managerEmails = new ArrayList<>();
 		try {
 			managerUserNames = this.domainService.getAllManagersFromDomain(teamResource.getDomainReference(), token)
 					.parallelStream().map(manager -> manager.getUserReference()).collect(Collectors.toList());
+			managerEmails = this.domainService.getAllManagersFromDomain(teamResource.getDomainReference(), token)
+					.parallelStream().map(manager -> manager.getEmail()).collect(Collectors.toList());
 		} catch (HttpClientErrorException e) {
 			if (e.getMessage().contains("403")) {
 				logger.debug("User is not manager of the team; Domain reference: " + teamResource.getDomainReference());
@@ -853,9 +856,10 @@ public class TeamService {
 			logger.error("Failed while getting Managers for domain from AAP;" + e.getMessage());
 		}
 		teamResource.setManagerUserNames(managerUserNames);
+		teamResource.setManagerEmails(managerEmails);
 		return teamResource;
 	}
-	
+
 	public Team checkIfOwnerOrManagerOfTeam(String teamName, 
 			Principal principal, 
 			String token ) throws TeamNotFoundException {
@@ -918,11 +922,14 @@ public class TeamService {
 		return new Resources<>(resources);
 	}
 
-	public TeamResource populateMemberTeam(Team team, TeamResource teamResource, String username) {
-
-		if (username.equals(team.getAccount().getUsername())) {
-			teamResource.setMemberAccountEmails(team.accountsBelongingToTeam.stream()
-					.map(a -> a.getEmail()).collect(Collectors.toSet()));
+	public TeamResource populateTeamMemberEmails(Team team, TeamResource teamResource, String username) {
+		//for team owner populate all members
+		if (!username.equals(team.getAccount().getUsername())) {
+			boolean isMember = team.getAccountsBelongingToTeam().stream().anyMatch(a -> a.getUsername().equals(username));
+			teamResource.setMemberAccountEmails(new HashSet<>());
+			if(isMember) {
+				teamResource.getMemberAccountEmails().add(accountService.findByUsername(username).email);
+			}
 		}
 		return teamResource;
 	}

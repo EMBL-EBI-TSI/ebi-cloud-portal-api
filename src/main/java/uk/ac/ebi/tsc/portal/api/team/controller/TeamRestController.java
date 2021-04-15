@@ -189,9 +189,11 @@ public class TeamRestController {
 		if(team == null){
 			throw new TeamNotFoundException(teamName);
 		}
-		TeamResource teamResource = teamService.setManagerUserNames(new TeamResource(team), getToken(request));
+
+		String token = getToken(request);
+		TeamResource teamResource = teamService.setManagerUsernamesAndEmails(new TeamResource(team), token);
 		teamResource = teamService.populateTeamContactEmails(team, teamResource, principal.getName());
-		teamService.populateMemberTeam(team, teamResource, principal.getName());
+		teamResource = teamService.populateTeamMemberEmails(team, teamResource, principal.getName());
 		return teamResource;
 	}
 
@@ -269,8 +271,8 @@ public class TeamRestController {
 
 		List<TeamResource> resourceList = new ArrayList<>();
 		for (Team team: memberTeams){
-			TeamResource teamResource = teamService.setManagerUserNames(new TeamResource(team), token);
-			teamResource = teamService.populateMemberTeam(team, teamResource, principal.getName());
+			TeamResource teamResource = teamService.setManagerUsernamesAndEmails(new TeamResource(team), token);
+			teamResource = teamService.populateTeamMemberEmails(team, teamResource, principal.getName());
 			resourceList.add(teamResource);
 		}
 		return new Resources<>(resourceList);
