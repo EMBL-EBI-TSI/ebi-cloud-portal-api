@@ -21,7 +21,6 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.util.NestedServletException;
 import uk.ac.ebi.tsc.aap.client.model.Domain;
 import uk.ac.ebi.tsc.aap.client.model.User;
@@ -177,21 +176,19 @@ public class TeamRestControllerIT {
 
 	@Test
 	@WithMockUser(username = "usr-b070585b-a340-4a98-aff1-f3de48da8c38")
-	public void non_team_owner_can_see_team_manager_emails() throws Exception {
+	public void non_team_owner_cannot_see_team_manager_emails() throws Exception {
 
 		String domainManagersUrl = "/domains/dom-e0de1881-d284-401a-935e-8979b328b158/managers";
 		mockDomainService.givenThat(WireMock.get(domainManagersUrl).willReturn(aResponse().withStatus(HttpStatus.FORBIDDEN.value())));
-		try{
-			mockMvc.perform(
-					get("/team/test-team1")
-							.header("Authorization", "Bearer sometoken")
-							.contentType(MediaType.APPLICATION_JSON)
-							.accept(MediaType.APPLICATION_JSON))
-					.andExpect(status().isOk())
-					.andReturn();
-		}catch (NestedServletException e) {
-			assertEquals(e.getCause().getClass(), HttpClientErrorException.class);
-		}
+
+		mockMvc.perform(
+				get("/team/test-team1")
+						.header("Authorization", "Bearer sometoken")
+						.contentType(MediaType.APPLICATION_JSON)
+						.accept(MediaType.APPLICATION_JSON))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.managerEmails", hasSize(0)));;
+
 	}
 
 	@Test
