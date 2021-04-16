@@ -909,25 +909,27 @@ public class TeamService {
 		return teamResource;
 	}
 
-	public Resources<TeamResource> populateMemberTeams(Collection<Team> teams, String username) {
+	public TeamResource populateTeamMemberEmails(Team team, TeamResource teamResource, String username) {
+		return checkIfTeamMemberAndResetTeamMemberEmails(username, team, teamResource);
+	}
+
+	public Resources<TeamResource> populateTeamMemberEmails(Collection<Team> teams, String username) {
 		ArrayList<TeamResource> resources = new ArrayList<>();
 		for (Team team : teams) {
+			//for team owner populate all members
 			TeamResource teamResource = new TeamResource(team);
-			if (username.equals(team.getAccount().getUsername())) {
-				teamResource.setMemberAccountEmails(team.accountsBelongingToTeam.stream()
-						.map(a -> a.getEmail()).collect(Collectors.toSet()));
-			}
+			//form team member set only his email
+			teamResource = checkIfTeamMemberAndResetTeamMemberEmails(username, team, teamResource);
 			resources.add(teamResource);
 		}
 		return new Resources<>(resources);
 	}
 
-	public TeamResource populateTeamMemberEmails(Team team, TeamResource teamResource, String username) {
-		//for team owner populate all members
+	private TeamResource checkIfTeamMemberAndResetTeamMemberEmails(String username, Team team, TeamResource teamResource) {
 		if (!username.equals(team.getAccount().getUsername())) {
 			boolean isMember = team.getAccountsBelongingToTeam().stream().anyMatch(a -> a.getUsername().equals(username));
 			teamResource.setMemberAccountEmails(new HashSet<>());
-			if(isMember) {
+			if (isMember) {
 				teamResource.getMemberAccountEmails().add(accountService.findByUsername(username).email);
 			}
 		}
