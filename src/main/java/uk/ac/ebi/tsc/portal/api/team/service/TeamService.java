@@ -909,24 +909,29 @@ public class TeamService {
 		return teamResource;
 	}
 
-	public TeamResource populateTeamMemberEmails(Team team, TeamResource teamResource, String username) {
-		return checkIfTeamMemberAndResetTeamMemberEmails(username, team, teamResource);
+	public TeamResource populateTeamMemberEmails(Team team, TeamResource teamResource, String username, String token) {
+		return checkIfTeamMemberAndResetTeamMemberEmails(username, team, teamResource, token);
 	}
 
-	public Resources<TeamResource> populateTeamMemberEmails(Collection<Team> teams, String username) {
+	public Resources<TeamResource> populateTeamMemberEmails(Collection<Team> teams, String username, String token) {
 		ArrayList<TeamResource> resources = new ArrayList<>();
 		for (Team team : teams) {
 			//for team owner populate all members
 			TeamResource teamResource = new TeamResource(team);
 			//form team member set only his email
-			teamResource = checkIfTeamMemberAndResetTeamMemberEmails(username, team, teamResource);
+			teamResource = checkIfTeamMemberAndResetTeamMemberEmails(username, team, teamResource, token);
 			resources.add(teamResource);
 		}
 		return new Resources<>(resources);
 	}
 
-	private TeamResource checkIfTeamMemberAndResetTeamMemberEmails(String username, Team team, TeamResource teamResource) {
-		if (!username.equals(team.getAccount().getUsername())) {
+	private TeamResource checkIfTeamMemberAndResetTeamMemberEmails(String username, Team team, TeamResource teamResource, String token) {
+		boolean isManager = teamResource.getManagerUserNames().contains(username);
+		if(!isManager){
+			isManager = this.domainService.getAllManagersFromDomain(teamResource.getDomainReference(), token)
+					.parallelStream().map(manager -> manager.getUserReference()).collect(Collectors.toList()).contains(username);
+		}
+		if (!username.equals(team.getAccount().getUsername()) && (!isManager)) {
 			boolean isMember = team.getAccountsBelongingToTeam().stream().anyMatch(a -> a.getUsername().equals(username));
 			teamResource.setMemberAccountEmails(new HashSet<>());
 			if (isMember) {

@@ -135,10 +135,10 @@ public class TeamRestController {
 	}
 
 	@RequestMapping(value="/all",method=RequestMethod.GET)
-	public Resources<TeamResource> getAllTeams(Principal principal){
+	public Resources<TeamResource> getAllTeams(HttpServletRequest request, Principal principal){
 
 		Collection<Team> teams = teamService.findAll();
-		return teamService.populateTeamMemberEmails(teams, principal.getName());
+		return teamService.populateTeamMemberEmails(teams, principal.getName(), getToken(request));
 	}
 
 	@RequestMapping(method=RequestMethod.POST)
@@ -196,7 +196,7 @@ public class TeamRestController {
 		String token = getToken(request);
 		TeamResource teamResource = teamService.setManagerUsernamesAndEmails(new TeamResource(team), token);
 		teamResource = teamService.populateTeamContactEmails(team, teamResource, principal.getName());
-		teamResource = teamService.populateTeamMemberEmails(team, teamResource, principal.getName());
+		teamResource = teamService.populateTeamMemberEmails(team, teamResource, principal.getName(), token);
 		return teamResource;
 	}
 
@@ -275,7 +275,7 @@ public class TeamRestController {
 		List<TeamResource> resourceList = new ArrayList<>();
 		for (Team team: memberTeams){
 			TeamResource teamResource = teamService.setManagerUsernamesAndEmails(new TeamResource(team), token);
-			teamResource = teamService.populateTeamMemberEmails(team, teamResource, principal.getName());
+			teamResource = teamService.populateTeamMemberEmails(team, teamResource, principal.getName(), token);
 			resourceList.add(teamResource);
 		}
 		return new Resources<>(resourceList);
