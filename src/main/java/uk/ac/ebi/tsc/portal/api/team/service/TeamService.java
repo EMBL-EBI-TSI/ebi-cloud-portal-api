@@ -907,4 +907,16 @@ public class TeamService {
 		}
 		return teamResource;
 	}
+
+	public TeamResource populateTeamMemberEmails(Team team, TeamResource teamResource, String username) {
+		if (username.equals(team.getAccount().getUsername()) || teamResource.getManagerUserNames().contains(username)) {
+			teamResource.setMemberAccountEmails(team.getAccountsBelongingToTeam().stream().map(a -> a.getEmail()).collect(Collectors.toList()));
+		} else {
+			boolean isMember = team.getAccountsBelongingToTeam().stream().anyMatch(a -> a.getUsername().equals(username));
+			if (isMember) {
+				teamResource.getMemberAccountEmails().add(accountService.findByUsername(username).email);
+			}
+		}
+		return teamResource;
+	}
 }

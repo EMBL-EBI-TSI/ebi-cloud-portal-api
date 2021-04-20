@@ -31,8 +31,7 @@ public class TeamResource {
 	public TeamResource(Team team) {
 		this.name = team.getName();
 		this.ownerAccountEmail = team.getAccount().getEmail();
-		this.memberAccountEmails = team.getAccountsBelongingToTeam().stream().map(
-				account -> account.getEmail()).collect(Collectors.toList());
+		this.memberAccountEmails = new ArrayList<>();
 		this.applicationNames = team.getApplicationsBelongingToTeam().stream().map(
 				application -> application.getName()
 		).collect(Collectors.toList());

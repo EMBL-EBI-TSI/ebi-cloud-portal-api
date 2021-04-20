@@ -199,7 +199,7 @@ public class TeamRestController {
 		String token = getToken(request);
 		TeamResource teamResource = teamService.setManagerUsernamesAndEmails(new TeamResource(team), token);
 		teamResource = teamService.populateTeamContactEmails(team, teamResource, principal.getName());
-		return teamResource;
+		return teamService.populateTeamMemberEmails(team, teamResource, principal.getName());
 	}
 
 	@RequestMapping(value="/{teamName}", method=RequestMethod.DELETE)
@@ -276,7 +276,8 @@ public class TeamRestController {
 
 		List<TeamResource> resourceList = new ArrayList<>();
 		for (Team team: memberTeams){
-			resourceList.add(teamService.setManagerUsernamesAndEmails(new TeamResource(team), token));
+			TeamResource teamResource = teamService.setManagerUsernamesAndEmails(new TeamResource(team), token);
+			resourceList.add(teamService.populateTeamMemberEmails(team, teamResource, principal.getName()));
 		}
 		return new Resources<>(resourceList);
 	}
