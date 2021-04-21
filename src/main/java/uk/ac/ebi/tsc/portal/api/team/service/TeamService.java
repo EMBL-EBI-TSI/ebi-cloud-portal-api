@@ -838,11 +838,13 @@ public class TeamService {
 		return null;
 	}
 
-	public TeamResource setManagerUserNames(TeamResource teamResource, String token) {
+	public TeamResource setManagerUsernamesAndEmails(TeamResource teamResource, String token) {
 		List<String> managerUserNames = new ArrayList<>();
+		List<String> managerEmails = new ArrayList<>();
 		try {
-			managerUserNames = this.domainService.getAllManagersFromDomain(teamResource.getDomainReference(), token)
-					.parallelStream().map(manager -> manager.getUserReference()).collect(Collectors.toList());
+			Collection<User> managers = this.domainService.getAllManagersFromDomain(teamResource.getDomainReference(), token);
+			managerUserNames = managers.parallelStream().map(manager -> manager.getUserReference()).collect(Collectors.toList());
+			managerEmails = managers.parallelStream().map(manager -> manager.getEmail()).collect(Collectors.toList());
 		} catch (HttpClientErrorException e) {
 			if (e.getMessage().contains("403")) {
 				logger.debug("User is not manager of the team; Domain reference: " + teamResource.getDomainReference());
@@ -853,9 +855,10 @@ public class TeamService {
 			logger.error("Failed while getting Managers for domain from AAP;" + e.getMessage());
 		}
 		teamResource.setManagerUserNames(managerUserNames);
+		teamResource.setManagerEmails(managerEmails);
 		return teamResource;
 	}
-	
+
 	public Team checkIfOwnerOrManagerOfTeam(String teamName, 
 			Principal principal, 
 			String token ) throws TeamNotFoundException {
