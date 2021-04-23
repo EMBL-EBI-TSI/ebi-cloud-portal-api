@@ -216,7 +216,7 @@ public class TeamRestControllerIT {
 
 	@Test
 	@WithMockUser(username = "usr-b070585b-a340-4a98-aff1-f3de48da8c38")
-	public void getMemberTeamsForUserNotTeamOwner() throws Exception {
+	public void getMemberTeamsForUserNotTeamOwnerorManager() throws Exception {
 
 		String domainManagementUrl = "/my/management";
 		List<Domain> domainCollection = new ArrayList<>();
@@ -225,8 +225,8 @@ public class TeamRestControllerIT {
 		String domainManagersUrl1 = "/domains/dom-e0de1881-d284-401a-935e-8979b328b158/managers";
 		String domainManagersUrl2 = "/domains/dom-4f412d31-cde5-452d-8536-b650a0b7b5d4/managers";
 		String managersString = mapper.writeValueAsString(managers);
-		mockDomainService.givenThat(WireMock.get(domainManagersUrl1).willReturn(okJson(managersString)));
-		mockDomainService.givenThat(WireMock.get(domainManagersUrl2).willReturn(okJson(managersString)));
+		mockDomainService.givenThat(WireMock.get(domainManagersUrl1).willReturn(aResponse().withStatus(HttpStatus.FORBIDDEN.value())));
+		mockDomainService.givenThat(WireMock.get(domainManagersUrl2).willReturn(aResponse().withStatus(HttpStatus.FORBIDDEN.value())));
 		mockMvc.perform(
 				get("/team/member")
 						.header("Authorization", "Bearer sometoken")
