@@ -16,7 +16,7 @@ import java.util.Optional;
 public interface TeamRepository extends JpaRepository<Team, Long>{
 
     @EntityGraph(attributePaths = {"accountsBelongingToTeam"}, type = EntityGraph.EntityGraphType.LOAD)
-	Optional<Team> findByNameOrderByAccountsBelongingToTeam(String name);
+	Optional<Team> findTeamByName(String name);
 	Collection<Team> findByAccountUsername(String accountUsername);
     Optional<Team> findByNameAndAccountUsername(String teamName, String name);
     Optional<Team> findByDomainReference(String domainReference);
