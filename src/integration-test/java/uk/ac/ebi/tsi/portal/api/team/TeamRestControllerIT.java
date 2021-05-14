@@ -5,7 +5,7 @@ import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import org.apache.log4j.Logger;
 import org.junit.Before;
-import org.junit.Rule;
+import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -60,8 +60,9 @@ public class TeamRestControllerIT {
     @MockBean
     private EcpAuthenticationService authenticationService;
 
-    @Rule
-    public WireMockRule mockDomainService = new WireMockRule(wireMockConfig().port(9000));
+    // https://github.com/tomakehurst/wiremock/issues/485 - hanging wiremock
+	@ClassRule
+	public static WireMockRule mockDomainService = new WireMockRule(wireMockConfig().port(9000));
 
 
 	@Before
