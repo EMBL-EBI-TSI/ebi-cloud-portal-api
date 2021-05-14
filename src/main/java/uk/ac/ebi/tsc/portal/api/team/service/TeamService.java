@@ -85,6 +85,10 @@ public class TeamService {
 		return this.teamRepository.findByName(name).orElseThrow(() -> new TeamNotFoundException(name));
 	}
 
+	public Team findByNameAndGetAccounts(String name) {
+		return this.teamRepository.findByNameOrderByAccountsBelongingToTeam(name).orElseThrow(() -> new TeamNotFoundException(name));
+	}
+
 	public Collection<Team> findByAccountUsername(String accountUsername){
 		return this.teamRepository.findByAccountUsername(accountUsername);
 	}
