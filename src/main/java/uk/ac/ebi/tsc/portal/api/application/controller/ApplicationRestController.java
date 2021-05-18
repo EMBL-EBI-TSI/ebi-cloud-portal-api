@@ -4,6 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.ResourceLoader;
 import org.springframework.data.domain.Sort;
 import org.springframework.hateoas.Link;
 import org.springframework.hateoas.Resources;
@@ -13,17 +14,17 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import uk.ac.ebi.tsc.aap.client.repo.DomainService;
+import uk.ac.ebi.tsc.aap.client.repo.TokenService;
+import uk.ac.ebi.tsc.aap.client.security.TokenHandler;
 import uk.ac.ebi.tsc.portal.api.account.repo.Account;
-import uk.ac.ebi.tsc.portal.api.account.repo.AccountRepository;
 import uk.ac.ebi.tsc.portal.api.account.service.AccountService;
 import uk.ac.ebi.tsc.portal.api.application.repo.Application;
-import uk.ac.ebi.tsc.portal.api.application.repo.ApplicationRepository;
 import uk.ac.ebi.tsc.portal.api.application.service.ApplicationNotFoundException;
 import uk.ac.ebi.tsc.portal.api.application.service.ApplicationService;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentApplication;
-import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentApplicationRepository;
 import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentApplicationService;
 import uk.ac.ebi.tsc.portal.api.team.repo.TeamRepository;
+import uk.ac.ebi.tsc.portal.api.team.service.TeamService;
 import uk.ac.ebi.tsc.portal.clouddeployment.application.ApplicationDownloader;
 import uk.ac.ebi.tsc.portal.clouddeployment.exceptions.ApplicationDownloaderException;
 
@@ -59,21 +60,32 @@ public class ApplicationRestController {
 	
 	private final DeploymentApplicationService deploymentApplicationService;
 
+	private final TeamService teamService;
+
+	private final TokenService tokenService;
+
 	@Autowired
 	ApplicationRestController(
 			ApplicationService applicationService,
 			AccountService accountService,
 			ApplicationDownloader applicationDownloader,
 			TeamRepository teamRepository,
-			uk.ac.ebi.tsc.aap.client.security.TokenHandler tokenHandler,
+			TokenHandler  tokenHandler,
 			DomainService domainService,
-			DeploymentApplicationService deploymentApplicationService) {
+			DeploymentApplicationService deploymentApplicationService,
+			TeamService teamService,
+			TokenService tokenService,
+			ResourceLoader resourceLoader,
+			@Value("${ecp.aap.username}") final String ecpAapUsername,
+			@Value("${ecp.aap.password}") final String ecpAapPassword,
+			@Value("${ecp.default.teams.file}") final String ecpDefaultTeamsFilePath) {
 		this.applicationService = applicationService;
 		this.accountService = accountService;
 		this.applicationDownloader = applicationDownloader;
 		this.tokenHandler = tokenHandler;
 		this.deploymentApplicationService = deploymentApplicationService;
-		
+		this.teamService = teamService;
+		this.tokenService = tokenService;
 	}
 
 	/* useful to inject values without involving spring - i.e. tests */
@@ -114,6 +126,7 @@ public class ApplicationRestController {
 		logger.info("Application list requested by user " + principal.getName());
 
 		Account account = this.accountService.findByUsername(principal.getName());
+		this.teamService.addAccountToDefaultTeamsByEmail(account);
 		List<ApplicationResource> applicationResourceList =
 				this.applicationService.findByAccountUsername(account.getUsername(), sort)
 				.stream()

@@ -1,14 +1,8 @@
 package uk.ac.ebi.tsc.portal.security;
 
-import com.fasterxml.jackson.databind.JsonMappingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.collect.Lists;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.io.Resource;
-import org.springframework.core.io.ResourceLoader;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
 import uk.ac.ebi.tsc.aap.client.repo.DomainService;
@@ -20,15 +14,12 @@ import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.service.CloudProviderPar
 import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentConfigurationService;
 import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentService;
 import uk.ac.ebi.tsc.portal.api.encryptdecrypt.security.EncryptionService;
-import uk.ac.ebi.tsc.portal.api.team.repo.Team;
-import uk.ac.ebi.tsc.portal.api.team.service.TeamNotFoundException;
 import uk.ac.ebi.tsc.portal.api.team.service.TeamService;
 import uk.ac.ebi.tsc.portal.clouddeployment.application.ApplicationDeployer;
 
 import javax.servlet.http.HttpServletRequest;
-import java.io.IOException;
 import java.sql.Date;
-import java.util.*;
+import java.util.UUID;
 
 /**
  * Extracts user authentication details from Token using AAP domains API
@@ -53,9 +44,6 @@ public class EcpAuthenticationService {
     private final CloudProviderParamsCopyService cloudProviderParamsCopyService;
     private final DeploymentConfigurationService deploymentConfigurationService;
     private final ApplicationDeployer applicationDeployer;
-    private final String ecpAapUsername;
-    private final String ecpAapPassword;
-    private final Map<String, List<DefaultTeamMap>> defaultTeamsMap;
 
     @Autowired
 	public EcpAuthenticationService(
@@ -64,13 +52,8 @@ public class EcpAuthenticationService {
             DeploymentConfigurationService deploymentConfigurationService,
             CloudProviderParamsCopyService cloudProviderParamsCopyService, TeamService teamService,
             ApplicationDeployer applicationDeployer, DomainService domainService, TokenService tokenService,
-            EncryptionService encryptionService, ResourceLoader resourceLoader,
-            @Value("${ecp.aap.username}") final String ecpAapUsername,
-            @Value("${ecp.aap.password}") final String ecpAapPassword,
-            @Value("${ecp.default.teams.file}") final String ecpDefaultTeamsFilePath) throws IOException {
+            EncryptionService encryptionService) {
         this.tokenAuthenticationService = tokenAuthenticationService;
-        this.ecpAapUsername = ecpAapUsername;
-        this.ecpAapPassword = ecpAapPassword;
         this.tokenService = tokenService;
         this.accountService = accountService;
         this.applicationDeployer = applicationDeployer;
@@ -78,21 +61,6 @@ public class EcpAuthenticationService {
         this.deploymentConfigurationService = deploymentConfigurationService;
         this.cloudProviderParamsCopyService = cloudProviderParamsCopyService;
         this.teamService = teamService;
-        this.defaultTeamsMap = new HashMap<>();
-        // Read maps from json file
-        ObjectMapper mapper = new ObjectMapper();
-        try {
-            logger.info("Reading mappings file " + ecpDefaultTeamsFilePath);
-            Resource defaultMapsResource = resourceLoader.getResource(ecpDefaultTeamsFilePath);
-            DefaultTeamMap[] maps = mapper.readValue(defaultMapsResource.getInputStream(), DefaultTeamMap[].class);
-            Arrays.stream(maps).forEach(defaultTeamMap -> {
-                logger.info("Registering team " + defaultTeamMap.getTeamName() + " mapping for email domain " + defaultTeamMap.getEmailDomain());
-                this.defaultTeamsMap.putIfAbsent(defaultTeamMap.getEmailDomain(), Lists.newArrayList());
-                this.defaultTeamsMap.get(defaultTeamMap.getEmailDomain()).add(defaultTeamMap);
-            });
-        } catch (JsonMappingException jme) {
-            logger.info("Can't find any default team mappings");
-        }
     }
 
     /**
@@ -163,39 +131,7 @@ public class EcpAuthenticationService {
             return null;
         }
 
-        // Manage default team membership
-        this.addAccountToDefaultTeamsByEmail(account);
-
         return authentication;
-    }
-
-    /**
-     * Adds accounts to default teams if they are not already there.
-     *
-     * @param account The ECP Account which membership needs to be managed
-     */
-    public void addAccountToDefaultTeamsByEmail(Account account) {
-        // Get email domain
-        String[] emailSplit = account.getEmail().split("@");
-        String emailDomain = emailSplit[emailSplit.length-1];
-
-        // Add to all the associated teams
-        List<DefaultTeamMap> defaultTeamMaps = this.defaultTeamsMap.get(emailDomain);
-        if (defaultTeamMaps!=null) defaultTeamMaps.forEach(defaultTeamMap -> {
-            // Get ECP AAP account token
-            try {
-                // Get associated team
-                Team defaultTeam = this.teamService.findByNameAndGetAccounts(defaultTeamMap.getTeamName());
-                if (!defaultTeam.getAccountsBelongingToTeam().stream().anyMatch(anotherAccount -> anotherAccount.getUsername().equals(account.getUsername()))) {
-                    logger.info("Adding '" + account.getGivenName() + "' to team " + defaultTeam.getName());
-                    // Add member to team
-                    String ecpAapToken = this.tokenService.getAAPToken(this.ecpAapUsername, this.ecpAapPassword);
-                    teamService.addMemberToTeamByAccountNoNotification(ecpAapToken, defaultTeam.getName(), account);
-                }
-            } catch (TeamNotFoundException tnfe) {
-            	logger.info("Team " + defaultTeamMap.getTeamName() + " not found. Can't add user " + account.getEmail());
-            }
-        });
     }
 
 }
