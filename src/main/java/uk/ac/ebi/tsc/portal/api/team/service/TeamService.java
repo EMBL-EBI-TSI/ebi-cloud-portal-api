@@ -917,9 +917,9 @@ public class TeamService {
 		if (username.equals(team.getAccount().getUsername()) || teamResource.getManagerUserNames().contains(username)) {
 			teamResource.setMemberAccountEmails(accountsBelongingToTeam.stream().map(a -> a.getEmail()).collect(Collectors.toList()));
 		} else {
-			boolean isMember = accountsBelongingToTeam.stream().anyMatch(a -> a.getUsername().equals(username));
-			if (isMember) {
-				teamResource.getMemberAccountEmails().add(accountsBelongingToTeam.stream().filter(a -> a.getUsername().equals(username)).findFirst().get().email);
+			Account member = accountsBelongingToTeam.stream().filter(a -> a.getUsername().equals(username)).findAny().orElse(null);
+			if (member != null) {
+				teamResource.getMemberAccountEmails().add(member.email);
 			}
 		}
 		return teamResource;
