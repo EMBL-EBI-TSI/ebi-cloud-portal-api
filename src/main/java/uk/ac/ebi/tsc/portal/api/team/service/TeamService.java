@@ -913,12 +913,13 @@ public class TeamService {
 	}
 
 	public TeamResource populateTeamMemberEmails(Team team, TeamResource teamResource, String username) {
+		Set<Account> accountsBelongingToTeam = team.getAccountsBelongingToTeam();
 		if (username.equals(team.getAccount().getUsername()) || teamResource.getManagerUserNames().contains(username)) {
-			teamResource.setMemberAccountEmails(team.getAccountsBelongingToTeam().stream().map(a -> a.getEmail()).collect(Collectors.toList()));
+			teamResource.setMemberAccountEmails(accountsBelongingToTeam.stream().map(a -> a.getEmail()).collect(Collectors.toList()));
 		} else {
-			boolean isMember = team.getAccountsBelongingToTeam().stream().anyMatch(a -> a.getUsername().equals(username));
+			boolean isMember = accountsBelongingToTeam.stream().anyMatch(a -> a.getUsername().equals(username));
 			if (isMember) {
-				teamResource.getMemberAccountEmails().add(accountService.findByUsername(username).email);
+				teamResource.getMemberAccountEmails().add(accountsBelongingToTeam.stream().filter(a -> a.getUsername().equals(username)).findFirst().get().email);
 			}
 		}
 		return teamResource;
