@@ -85,6 +85,10 @@ public class TeamService {
 		return this.teamRepository.findByName(name).orElseThrow(() -> new TeamNotFoundException(name));
 	}
 
+	public Team findByNameAndGetAccounts(String name) {
+		return this.teamRepository.findTeamByName(name).orElseThrow(() -> new TeamNotFoundException(name));
+	}
+
 	public Collection<Team> findByAccountUsername(String accountUsername){
 		return this.teamRepository.findByAccountUsername(accountUsername);
 	}
@@ -904,6 +908,19 @@ public class TeamService {
 	public TeamResource populateTeamContactEmails(Team team, TeamResource teamResource, String username) {
 		if (team.getAccount().getUsername().equals(username)) {
 			teamResource.setTeamContactEmails(team.getTeamContactEmails());
+		}
+		return teamResource;
+	}
+
+	public TeamResource populateTeamMemberEmails(Team team, TeamResource teamResource, String username) {
+		Set<Account> accountsBelongingToTeam = team.getAccountsBelongingToTeam();
+		if (username.equals(team.getAccount().getUsername()) || teamResource.getManagerUserNames().contains(username)) {
+			teamResource.setMemberAccountEmails(accountsBelongingToTeam.stream().map(a -> a.getEmail()).collect(Collectors.toList()));
+		} else {
+			Account member = accountsBelongingToTeam.stream().filter(a -> a.getUsername().equals(username)).findAny().orElse(null);
+			if (member != null) {
+				teamResource.getMemberAccountEmails().add(member.email);
+			}
 		}
 		return teamResource;
 	}

@@ -7,3 +7,5 @@ INSERT INTO team(id, name, owner_account_id, domain_reference) VALUES (111, 'tes
 INSERT INTO team(id, name, owner_account_id, domain_reference) VALUES (222, 'test-team2', 2, 'dom-4f412d31-cde5-452d-8536-b650a0b7b5d4');
 INSERT INTO account_team(account_id, team_id) VALUES (1, 111);
 INSERT INTO account_team(account_id, team_id) VALUES (1, 222);
+INSERT INTO account_team(account_id, team_id) VALUES (3, 111);
+INSERT INTO account_team(account_id, team_id) VALUES (3, 222);

@@ -1,15 +1,8 @@
 package uk.ac.ebi.tsc.portal.security;
 
-import java.io.IOException;
-import java.sql.Date;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-
-import javax.servlet.http.HttpServletRequest;
-
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.Lists;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,11 +11,6 @@ import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
-
-import com.fasterxml.jackson.databind.JsonMappingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.collect.Lists;
-
 import uk.ac.ebi.tsc.aap.client.repo.DomainService;
 import uk.ac.ebi.tsc.aap.client.repo.TokenService;
 import uk.ac.ebi.tsc.portal.api.account.repo.Account;
@@ -36,6 +24,11 @@ import uk.ac.ebi.tsc.portal.api.team.repo.Team;
 import uk.ac.ebi.tsc.portal.api.team.service.TeamNotFoundException;
 import uk.ac.ebi.tsc.portal.api.team.service.TeamService;
 import uk.ac.ebi.tsc.portal.clouddeployment.application.ApplicationDeployer;
+
+import javax.servlet.http.HttpServletRequest;
+import java.io.IOException;
+import java.sql.Date;
+import java.util.*;
 
 /**
  * Extracts user authentication details from Token using AAP domains API
@@ -192,7 +185,7 @@ public class EcpAuthenticationService {
             // Get ECP AAP account token
             try {
                 // Get associated team
-                Team defaultTeam = this.teamService.findByName(defaultTeamMap.getTeamName());
+                Team defaultTeam = this.teamService.findByNameAndGetAccounts(defaultTeamMap.getTeamName());
                 if (!defaultTeam.getAccountsBelongingToTeam().stream().anyMatch(anotherAccount -> anotherAccount.getUsername().equals(account.getUsername()))) {
                     logger.info("Adding '" + account.getGivenName() + "' to team " + defaultTeam.getName());
                     // Add member to team

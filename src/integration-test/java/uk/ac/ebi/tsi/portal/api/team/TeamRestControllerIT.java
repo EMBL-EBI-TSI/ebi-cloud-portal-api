@@ -1,5 +1,6 @@
 package uk.ac.ebi.tsi.portal.api.team;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
@@ -181,7 +182,6 @@ public class TeamRestControllerIT {
 
 		String domainManagersUrl = "/domains/dom-e0de1881-d284-401a-935e-8979b328b158/managers";
 		mockDomainService.givenThat(WireMock.get(domainManagersUrl).willReturn(aResponse().withStatus(HttpStatus.FORBIDDEN.value())));
-
 		mockMvc.perform(
 				get("/team/test-team1")
 						.header("Authorization", "Bearer sometoken")
@@ -196,14 +196,7 @@ public class TeamRestControllerIT {
 	@WithMockUser(username = "usr-e8c1d6d5-6bf4-4636-a70e-41b8f32c70b4")
 	public void getMemberTeamsForUserTeamOwner() throws Exception {
 
-		String domainManagementUrl = "/my/management";
-		String domainCollectionString = mapper.writeValueAsString(getDomains());
-		mockDomainService.givenThat(WireMock.get(domainManagementUrl).willReturn(okJson(domainCollectionString)));
-		String domainManagersUrl1 = "/domains/dom-e0de1881-d284-401a-935e-8979b328b158/managers";
-		String domainManagersUrl2 = "/domains/dom-4f412d31-cde5-452d-8536-b650a0b7b5d4/managers";
-		String managersString = mapper.writeValueAsString(getManagers());
-		mockDomainService.givenThat(WireMock.get(domainManagersUrl1).willReturn(okJson(managersString)));
-		mockDomainService.givenThat(WireMock.get(domainManagersUrl2).willReturn(okJson(managersString)));
+		teamOwnerManagementDomainsSetup();
 		mockMvc.perform(
 				get("/team/member")
 						.header("Authorization", "Bearer sometoken")
@@ -219,15 +212,7 @@ public class TeamRestControllerIT {
 	@WithMockUser(username = "usr-b070585b-a340-4a98-aff1-f3de48da8c38")
 	public void getMemberTeamsForUserNotTeamOwnerorManager() throws Exception {
 
-		String domainManagementUrl = "/my/management";
-		List<Domain> domainCollection = new ArrayList<>();
-		mockDomainService.givenThat(WireMock.get(domainManagementUrl).willReturn(okJson(mapper.writeValueAsString(domainCollection))));
-		Set<User> managers = new HashSet<>();
-		String domainManagersUrl1 = "/domains/dom-e0de1881-d284-401a-935e-8979b328b158/managers";
-		String domainManagersUrl2 = "/domains/dom-4f412d31-cde5-452d-8536-b650a0b7b5d4/managers";
-		String managersString = mapper.writeValueAsString(managers);
-		mockDomainService.givenThat(WireMock.get(domainManagersUrl1).willReturn(aResponse().withStatus(HttpStatus.FORBIDDEN.value())));
-		mockDomainService.givenThat(WireMock.get(domainManagersUrl2).willReturn(aResponse().withStatus(HttpStatus.FORBIDDEN.value())));
+		nonTeamOwnerManagementDomainsSetup();
 		mockMvc.perform(
 				get("/team/member")
 						.header("Authorization", "Bearer sometoken")
@@ -237,6 +222,93 @@ public class TeamRestControllerIT {
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$._embedded.teamResourceList[0].managerEmails", hasSize(0)))
 				.andExpect(jsonPath("$._embedded.teamResourceList[1].managerEmails", hasSize(0)));
+	}
+
+	@Test
+	@WithMockUser(username = "usr-e8c1d6d5-6bf4-4636-a70e-41b8f32c70b4")
+	public void team_owner_can_see_all_team_member_emails() throws Exception {
+
+		String domainManagersUrl = "/domains/dom-e0de1881-d284-401a-935e-8979b328b158/managers";
+		String managersString = mapper.writeValueAsString(getManagers());
+		mockDomainService.givenThat(WireMock.get(domainManagersUrl).willReturn(okJson(managersString)));
+		mockMvc.perform(
+				get("/team/test-team1")
+						.header("Authorization", "Bearer sometoken")
+						.contentType(MediaType.APPLICATION_JSON)
+						.accept(MediaType.APPLICATION_JSON))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.memberAccountEmails", hasSize(2)));
+	}
+
+	@Test
+	@WithMockUser(username = "usr-b070585b-a340-4a98-aff1-f3de48da8c38")
+	public void non_team_owner_cannot_see_other_team_member_emails() throws Exception {
+
+		String domainManagersUrl = "/domains/dom-e0de1881-d284-401a-935e-8979b328b158/managers";
+		mockDomainService.givenThat(WireMock.get(domainManagersUrl).willReturn(aResponse().withStatus(HttpStatus.FORBIDDEN.value())));
+		mockMvc.perform(
+				get("/team/test-team1")
+						.header("Authorization", "Bearer sometoken")
+						.contentType(MediaType.APPLICATION_JSON)
+						.accept(MediaType.APPLICATION_JSON))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.memberAccountEmails", hasSize(1)));
+
+	}
+
+	@Test
+	@WithMockUser(username = "usr-b070585b-a340-4a98-aff1-f3de48da8c38")
+	public void get_member_teams_member_emails_for_not_teamowner() throws Exception {
+
+		nonTeamOwnerManagementDomainsSetup();
+		mockMvc.perform(
+				get("/team/member")
+						.header("Authorization", "Bearer sometoken")
+						.contentType(MediaType.APPLICATION_JSON)
+						.accept(MediaType.APPLICATION_JSON)
+		)
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$._embedded.teamResourceList[0].memberAccountEmails", hasSize(1)))
+				.andExpect(jsonPath("$._embedded.teamResourceList[1].memberAccountEmails", hasSize(1)));
+	}
+
+	@Test
+	@WithMockUser(username = "usr-e8c1d6d5-6bf4-4636-a70e-41b8f32c70b4")
+	public void get_member_teams_member_emails_for_user_teamOwner() throws Exception {
+
+		teamOwnerManagementDomainsSetup();
+		mockMvc.perform(
+				get("/team/member")
+						.header("Authorization", "Bearer sometoken")
+						.contentType(MediaType.APPLICATION_JSON)
+						.accept(MediaType.APPLICATION_JSON)
+		)
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$._embedded.teamResourceList[0].memberAccountEmails", hasSize(2)))
+				.andExpect(jsonPath("$._embedded.teamResourceList[1].memberAccountEmails", hasSize(2)));
+	}
+
+	private void teamOwnerManagementDomainsSetup() throws JsonProcessingException {
+		String domainManagementUrl = "/my/management";
+		String domainCollectionString = mapper.writeValueAsString(getDomains());
+		mockDomainService.givenThat(WireMock.get(domainManagementUrl).willReturn(okJson(domainCollectionString)));
+		String domainManagersUrl1 = "/domains/dom-e0de1881-d284-401a-935e-8979b328b158/managers";
+		String domainManagersUrl2 = "/domains/dom-4f412d31-cde5-452d-8536-b650a0b7b5d4/managers";
+		String managersString = mapper.writeValueAsString(getManagers());
+		mockDomainService.givenThat(WireMock.get(domainManagersUrl1).willReturn(okJson(managersString)));
+		mockDomainService.givenThat(WireMock.get(domainManagersUrl2).willReturn(okJson(managersString)));
+	}
+
+	private void nonTeamOwnerManagementDomainsSetup() throws JsonProcessingException {
+		String domainManagementUrl = "/my/management";
+		List<Domain> domainCollection = new ArrayList<>();
+		mockDomainService.givenThat(WireMock.get(domainManagementUrl).willReturn(okJson(mapper.writeValueAsString(domainCollection))));
+		Set<User> managers = new HashSet<>();
+		String domainManagersUrl1 = "/domains/dom-e0de1881-d284-401a-935e-8979b328b158/managers";
+		String domainManagersUrl2 = "/domains/dom-4f412d31-cde5-452d-8536-b650a0b7b5d4/managers";
+		String managersString = mapper.writeValueAsString(managers);
+		mockDomainService.givenThat(WireMock.get(domainManagersUrl1).willReturn(aResponse().withStatus(HttpStatus.FORBIDDEN.value())));
+		mockDomainService.givenThat(WireMock.get(domainManagersUrl2).willReturn(aResponse().withStatus(HttpStatus.FORBIDDEN.value())));
 	}
 
 	private Collection<Domain> getDomains() {

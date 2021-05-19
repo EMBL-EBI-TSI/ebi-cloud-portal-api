@@ -220,11 +220,13 @@ public class TeamRestControllerTest {
 		getAccount();
 		getRequest();
 		getTeamResoure(team);
+		addAccountsToTeam();
 		given(teamService.findByName(teamName)).willReturn(team);
 		given(subject.getTeamByName(request, principal, teamName)).willCallRealMethod();
 		given(teamService.setManagerUsernamesAndEmails(isA(TeamResource.class), isA(String.class))).willCallRealMethod();
 		given(teamService.populateTeamContactEmails(isA(Team.class), isA(TeamResource.class), isA(String.class))).willReturn(teamResource);
 		given(teamService.findByDomainReference(team.getDomainReference())).willReturn(team);
+		given(teamService.populateTeamMemberEmails(isA(Team.class), isA(TeamResource.class), isA(String.class))).willCallRealMethod();
 		TeamResource teamResource = subject.getTeamByName(request, principal, teamName);
 		assertTrue(teamResource.getName().equals(teamName));
 	}
@@ -793,34 +795,17 @@ public class TeamRestControllerTest {
 
 	@Test
 	public void testOwnerCanSeeOtherManagers() {
-		getRequest();
-		getPrincipal();
-		getAccount();
-		String domainReference = "someDomainRef";
-		given(team.getAccount()).willReturn(account);
-		given(team.getName()).willReturn(teamName);
-		given(teamResource.getName()).willReturn(teamName);
-		given(team.getDomainReference()).willReturn(domainReference);
-		Set<User> managers = new HashSet<>();
-		User managerOne = mock(User.class);
-		given(managerOne.getEmail()).willReturn("emailOne");
-		managers.add(managerOne);
-		Answer domainManagerAnswer = new Answer<Collection<User>>() {
-			@Override
-			public Collection<User> answer(InvocationOnMock invocation) {
-				return managers;
-			}
-		};
-		given(teamService.findByNameAndAccountUsername(teamName, principalName)).willReturn(team);
-		given(teamService.findByName(teamName)).willReturn(team);
-		given(teamService.setManagerUsernamesAndEmails(isA(TeamResource.class), isA(String.class))).willCallRealMethod();
-		given(teamService.checkIfOwnerOrManagerOfTeam(teamName, principal, token)).willCallRealMethod();
-		when(domainService.getAllManagersFromDomain(domainReference, token)).thenAnswer(domainManagerAnswer);
-		given(teamService.populateTeamContactEmails(isA(Team.class), isA(TeamResource.class), isA(String.class))).willCallRealMethod();
-		//given(teamService.setManagerUsernamesAndEmails(isA(TeamResource.class), isA(String.class), isA(Principal.class))).willCallRealMethod();
-		given(subject.getTeamByName(request, principal, teamName)).willCallRealMethod();
+		teamOwnerSetup();
 		TeamResource response = subject.getTeamByName(request, principal, teamName);
 		assertTrue(response.getManagerEmails().size() == 1);
+	}
+
+	@Test
+	public void testOwnerCanSeeAllMemberEmails() {
+		teamOwnerSetup();
+		addAccountsToTeam();
+		TeamResource response = subject.getTeamByName(request, principal, teamName);
+		assertTrue(response.getMemberAccountEmails().size() == 2);
 	}
 
 	@Test(expected = TeamNotFoundException.class)
@@ -838,36 +823,18 @@ public class TeamRestControllerTest {
 
 	@Test
 	public void testManagerButNonOwnerCanSeeOtherManagers() {
-		getRequest();
-		getPrincipal();
-		getAccount();
-		String domainReference = "someDomainRef";
-		Account someOtherAccount = mock(Account.class);
-		given(team.getAccount()).willReturn(someOtherAccount);
-		given(someOtherAccount.getUsername()).willReturn("someotherusername");
-		given(team.getName()).willReturn(teamName);
-		given(teamResource.getName()).willReturn(teamName);
-		given(team.getDomainReference()).willReturn(domainReference);
-		Set<User> managers = new HashSet<>();
-		User managerOne = mock(User.class);
-		given(managerOne.getEmail()).willReturn("emailOne");
-		managers.add(managerOne);
-		Answer domainManagerAnswer = new Answer<Collection<User>>() {
-			@Override
-			public Collection<User> answer(InvocationOnMock invocation) {
-				return managers;
-			}
-		};
-		given(teamService.findByNameAndAccountUsername(teamName, principalName)).willReturn(team);
-		given(teamService.findByName(teamName)).willReturn(team);
-		given(teamService.setManagerUsernamesAndEmails(isA(TeamResource.class), isA(String.class))).willCallRealMethod();
-		given(teamService.checkIfOwnerOrManagerOfTeam(teamName, principal, token)).willCallRealMethod();
-		when(domainService.getAllManagersFromDomain(domainReference, token)).thenAnswer(domainManagerAnswer);
-		//given(teamService.setManagerUsernamesAndEmails(isA(TeamResource.class), isA(String.class), isA(Principal.class))).willCallRealMethod();
-		given(teamService.populateTeamContactEmails(isA(Team.class), isA(TeamResource.class), isA(String.class))).willCallRealMethod();
+		managerNotTeamOwnerSetup();
 		given(subject.getTeamByName(request, principal, teamName)).willCallRealMethod();
 		TeamResource response = subject.getTeamByName(request, principal, teamName);
 		assertTrue(response.getManagerEmails().size() == 1);
+	}
+
+	@Test
+	public void testManagerButNonOwnerCanSeeMemberEmails() {
+		managerNotTeamOwnerSetup();
+		given(subject.getTeamByName(request, principal, teamName)).willCallRealMethod();
+		TeamResource response = subject.getTeamByName(request, principal, teamName);
+		assertTrue(response.getMemberAccountEmails().size() == 2);
 	}
 
 	@Test
@@ -962,7 +929,70 @@ public class TeamRestControllerTest {
 		ResponseEntity<?> response = subject.leaveTeam(request, principal, teamResource);
 		assertTrue(response.getStatusCode().equals(HttpStatus.NOT_MODIFIED));
 	}*/
-	
+
+	private void managerNotTeamOwnerSetup() {
+		getRequest();
+		getAccount();
+		addAccountsToTeam();
+		String domainReference = "someDomainRef";
+		Account someOtherAccount = mock(Account.class);
+		given(team.getAccount()).willReturn(someOtherAccount);
+		String someOtherAccountUsername = "someotherusername";
+		given(someOtherAccount.getUsername()).willReturn(someOtherAccountUsername);
+		given(team.getName()).willReturn(teamName);
+		given(teamResource.getName()).willReturn(teamName);
+		given(team.getDomainReference()).willReturn(domainReference);
+		Set<User> managers = new HashSet<>();
+		User managerOne = mock(User.class);
+		given(managerOne.getEmail()).willReturn("emailOne");
+		given(managerOne.getUserName()).willReturn("managerUser");
+		managers.add(managerOne);
+		Answer domainManagerAnswer = new Answer<Collection<User>>() {
+			@Override
+			public Collection<User> answer(InvocationOnMock invocation) {
+				return managers;
+			}
+		};
+		given(principal.getName()).willReturn(someOtherAccountUsername);
+		given(teamService.findByNameAndAccountUsername(teamName, someOtherAccountUsername)).willReturn(team);
+		given(teamService.findByName(teamName)).willReturn(team);
+		given(teamService.setManagerUsernamesAndEmails(isA(TeamResource.class), isA(String.class))).willCallRealMethod();
+		given(teamService.checkIfOwnerOrManagerOfTeam(teamName, principal, token)).willCallRealMethod();
+		when(domainService.getAllManagersFromDomain(domainReference, token)).thenAnswer(domainManagerAnswer);
+		given(teamService.populateTeamContactEmails(isA(Team.class), isA(TeamResource.class), isA(String.class))).willCallRealMethod();
+		given(teamService.populateTeamMemberEmails(isA(Team.class), isA(TeamResource.class), isA(String.class))).willCallRealMethod();
+	}
+
+	private void teamOwnerSetup() {
+		getRequest();
+		getPrincipal();
+		getAccount();
+		String domainReference = "someDomainRef";
+		given(team.getAccount()).willReturn(account);
+		given(team.getName()).willReturn(teamName);
+		given(teamResource.getName()).willReturn(teamName);
+		given(team.getDomainReference()).willReturn(domainReference);
+		Set<User> managers = new HashSet<>();
+		User managerOne = mock(User.class);
+		given(managerOne.getEmail()).willReturn("emailOne");
+		managers.add(managerOne);
+		Answer domainManagerAnswer = new Answer<Collection<User>>() {
+			@Override
+			public Collection<User> answer(InvocationOnMock invocation) {
+				return managers;
+			}
+		};
+		given(teamService.findByNameAndAccountUsername(teamName, principalName)).willReturn(team);
+		given(teamService.findByName(teamName)).willReturn(team);
+		given(teamService.setManagerUsernamesAndEmails(isA(TeamResource.class), isA(String.class))).willCallRealMethod();
+		given(teamService.checkIfOwnerOrManagerOfTeam(teamName, principal, token)).willCallRealMethod();
+		when(domainService.getAllManagersFromDomain(domainReference, token)).thenAnswer(domainManagerAnswer);
+		given(teamService.populateTeamContactEmails(isA(Team.class), isA(TeamResource.class), isA(String.class))).willCallRealMethod();
+		given(teamService.setManagerUsernamesAndEmails(isA(TeamResource.class), isA(String.class))).willCallRealMethod();
+		given(teamService.populateTeamMemberEmails(isA(Team.class), isA(TeamResource.class), isA(String.class))).willCallRealMethod();
+		given(subject.getTeamByName(request, principal, teamName)).willCallRealMethod();
+	}
+
 	private void getCppResoure(){
 		given(cppResource.getName()).willReturn(cppName);
 		Set<Team> cppSharedWith = new HashSet<>();
@@ -994,7 +1024,7 @@ public class TeamRestControllerTest {
 		given(someAccount.getEmail()).willReturn(userEmail);
 		given(someotherAccount.getEmail()).willReturn("anEmail");
 		given(someAccount.getUsername()).willReturn("someusername");
-		given(someotherAccount.getEmail()).willReturn(someotherusername);
+		given(someotherAccount.getUsername()).willReturn(someotherusername);
 		Set<Account> accounts = new HashSet<>();
 		accounts.add(someAccount);accounts.add(someotherAccount);
 		team.getAccountsBelongingToTeam().addAll(accounts);
