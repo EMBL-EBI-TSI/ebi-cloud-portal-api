@@ -9,3 +9,6 @@ INSERT INTO account_team(account_id, team_id) VALUES (1, 111);
 INSERT INTO account_team(account_id, team_id) VALUES (1, 222);
 INSERT INTO account_team(account_id, team_id) VALUES (3, 111);
 INSERT INTO account_team(account_id, team_id) VALUES (3, 222);
+INSERT INTO team(id, name, owner_account_id, domain_reference) VALUES (333, 'EMBL-EBI-IT', 2, 'dom-e0de1991-d284-401a-935e-8979b328b158');
+INSERT INTO team(id, name, owner_account_id, domain_reference) VALUES (444, 'EMBL-GMAIL-IT', 2, 'dom-4f417ht1-cde5-452d-8536-b650a0b7b5d4');
+

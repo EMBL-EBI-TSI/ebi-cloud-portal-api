@@ -1,69 +1,51 @@
 
 package uk.ac.ebi.tsc.portal.api.application.controller;
 
-import static org.hamcrest.core.Is.is;
-import static org.hamcrest.core.Is.isA;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.BDDMockito.given;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
-import java.io.File;
-import java.io.IOException;
-import java.security.Principal;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Optional;
-import java.util.Properties;
-import java.util.Set;
-
-import javax.servlet.http.HttpServletRequest;
-
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.data.domain.Sort;
-import org.springframework.data.util.ReflectionUtils;
 import org.springframework.hateoas.Resources;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.util.ReflectionTestUtils;
-
 import uk.ac.ebi.tsc.aap.client.model.User;
 import uk.ac.ebi.tsc.aap.client.repo.DomainService;
 import uk.ac.ebi.tsc.portal.api.account.repo.Account;
-import uk.ac.ebi.tsc.portal.api.account.repo.AccountRepository;
 import uk.ac.ebi.tsc.portal.api.account.service.AccountService;
 import uk.ac.ebi.tsc.portal.api.application.repo.Application;
 import uk.ac.ebi.tsc.portal.api.application.repo.ApplicationRepository;
 import uk.ac.ebi.tsc.portal.api.application.service.ApplicationNotFoundException;
 import uk.ac.ebi.tsc.portal.api.application.service.ApplicationService;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentApplication;
-import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentApplicationRepository;
 import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentApplicationService;
 import uk.ac.ebi.tsc.portal.api.team.repo.Team;
-import uk.ac.ebi.tsc.portal.api.team.repo.TeamRepository;
+import uk.ac.ebi.tsc.portal.api.team.service.TeamService;
 import uk.ac.ebi.tsc.portal.clouddeployment.application.ApplicationDownloader;
 import uk.ac.ebi.tsc.portal.clouddeployment.application.ProcessRunner;
 import uk.ac.ebi.tsc.portal.clouddeployment.exceptions.ApplicationDownloaderException;
 import uk.ac.ebi.tsc.portal.clouddeployment.model.ApplicationManifest;
+
+import javax.servlet.http.HttpServletRequest;
+import java.io.File;
+import java.io.IOException;
+import java.security.Principal;
+import java.util.*;
+
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.*;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
  * @author Jose A. Dianes <jdianes@ebi.ac.uk>
@@ -86,6 +68,7 @@ public class ApplicationRestControllerTest {
 	DeploymentApplicationService deploymentApplicationService = mock(DeploymentApplicationService.class);
 	Principal principalMock = mock(Principal.class);
 	ApplicationDownloader applicationDownloader = mock(ApplicationDownloader.class);
+	TeamService teamService = mock(TeamService.class);
 	User user = mock(User.class);
 	Account accountMock = mock(Account.class);
 	
@@ -111,6 +94,7 @@ public class ApplicationRestControllerTest {
 		ReflectionTestUtils.setField(subject, "tokenHandler", tokenHandler);
 		ReflectionTestUtils.setField(subject, "deploymentApplicationService", deploymentApplicationService);
 		ReflectionTestUtils.setField(subject, "applicationsRoot", APPS_ROOT_FOLDER);
+		ReflectionTestUtils.setField(subject, "teamService", teamService);
 		subject.setProperties(props);
 		when(this.principalMock.getName()).thenReturn("A user name");
 		when(this.accountMock.getId()).thenReturn(1L);
@@ -318,8 +302,10 @@ public class ApplicationRestControllerTest {
 		ReflectionTestUtils.setField(subject, "applicationService", applicationService);
 		ReflectionTestUtils.setField(subject, "accountService", accountService);
 		String username = "username";
+		String email = "email";
 		when(principalMock.getName()).thenReturn(username);
 		when(accountMock.getUsername()).thenReturn(username);
+		when(accountMock.getEmail()).thenReturn(username);
 		when(accountService.findByUsername(username)).thenReturn(accountMock);
 		when(applicationService.findByAccountUsername(username, new Sort("sort.name"))).thenReturn(new HashSet<>());
 		when(subject.getAllApplications(principalMock, new Sort("name.asc"))).thenCallRealMethod();
