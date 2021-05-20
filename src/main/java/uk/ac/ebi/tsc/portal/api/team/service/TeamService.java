@@ -968,24 +968,28 @@ public class TeamService {
 	public void addAccountToDefaultTeamsByEmail(Account account) {
 		// Get email domain
 		String[] emailSplit = account.getEmail().split("@");
-		String emailDomain = emailSplit[emailSplit.length-1];
+		String emailDomain = emailSplit[emailSplit.length - 1];
 
 		// Add to all the associated teams
 		List<DefaultTeamMap> defaultTeamMaps = this.defaultTeamsMap.get(emailDomain);
-		if (defaultTeamMaps!=null) defaultTeamMaps.forEach(defaultTeamMap -> {
-			// Get ECP AAP account token
-			try {
-				// Get associated team
-				Team defaultTeam = this.findByNameAndGetAccounts(defaultTeamMap.getTeamName());
-				if (!defaultTeam.getAccountsBelongingToTeam().stream().anyMatch(anotherAccount -> anotherAccount.getUsername().equals(account.getUsername()))) {
-					logger.info("Adding '" + account.getGivenName() + "' to team " + defaultTeam.getName());
-					// Add member to team
-					String ecpAapToken = this.tokenService.getAAPToken(this.ecpAapUsername, this.ecpAapPassword);
-					this.addMemberToTeamByAccountNoNotification(ecpAapToken, defaultTeam.getName(), account);
-				}
-			} catch (TeamNotFoundException tnfe) {
-				logger.info("Team " + defaultTeamMap.getTeamName() + " not found. Can't add user " + account.getEmail());
+		synchronized (this) {
+			if (defaultTeamMaps != null) {
+				defaultTeamMaps.forEach(defaultTeamMap -> {
+					// Get ECP AAP account token
+					try {
+						// Get associated team
+						Team defaultTeam = this.findByNameAndGetAccounts(defaultTeamMap.getTeamName());
+						if (!defaultTeam.getAccountsBelongingToTeam().stream().anyMatch(anotherAccount -> anotherAccount.getUsername().equals(account.getUsername()))) {
+							logger.info("Adding '" + account.getGivenName() + "' to team " + defaultTeam.getName());
+							// Add member to team
+							String ecpAapToken = this.tokenService.getAAPToken(this.ecpAapUsername, this.ecpAapPassword);
+							this.addMemberToTeamByAccountNoNotification(ecpAapToken, defaultTeam.getName(), account);
+						}
+					} catch (TeamNotFoundException tnfe) {
+						logger.info("Team " + defaultTeamMap.getTeamName() + " not found. Can't add user " + account.getEmail());
+					}
+				});
 			}
-		});
+		}
 	}
 }
