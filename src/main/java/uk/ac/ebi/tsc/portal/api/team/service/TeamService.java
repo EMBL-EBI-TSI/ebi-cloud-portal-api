@@ -45,7 +45,6 @@ import uk.ac.ebi.tsc.portal.security.DefaultTeamMap;
 
 import javax.security.auth.login.AccountNotFoundException;
 import javax.xml.ws.http.HTTPException;
-
 import java.io.IOException;
 import java.security.Principal;
 import java.util.*;
@@ -972,24 +971,27 @@ public class TeamService {
 
 		// Add to all the associated teams
 		List<DefaultTeamMap> defaultTeamMaps = this.defaultTeamsMap.get(emailDomain);
-		synchronized (this) {
-			if (defaultTeamMaps != null) {
-				defaultTeamMaps.forEach(defaultTeamMap -> {
-					// Get ECP AAP account token
-					try {
-						// Get associated team
-						Team defaultTeam = this.findByNameAndGetAccounts(defaultTeamMap.getTeamName());
-						if (!defaultTeam.getAccountsBelongingToTeam().stream().anyMatch(anotherAccount -> anotherAccount.getUsername().equals(account.getUsername()))) {
-							logger.info("Adding '" + account.getGivenName() + "' to team " + defaultTeam.getName());
-							// Add member to team
-							String ecpAapToken = this.tokenService.getAAPToken(this.ecpAapUsername, this.ecpAapPassword);
-							this.addMemberToTeamByAccountNoNotification(ecpAapToken, defaultTeam.getName(), account);
-						}
-					} catch (TeamNotFoundException tnfe) {
-						logger.info("Team " + defaultTeamMap.getTeamName() + " not found. Can't add user " + account.getEmail());
+		if (defaultTeamMaps != null) {
+			defaultTeamMaps.forEach(defaultTeamMap -> {
+				// Get ECP AAP account token
+				try {
+					// Get associated team
+					Team defaultTeam = this.findByNameAndGetAccounts(defaultTeamMap.getTeamName());
+					if (!defaultTeam.getAccountsBelongingToTeam().stream().anyMatch(anotherAccount -> anotherAccount.getUsername().equals(account.getUsername()))) {
+						logger.info("Adding '" + account.getGivenName() + "' to team " + defaultTeam.getName());
+						// Add member to team
+						String ecpAapToken = this.tokenService.getAAPToken(this.ecpAapUsername, this.ecpAapPassword);
+						this.addMemberToTeamByAccountNoNotification(ecpAapToken, defaultTeam.getName(), account);
 					}
-				});
-			}
+				} catch (TeamNotFoundException tnfe) {
+					logger.info("Team " + defaultTeamMap.getTeamName() + " not found. Can't add user " + account.getEmail());
+				} catch (org.springframework.dao.DataIntegrityViolationException psqlException) {
+					if (psqlException.getMessage().contains("could not execute statement; SQL [n/a]; constraint [unique_at]")) {
+						logger.info("Known issue, silently failing exception of duplicate add to team");
+					}
+				}
+			});
+
 		}
 	}
 }

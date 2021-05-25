@@ -93,6 +93,13 @@ public class ApplicationRestController {
 		this.applicationsRoot = properties.getProperty("be.applications.root");
 	}
 
+	@RequestMapping(method = RequestMethod.POST, value = "/addToDefaultTeam")
+	public void addAccountToDefaultTeamsByEmail(Principal principal) throws IOException, ApplicationDownloaderException {
+		logger.info("In ApplicationService: Adding to default team");
+		Account account = accountService.findByUsername(principal.getName());
+		this.teamService.addAccountToDefaultTeamsByEmail(account);
+	}
+
 	@RequestMapping(method = RequestMethod.POST)
 	ResponseEntity<?> add(Principal principal, @RequestBody ApplicationResource input) throws IOException, ApplicationDownloaderException {
 
