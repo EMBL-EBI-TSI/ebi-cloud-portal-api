@@ -924,4 +924,15 @@ public class TeamService {
 		}
 		return teamResource;
 	}
+
+	public Iterable checkAndSetMemberTeams(Collection<Team> teams, String username) {
+		return teams.parallelStream().map(team -> {
+			TeamResource teamResource = new TeamResource(team);
+			Account member = team.accountsBelongingToTeam.stream().filter(a -> a.getUsername().equals(username)).findAny().orElse(null);
+			if (member != null) {
+				teamResource.getMemberAccountEmails().add(member.email);
+			}
+			return teamResource;
+		}).collect(Collectors.toList());
+	}
 }
