@@ -10,6 +10,7 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -25,8 +26,10 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.util.NestedServletException;
 import uk.ac.ebi.tsc.aap.client.model.Domain;
 import uk.ac.ebi.tsc.aap.client.model.User;
+import uk.ac.ebi.tsc.aap.client.repo.TokenService;
 import uk.ac.ebi.tsc.portal.BePortalApiApplication;
 import uk.ac.ebi.tsc.portal.api.team.service.TeamAccessDeniedException;
+import uk.ac.ebi.tsc.portal.api.team.service.TeamService;
 import uk.ac.ebi.tsc.portal.config.WebConfiguration;
 import uk.ac.ebi.tsc.portal.security.EcpAuthenticationService;
 
@@ -60,6 +63,18 @@ public class TeamRestControllerIT {
 
     @MockBean
     private EcpAuthenticationService authenticationService;
+
+	@MockBean
+	private TokenService tokenService;
+
+	@Autowired
+	private TeamService teamService;
+
+	@Value("${aapUserName}")
+	private String testUserName;
+
+	@Value("${aapPassword}")
+	private String testPassword;
 
     // https://github.com/tomakehurst/wiremock/issues/485 - hanging wiremock
 	@ClassRule
@@ -286,6 +301,22 @@ public class TeamRestControllerIT {
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$._embedded.teamResourceList[0].memberAccountEmails", hasSize(2)))
 				.andExpect(jsonPath("$._embedded.teamResourceList[1].memberAccountEmails", hasSize(2)));
+	}
+
+	@Test
+	@WithMockUser(username = "usr-eeaa9825-44e6-46ad-9da6-26fcfdba6f8b")
+	public void canAddToDefaultTeam() throws Exception {
+
+		when(tokenService.getAAPToken(testUserName, testPassword)).thenReturn("atoken");
+		Domain domainOne = new Domain("domainOne", "domainOne desc", "dom-e0de1991-d284-401a-935e-8979b328b765");
+		mockDomainService.givenThat(WireMock.get("/domains/dom-e0de1991-d284-401a-935e-8979b328b765").willReturn(okJson(mapper.writeValueAsString(domainOne))));
+		mockDomainService.givenThat(WireMock.put("/domains/dom-e0de1991-d284-401a-935e-8979b328b765/usr-eeaa9825-44e6-46ad-9da6-26fcfdba6f8b/user").willReturn(okJson(mapper.writeValueAsString(domainOne))));
+		mockMvc.perform(
+				post("/team/defaultTeam").header("Authorization", "Bearer sometoken")
+						.contentType(MediaType.APPLICATION_JSON)
+						.accept(MediaType.APPLICATION_JSON)
+		);
+		assertEquals(teamService.findByNameAndGetAccounts("EMBL-EBI-IT").getAccountsBelongingToTeam().size(),1);
 	}
 
 	private void teamOwnerManagementDomainsSetup() throws JsonProcessingException {

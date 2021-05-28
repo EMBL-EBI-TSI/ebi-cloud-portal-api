@@ -4,6 +4,8 @@ import org.apache.http.MethodNotSupportedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.ResourceLoader;
 import org.springframework.hateoas.Resources;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -12,6 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import uk.ac.ebi.tsc.aap.client.model.Domain;
 import uk.ac.ebi.tsc.aap.client.repo.DomainService;
+import uk.ac.ebi.tsc.aap.client.repo.TokenService;
 import uk.ac.ebi.tsc.portal.api.account.repo.Account;
 import uk.ac.ebi.tsc.portal.api.account.service.AccountService;
 import uk.ac.ebi.tsc.portal.api.application.controller.ApplicationResource;
@@ -44,6 +47,7 @@ import uk.ac.ebi.tsc.portal.api.encryptdecrypt.security.EncryptionService;
 import uk.ac.ebi.tsc.portal.api.team.repo.Team;
 import uk.ac.ebi.tsc.portal.api.team.service.*;
 import uk.ac.ebi.tsc.portal.clouddeployment.application.ApplicationDeployer;
+import uk.ac.ebi.tsc.portal.clouddeployment.exceptions.ApplicationDownloaderException;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
@@ -95,6 +99,8 @@ public class TeamRestController {
 
 	private final DomainService domainService;
 
+	private final TokenService tokenService;
+
 	@Autowired
 	public TeamRestController(TeamService teamService,
                               AccountService  accountService,
@@ -111,7 +117,13 @@ public class TeamRestController {
                               EncryptionService encryptionService,
                               ApplicationDeployer applicationDeployer,
                               CloudProviderParametersService cloudProviderParametersService,
-                              ConfigurationService configurationService){
+                              ConfigurationService configurationService,
+							  TokenService tokenService,
+							  ResourceLoader resourceLoader,
+							  @Value("${ecp.aap.username}") final String ecpAapUsername,
+							  @Value("${ecp.aap.password}") final String ecpAapPassword,
+							  @Value("${ecp.default.teams.file}") final String ecpDefaultTeamsFilePath){
+		this.teamService = teamService;
 		this.cloudProviderParametersCopyService = cloudProviderParametersCopyService;
 		this.accountService = accountService;
 		this.applicationService = applicationService;
@@ -119,9 +131,16 @@ public class TeamRestController {
 		this.configDepParamsService = configDepParamsService;
 		this.deploymentService = deploymentService;
 		this.configurationService = configurationService;
-		this.deploymentConfigurationService = deploymentConfigurationService; 
-		this.teamService = teamService;
+		this.deploymentConfigurationService = deploymentConfigurationService;
+		this.tokenService = tokenService;
 		this.domainService = domainService;
+	}
+
+	@RequestMapping(method = RequestMethod.POST, value = "/defaultTeam")
+	public void addAccountToDefaultTeamsByEmail(Principal principal) throws IOException, ApplicationDownloaderException {
+		logger.info("In TeamRestController: Adding to default team");
+		Account account = accountService.findByUsername(principal.getName());
+		this.teamService.addAccountToDefaultTeamsByEmail(account);
 	}
 
 	@RequestMapping(method=RequestMethod.GET)
