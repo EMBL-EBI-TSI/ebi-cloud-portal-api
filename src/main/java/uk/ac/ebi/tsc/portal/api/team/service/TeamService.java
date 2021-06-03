@@ -69,6 +69,7 @@ public class TeamService {
 	private final String ecpAapUsername;
 	private final String ecpAapPassword;
 	private final Map<String, List<DefaultTeamMap>> defaultTeamsMap;
+	private final ResourceLoader resourceLoader;
 	
 	private static final Logger logger = LoggerFactory.getLogger(TeamService.class);
 
@@ -98,6 +99,7 @@ public class TeamService {
 		this.ecpAapUsername = ecpAapUsername;
 		this.ecpAapPassword = ecpAapPassword;
 		this.defaultTeamsMap = new HashMap<>();
+		this.resourceLoader = resourceLoader;
 		// Read maps from json file
 		ObjectMapper mapper = new ObjectMapper();
 		try {
