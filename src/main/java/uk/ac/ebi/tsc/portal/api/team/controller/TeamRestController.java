@@ -136,12 +136,8 @@ public class TeamRestController {
 
 	@RequestMapping(value="/all",method=RequestMethod.GET)
 	public Resources<TeamResource> getAllTeams(Principal principal){
-
-		Collection<Team> teams = teamService.findAll();
-		return new Resources<>(teams.stream().map(
-				TeamResource::new
-		).collect(Collectors.toList())
-		);
+		Account account = accountService.findByUsername(principal.getName());
+		return new Resources<>(teamService.checkAndSetMemberTeams(teamService.findAll(), account));
 	}
 
 	@RequestMapping(method=RequestMethod.POST)

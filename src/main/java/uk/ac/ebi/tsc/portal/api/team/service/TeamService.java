@@ -37,7 +37,6 @@ import uk.ac.ebi.tsc.portal.clouddeployment.exceptions.ApplicationDeployerExcept
 
 import javax.security.auth.login.AccountNotFoundException;
 import javax.xml.ws.http.HTTPException;
-
 import java.io.IOException;
 import java.security.Principal;
 import java.util.*;
@@ -387,7 +386,7 @@ public class TeamService {
 		logger.info("Adding " + account.getReference() + " (" + account.getEmail() + ") to team " + teamName);
 
         // Get team
-        Team team = this.findByName(teamName);
+        Team team = this.findByNameAndGetAccounts(teamName);
         if (team==null) {
             throw new TeamNotFoundException(teamName);
         }
@@ -923,5 +922,17 @@ public class TeamService {
 			}
 		}
 		return teamResource;
+	}
+
+
+	public Iterable checkAndSetMemberTeams(Collection<Team> teams, Account account) {
+
+		return teams.parallelStream().map(team -> {
+			TeamResource teamResource = new TeamResource(team);
+			if(account.getMemberOfTeams().contains(team)) {
+				teamResource.getMemberAccountEmails().add(account.email);
+			}
+			return teamResource;
+		}).collect(Collectors.toList());
 	}
 }
