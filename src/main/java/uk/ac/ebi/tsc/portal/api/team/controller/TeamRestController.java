@@ -125,11 +125,9 @@ public class TeamRestController {
 	}
 
 	@RequestMapping(method = RequestMethod.POST, value = "/defaultTeam")
-	public ResponseEntity<?> addAccountToDefaultTeamsByEmail(HttpServletRequest request, HttpServletResponse response, Principal principal) {
-		logger.info("In TeamRestController: Adding to default team");
+	public void addAccountToDefaultTeamsByEmail(HttpServletRequest request, HttpServletResponse response, Principal principal) {
 		Account account = accountService.findByUsername(principal.getName());
 		this.teamService.addAccountToDefaultTeamsByEmail(account);
-		return new ResponseEntity<>("User added to default team" ,HttpStatus.OK);
 	}
 
 	@RequestMapping(method=RequestMethod.GET)

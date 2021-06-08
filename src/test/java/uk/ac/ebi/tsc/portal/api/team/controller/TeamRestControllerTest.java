@@ -12,7 +12,6 @@ import org.springframework.hateoas.Resources;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.util.InMemoryResource;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.context.web.WebAppConfiguration;
@@ -173,6 +172,7 @@ public class TeamRestControllerTest {
 
 	String baseURL = "something.api";
 
+	@MockBean
 	private ResourceLoader resourceLoader ;
 
 	@MockBean
@@ -933,41 +933,21 @@ public class TeamRestControllerTest {
 	}
 
 	@Test
-	public void testAddToDefaultTeam() throws IOException {
-		resourceLoader = mock(ResourceLoader.class);
-		when(resourceLoader.getResource(defaultTeamsFile)).thenReturn(new InMemoryResource("[\n" +
-				"  {\n" +
-				"    \"emailDomain\":\"test.com\",\n" +
-				"    \"teamName\": \"TEST1\"\n" +
-				"  },\n" +
-				"  {\n" +
-				"    \"emailDomain\":\"test.org\",\n" +
-				"    \"teamName\": \"TEST2\"\n" +
-				"  },\n" +
-				"  {\n" +
-				"    \"emailDomain\":\"test.org\",\n" +
-				"    \"teamName\": \"TEST3\"\n" +
-				"  }\n" +
-				"]"));
-		teamService = new TeamService(teamRepository, accountService, domainService,
-				deploymentService, cppCopyService, depConfigService, applicationDeployer, sendMail, tokenService,
-				resourceLoader, ecpAapUsername, ecpAapPassword, defaultTeamsFile);
+	public void testAddToDefaultTeam() {
 		getPrincipal();
 		getAccount();
 		getRequest();
-		String teamName = "TEST1";
 		Team team = new Team();
-		team.setName(teamName);
-		String domainReference = "domainReference";
-		team.setDomainReference(domainReference);
-		Domain domain = mock(Domain.class);
-		when(domainService.getDomainByReference(anyString(), anyString())).thenReturn(domain);
-		when(domainService.addUserToDomain(any(), any(), any())).thenReturn(domain);
-		ReflectionTestUtils.setField(subject, "teamService", teamService);
-		when(tokenService.getAAPToken(ecpAapUsername, ecpAapPassword)).thenReturn(anyString());
-		when(teamRepository.findByName(teamName)).thenReturn(Optional.of(team));
-		when(teamRepository.findTeamByName(teamName)).thenReturn(Optional.of(team));
-		when(subject.addAccountToDefaultTeamsByEmail(request, response, principal)).thenCallRealMethod();
+		team.setName("teamName");
+		team.getAccountsBelongingToTeam().add(account);
+		team.setDomainReference("domainReference");
+		doAnswer(new Answer() {
+			@Override
+			public Object answer(InvocationOnMock invocation) throws Throwable {
+				return team;
+			}
+		}).when(teamService).addAccountToDefaultTeamsByEmail(account);
+		doCallRealMethod().when(subject).addAccountToDefaultTeamsByEmail(request, response, principal);
 		subject.addAccountToDefaultTeamsByEmail(request, response, principal);
 		assertTrue(team.accountsBelongingToTeam.size() == 1);
 	}
