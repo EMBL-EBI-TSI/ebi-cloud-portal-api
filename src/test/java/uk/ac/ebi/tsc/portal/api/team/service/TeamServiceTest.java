@@ -74,7 +74,7 @@ public class TeamServiceTest {
     public void testAddToDefaultTeam() {
         given(account.getUsername()).willReturn("username");
         given(account.getEmail()).willReturn("anEmail@test.com");
-        String teamName = "test-team";
+        String teamName = "TEST1";
         Team team = new Team();
         team.setName(teamName);
         String domainReference = "domainReference";
