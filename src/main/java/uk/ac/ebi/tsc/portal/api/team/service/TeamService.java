@@ -1,14 +1,21 @@
 package uk.ac.ebi.tsc.portal.api.team.service;
 
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.Lists;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.ResourceLoader;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
 import uk.ac.ebi.tsc.aap.client.model.Domain;
 import uk.ac.ebi.tsc.aap.client.model.User;
 import uk.ac.ebi.tsc.aap.client.repo.DomainService;
+import uk.ac.ebi.tsc.aap.client.repo.TokenService;
 import uk.ac.ebi.tsc.portal.api.account.repo.Account;
 import uk.ac.ebi.tsc.portal.api.account.service.AccountService;
 import uk.ac.ebi.tsc.portal.api.account.service.UserNotFoundException;
@@ -34,6 +41,7 @@ import uk.ac.ebi.tsc.portal.api.team.repo.TeamRepository;
 import uk.ac.ebi.tsc.portal.api.utils.SendMail;
 import uk.ac.ebi.tsc.portal.clouddeployment.application.ApplicationDeployer;
 import uk.ac.ebi.tsc.portal.clouddeployment.exceptions.ApplicationDeployerException;
+import uk.ac.ebi.tsc.portal.security.DefaultTeamMap;
 
 import javax.security.auth.login.AccountNotFoundException;
 import javax.xml.ws.http.HTTPException;
@@ -57,6 +65,11 @@ public class TeamService {
 	private final CloudProviderParamsCopyService cloudProviderParametersCopyService;
 	private final ApplicationDeployer applicationDeployer;
 	private final SendMail sendMail;
+	private final TokenService tokenService;
+	private final String ecpAapUsername;
+	private final String ecpAapPassword;
+	private final Map<String, List<DefaultTeamMap>> defaultTeamsMap;
+	private final ResourceLoader resourceLoader;
 	
 	private static final Logger logger = LoggerFactory.getLogger(TeamService.class);
 
@@ -68,8 +81,13 @@ public class TeamService {
                        CloudProviderParamsCopyService cloudProviderParametersCopyService,
                        DeploymentConfigurationService deploymentConfigurationService,
                        ApplicationDeployer applicationDeployer,
-                       SendMail sendMail
-			){
+                       SendMail sendMail,
+					   TokenService tokenService,
+					   ResourceLoader resourceLoader,
+					   @Value("${ecp.aap.username}") final String ecpAapUsername,
+					   @Value("${ecp.aap.password}") final String ecpAapPassword,
+					   @Value("${ecp.default.teams.file}") final String ecpDefaultTeamsFilePath
+			) throws IOException {
 		this.teamRepository = teamRepository;
 		this.accountService = accountService;
 		this.domainService = domainService;
@@ -77,6 +95,25 @@ public class TeamService {
 		this.cloudProviderParametersCopyService = cloudProviderParametersCopyService;
 		this.applicationDeployer = applicationDeployer;
 		this.sendMail = sendMail;
+		this.tokenService = tokenService;
+		this.ecpAapUsername = ecpAapUsername;
+		this.ecpAapPassword = ecpAapPassword;
+		this.defaultTeamsMap = new HashMap<>();
+		this.resourceLoader = resourceLoader;
+		// Read maps from json file
+		ObjectMapper mapper = new ObjectMapper();
+		try {
+			logger.info("Reading mappings file " + ecpDefaultTeamsFilePath);
+			Resource defaultMapsResource = resourceLoader.getResource(ecpDefaultTeamsFilePath);
+			DefaultTeamMap[] maps = mapper.readValue(defaultMapsResource.getInputStream(), DefaultTeamMap[].class);
+			Arrays.stream(maps).forEach(defaultTeamMap -> {
+				logger.info("Registering team " + defaultTeamMap.getTeamName() + " mapping for email domain " + defaultTeamMap.getEmailDomain());
+				this.defaultTeamsMap.putIfAbsent(defaultTeamMap.getEmailDomain(), Lists.newArrayList());
+				this.defaultTeamsMap.get(defaultTeamMap.getEmailDomain()).add(defaultTeamMap);
+			});
+		} catch (JsonMappingException jme) {
+			logger.info("Can't find any default team mappings");
+		}
 
 	}
 
@@ -929,10 +966,46 @@ public class TeamService {
 
 		return teams.parallelStream().map(team -> {
 			TeamResource teamResource = new TeamResource(team);
-			if(account.getMemberOfTeams().contains(team)) {
+			if (account.getMemberOfTeams().contains(team)) {
 				teamResource.getMemberAccountEmails().add(account.email);
 			}
 			return teamResource;
 		}).collect(Collectors.toList());
+	}
+
+	/**
+	 * Adds accounts to default teams if they are not already there.
+	 *
+	 * @param account The ECP Account which membership needs to be managed
+	 */
+	public void addAccountToDefaultTeamsByEmail(Account account) {
+		// Get email domain
+		String[] emailSplit = account.getEmail().split("@");
+		String emailDomain = emailSplit[emailSplit.length - 1];
+
+		// Add to all the associated teams
+		List<DefaultTeamMap> defaultTeamMaps = this.defaultTeamsMap.get(emailDomain);
+		if (defaultTeamMaps != null) {
+			defaultTeamMaps.forEach(defaultTeamMap -> {
+				// Get ECP AAP account token
+				try {
+					// Get associated team
+					Team defaultTeam = this.findByNameAndGetAccounts(defaultTeamMap.getTeamName());
+					if (!defaultTeam.getAccountsBelongingToTeam().stream().anyMatch(anotherAccount -> anotherAccount.getUsername().equals(account.getUsername()))) {
+						logger.info("Adding '" + account.getGivenName() + "' to team " + defaultTeam.getName());
+						// Add member to team
+						String ecpAapToken = this.tokenService.getAAPToken(this.ecpAapUsername, this.ecpAapPassword);
+						this.addMemberToTeamByAccountNoNotification(ecpAapToken, defaultTeam.getName(), account);
+					}
+				} catch (TeamNotFoundException tnfe) {
+					logger.info("Team " + defaultTeamMap.getTeamName() + " not found. Can't add user " + account.getEmail());
+				} catch (org.springframework.dao.DataIntegrityViolationException psqlException) {
+					if (psqlException.getMessage().contains("could not execute statement; SQL [n/a]; constraint [unique_at]")) {
+						logger.info("Known issue, silently failing exception of duplicate add to team");
+					}
+				}
+			});
+
+		}
 	}
 }
