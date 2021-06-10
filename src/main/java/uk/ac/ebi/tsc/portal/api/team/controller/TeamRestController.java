@@ -112,6 +112,7 @@ public class TeamRestController {
                               ApplicationDeployer applicationDeployer,
                               CloudProviderParametersService cloudProviderParametersService,
                               ConfigurationService configurationService){
+		this.teamService = teamService;
 		this.cloudProviderParametersCopyService = cloudProviderParametersCopyService;
 		this.accountService = accountService;
 		this.applicationService = applicationService;
@@ -119,9 +120,14 @@ public class TeamRestController {
 		this.configDepParamsService = configDepParamsService;
 		this.deploymentService = deploymentService;
 		this.configurationService = configurationService;
-		this.deploymentConfigurationService = deploymentConfigurationService; 
-		this.teamService = teamService;
+		this.deploymentConfigurationService = deploymentConfigurationService;
 		this.domainService = domainService;
+	}
+
+	@RequestMapping(method = RequestMethod.POST, value = "/defaultTeam")
+	public void addAccountToDefaultTeamsByEmail(HttpServletRequest request, HttpServletResponse response, Principal principal) {
+		Account account = accountService.findByUsername(principal.getName());
+		this.teamService.addAccountToDefaultTeamsByEmail(account);
 	}
 
 	@RequestMapping(method=RequestMethod.GET)

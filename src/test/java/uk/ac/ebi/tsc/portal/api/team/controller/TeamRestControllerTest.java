@@ -7,6 +7,7 @@ import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.core.io.ResourceLoader;
 import org.springframework.hateoas.Resources;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -18,6 +19,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import uk.ac.ebi.tsc.aap.client.model.Domain;
 import uk.ac.ebi.tsc.aap.client.model.User;
 import uk.ac.ebi.tsc.aap.client.repo.DomainService;
+import uk.ac.ebi.tsc.aap.client.repo.TokenService;
 import uk.ac.ebi.tsc.portal.api.account.repo.Account;
 import uk.ac.ebi.tsc.portal.api.account.service.AccountService;
 import uk.ac.ebi.tsc.portal.api.application.controller.ApplicationResource;
@@ -39,9 +41,12 @@ import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentConfigurationServic
 import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentService;
 import uk.ac.ebi.tsc.portal.api.encryptdecrypt.security.EncryptionService;
 import uk.ac.ebi.tsc.portal.api.team.repo.Team;
+import uk.ac.ebi.tsc.portal.api.team.repo.TeamRepository;
 import uk.ac.ebi.tsc.portal.api.team.service.*;
 import uk.ac.ebi.tsc.portal.api.utils.SendMail;
+import uk.ac.ebi.tsc.portal.clouddeployment.application.ApplicationDeployer;
 import uk.ac.ebi.tsc.portal.clouddeployment.exceptions.ApplicationDeployerException;
+import uk.ac.ebi.tsc.portal.security.DefaultTeamMap;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
@@ -60,9 +65,8 @@ import java.util.*;
 
 import static org.junit.Assert.*;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Matchers.isA;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Matchers.*;
+import static org.mockito.Mockito.*;
 
 @ContextConfiguration
 @RunWith(SpringJUnit4ClassRunner.class)
@@ -168,9 +172,33 @@ public class TeamRestControllerTest {
 
 	String baseURL = "something.api";
 
-	@Before
-	public void setUp(){
+	@MockBean
+	private ResourceLoader resourceLoader ;
 
+	@MockBean
+	private TeamRepository teamRepository;
+
+	@MockBean
+	private ApplicationDeployer applicationDeployer;
+
+	@MockBean
+	private TokenService tokenService;
+
+	String defaultTeamsFile = "ecp.default.teams.file";
+
+	private Map<String, List<DefaultTeamMap>> defaultTeamsMap = new HashMap<>();
+
+	String ecpAapUsername = "ecpAapUsername";
+
+	String ecpAapPassword = "ecpAapPassword";
+
+	@Before
+	public void setUp() throws IOException {
+		ReflectionTestUtils.setField(teamService, "accountService", accountService);
+		ReflectionTestUtils.setField(teamService, "domainService", domainService);
+		ReflectionTestUtils.setField(teamService, "sendMail", sendMail);
+		ReflectionTestUtils.setField(teamService, "ecpAapUsername", "ecpAapUsername");
+		ReflectionTestUtils.setField(teamService, "ecpAapPassword", "ecpAapPassword");
 		ReflectionTestUtils.setField(subject, "teamService", teamService);
 		ReflectionTestUtils.setField(subject, "accountService", accountService);
 		ReflectionTestUtils.setField(teamService, "accountService", accountService);
@@ -185,8 +213,10 @@ public class TeamRestControllerTest {
 		ReflectionTestUtils.setField(cppCopyService, "encryptionService", encryptionService);
 		ReflectionTestUtils.setField(cppService, "encryptionService", encryptionService);
 		ReflectionTestUtils.setField(teamService, "sendMail", sendMail);
+		ReflectionTestUtils.setField(subject, "applicationService", applicationService);
 		toRemove = mock(Team.class);
 	}
+
 
 	@Test(expected = NullPointerException.class)
 	public void testGetAllTeamsWhenUserHasNoTeams(){
@@ -902,6 +932,26 @@ public class TeamRestControllerTest {
 		subject.removeTeamContactEmail(request, principal, teamName, emailToRemove);
 	}
 
+	@Test
+	public void testAddToDefaultTeam() {
+		getPrincipal();
+		getAccount();
+		getRequest();
+		Team team = new Team();
+		team.setName("teamName");
+		team.getAccountsBelongingToTeam().add(account);
+		team.setDomainReference("domainReference");
+		doAnswer(new Answer() {
+			@Override
+			public Object answer(InvocationOnMock invocation) throws Throwable {
+				return team;
+			}
+		}).when(teamService).addAccountToDefaultTeamsByEmail(account);
+		doCallRealMethod().when(subject).addAccountToDefaultTeamsByEmail(request, response, principal);
+		subject.addAccountToDefaultTeamsByEmail(request, response, principal);
+		assertTrue(team.accountsBelongingToTeam.size() == 1);
+	}
+
 	/*@Test
 	public void testLeaveTeam() throws Exception{
 		getPrincipal();
@@ -1085,7 +1135,7 @@ public class TeamRestControllerTest {
 		Date firstJoinedDate = new Date(2,2,2000);
 		given(account.getFirstJoinedDate()).willReturn(firstJoinedDate);
 		given(account.getReference()).willReturn(reference);
-		given(account.getEmail()).willReturn("anEmail");
+		given(account.getEmail()).willReturn("anEmail@test.com");
 	}
 
 	private void getRequest(){
