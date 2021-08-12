@@ -30,7 +30,7 @@ public class DeploymentStrategyTest {
                 , "-e", "b=2"
                 , "-w", "/app"
                 , "--entrypoint", ""
-                , "johnnyfelix/ecp-agent:1.0.0"
+                , "bioexcelhub/cpa-ecp-agent:tf-1.0.4"
                 , "bash"
                 , "/app/ostack/deploy.sh"
                 )
