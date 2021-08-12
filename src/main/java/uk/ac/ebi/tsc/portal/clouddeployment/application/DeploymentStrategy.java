@@ -100,7 +100,7 @@ public class DeploymentStrategy {
             , envToOpts(env),
              asList("-w", CONTAINER_APP_FOLDER)
             , asList( "--entrypoint", ""                                 // disable erik's image entry-point
-                   , "johnnyfelix/ecp-agent:1.0.0"                            // erik's image modified
+                   , "bioexcelhub/cpa-ecp-agent:tf-1.0.4"                            // erik's image modified
                     ,BASH_COMMAND
                     , scriptPath(cloudProviderPath, script)              // script path
                     )
