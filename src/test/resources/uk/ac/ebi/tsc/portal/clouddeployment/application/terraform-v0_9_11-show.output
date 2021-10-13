@@ -1,0 +1,80 @@
+openstack_compute_floatingip_associate_v2.instance_public_ip:
+  id = 45.86.170.133/a1f82310-2063-4755-a4a2-0ff80c6cd6c1/
+  fixed_ip = 
+  floating_ip = 45.86.170.133
+  instance_id = a1f82310-2063-4755-a4a2-0ff80c6cd6c1
+  region = regionOne
+openstack_compute_instance_v2.instance:
+  id = a1f82310-2063-4755-a4a2-0ff80c6cd6c1
+  access_ip_v4 = 192.168.0.136
+  access_ip_v6 = 
+  all_metadata.% = 0
+  availability_zone = nova
+  flavor_id = e9ca7478-7957-4237-b3d0-d4767e1de65f
+  flavor_name = s1.tiny
+  force_delete = false
+  image_id = 89d4b599-a267-432e-91f3-e319b8fa560b
+  image_name = ubuntu-18.04-python
+  key_pair = tsi1632315468941-keypair
+  name = tsi1632315468941-1
+  network.# = 1
+  network.0.access_network = true
+  network.0.fixed_ip_v4 = 192.168.0.136
+  network.0.fixed_ip_v6 = 
+  network.0.floating_ip = 
+  network.0.mac = fa:16:3e:e8:81:c1
+  network.0.name = EBI-SDO-BioExcel-network
+  network.0.port = 
+  network.0.uuid = 28ed7c20-d33d-4977-9d2e-c71b0d234ea9
+  region = regionOne
+  security_groups.# = 2
+  security_groups.1926749113 = tsi1632315468941-allow-icmp
+  security_groups.4107242728 = tsi1632315468941-allow-ssh
+  stop_before_destroy = false
+  volume.# = 0
+openstack_compute_keypair_v2.keypair:
+  id = tsi1632315468941-keypair
+  name = tsi1632315468941-keypair
+  public_key = ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQCoYeiuqVxjqnDsfmyoFdAJLELbJ1CieN17qwGYHME+sv8ygCggqeWj9aMpPH+jE8Uhmq1lpj7r1hRD0/F8leGZPJfDV4W26na37wA1/L/larKYUqHylf7i3zXQyJrUTcb36BvWhWCYObgvnOE2I63wdzO6UqorRSlwfa14b5gQ1MPeHpaumVXl63AB8gHu4KmIFKMwEyuyDj7v0BQ4vi9i/sAlbWyU/lQWSt9fgYpPaWTads3JVQoK7bb8tXV/aKSgZsp5L2uJemZ+dd4w3shwXpcIb47vW1NkyMFvLVX63agJtatMnS8mfKBIQIyKjACJBcVFJiF0HRaUM4nIaDWEIOM1QsXouFFBiQi/MgDCMssFVcW2GFdcoYu7kezpQujGbILHXYxcIsIFr3Yl0ivbMYhlT5/lZGHYtn39zrSsOq6UG9068uYnDETkFBVrsxYvFwFFM1sSZew/1/d4KU0Lk0DyFOk3ypYfenkDRnXH+vBGgnmFwFiuTk6zpkwbGxfTH1N9zT4RLko5PUwq6zqFLozFvedjCqKDCioBpNZVJ25h91uGPYQ/Mj1OzTbycn7Xd90sCN/Z4VI1YBypSAYFHd13Bdn8TnpUdSzCpbo0a0cfl2Y+npe9z/IsNfUnhCeqw3Fy7oVUYtrhBBowjnnsAOwZnSN1X9+NTWCj6fsk5w== gef@ebi.ac.uk
+  region = regionOne
+openstack_compute_secgroup_v2.allow-icmp:
+  id = 123e5c82-0170-44c8-80d3-d3bbb8c63d90
+  description = Allow ICMP traffic
+  name = tsi1632315468941-allow-icmp
+  region = regionOne
+  rule.# = 1
+  rule.2180185248.cidr = 0.0.0.0/0
+  rule.2180185248.from_group_id = 
+  rule.2180185248.from_port = -1
+  rule.2180185248.id = 1353815f-0e1e-4f5e-a9f6-d364dbf4d503
+  rule.2180185248.ip_protocol = icmp
+  rule.2180185248.self = false
+  rule.2180185248.to_port = -1
+openstack_compute_secgroup_v2.allow-ssh:
+  id = d266b729-181a-440b-b12d-72df874496ca
+  description = Allow SSH traffic
+  name = tsi1632315468941-allow-ssh
+  region = regionOne
+  rule.# = 1
+  rule.836640770.cidr = 0.0.0.0/0
+  rule.836640770.from_group_id = 
+  rule.836640770.from_port = 22
+  rule.836640770.id = 313839db-927e-4b07-861a-4ec627f11b9e
+  rule.836640770.ip_protocol = tcp
+  rule.836640770.self = false
+  rule.836640770.to_port = 22
+openstack_networking_floatingip_v2.floatingip:
+  id = 66f36a40-d008-49d6-bc71-c8bd9d698429
+  address = 45.86.170.133
+  fixed_ip = 
+  pool = ext-net-38
+  port_id = 
+  region = regionOne
+  tenant_id = 7bcdcc2d2184452e8dd55eac91527db8
+
+
+Outputs:
+
+external_ip = 45.86.170.133
+ssh_command = ssh ubuntu@45.86.170.133
+ssh_user = ubuntu
