@@ -40,3 +40,4 @@ venv/
 data/elasticsearch/nodes/0/_state/global-1.st
 
 data/elasticsearch/nodes/0/node.lock
+/.factorypath

@@ -99,8 +99,8 @@ public class DeploymentStrategy {
             , volume(deploymentsFolder , CONTAINER_DEPLOYMENTS_FOLDER)   // deploymentFolder
             , envToOpts(env),
              asList("-w", CONTAINER_APP_FOLDER)
-            , asList( "--entrypoint", ""                                 // disable erik's image entry-point
-                   , "bioexcelhub/cpa-ecp-agent:tf-1.0.4"                            // erik's image modified
+            , asList( "--entrypoint", ""                                 // disable image entry-point
+                   , "bioexcelhub/cpa-ecp-agent:tf-1.0.4_2"
                     ,BASH_COMMAND
                     , scriptPath(cloudProviderPath, script)              // script path
                     )
