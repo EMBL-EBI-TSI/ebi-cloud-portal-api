@@ -67,12 +67,25 @@ PUT ecp-deployments
 ```
 Production environments must change the credentials, and should tweak the settings depending on the workload.
 
+### CI/CD considerations
+
+Any commits to the the `dev` or `master` branches will trigger Jenkins builds which, if successful,
+will deploy the built artifact(s) to their corresponding environments. For EMBL-EBI developers,
+further information is available in the Confluence documentation (BioExcel -> EBI Cloud Portal (ECP)
+-> ECP deployment).
+
 ### Running intergration tests
 
-In order to run integration test following prerequisites are needed. Test user credentials of AAP dev server needed to be set as environmental variables Variables : AAP_TEST_USERNAME,AAP_TEST_PASSWORD. (If you need help in setting environment variables 
-please refer to https://www.digitalocean.com/community/tutorials/how-to-read-and-set-environmental-and-shell-variables-on-a-linux-vps for more understanding)
+In order to successfully complete the integration test suite the following prerequisite environment
+variables need to have valid values assigned :
 
-mvn clean verify
+ * AAP_TEST_USERNAME and AAP_TEST_PASSWORD
+ * AAP_AJAY_USERNAME and AAP_AJAY_PASSWORD
+ * AAP_PANTHER_USERNAME and AAP_PANTHER_PASSWORD
+
+(If you need help in setting environment variables please refer to https://www.digitalocean.com/community/tutorials/how-to-read-and-set-environmental-and-shell-variables-on-a-linux-vps for more understanding)
+
+`mvn clean verify`
 
 ## Example usage
 

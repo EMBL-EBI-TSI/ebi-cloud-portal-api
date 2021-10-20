@@ -1,0 +1,233 @@
+{
+  "format_version": "0.2",
+  "terraform_version": "1.0.4",
+  "values": {
+    "outputs": {
+      "external_ip": {
+        "sensitive": false,
+        "value": "45.88.80.121"
+      },
+      "ssh_command": {
+        "sensitive": false,
+        "value": "ssh ubuntu@45.88.80.121"
+      },
+      "ssh_user": {
+        "sensitive": false,
+        "value": "ubuntu"
+      }
+    },
+    "root_module": {
+      "resources": [
+        {
+          "address": "openstack_compute_floatingip_associate_v2.instance_public_ip",
+          "mode": "managed",
+          "type": "openstack_compute_floatingip_associate_v2",
+          "name": "instance_public_ip",
+          "provider_name": "registry.terraform.io/terraform-provider-openstack/openstack",
+          "schema_version": 0,
+          "values": {
+            "fixed_ip": "",
+            "floating_ip": "45.88.80.121",
+            "id": "45.88.80.121/8503b1d5-62ad-452a-948b-72f91a4269a9/",
+            "instance_id": "8503b1d5-62ad-452a-948b-72f91a4269a9",
+            "region": "RegionOne",
+            "timeouts": null,
+            "wait_until_associated": null
+          },
+          "sensitive_values": {},
+          "depends_on": [
+            "openstack_compute_instance_v2.instance",
+            "openstack_compute_secgroup_v2.allow-icmp",
+            "openstack_compute_secgroup_v2.allow-ssh",
+            "openstack_networking_floatingip_v2.floatingip"
+          ]
+        },
+        {
+          "address": "openstack_compute_instance_v2.instance[0]",
+          "mode": "managed",
+          "type": "openstack_compute_instance_v2",
+          "name": "instance",
+          "index": 0,
+          "provider_name": "registry.terraform.io/terraform-provider-openstack/openstack",
+          "schema_version": 0,
+          "values": {
+            "access_ip_v4": "192.168.0.150",
+            "access_ip_v6": "",
+            "admin_pass": null,
+            "all_metadata": {},
+            "all_tags": [],
+            "availability_zone": "nova",
+            "availability_zone_hints": null,
+            "block_device": [],
+            "config_drive": null,
+            "flavor_id": "ce64f877-7d55-4a52-805d-bed850aadeda",
+            "flavor_name": "2c4m80d",
+            "floating_ip": null,
+            "force_delete": false,
+            "id": "8503b1d5-62ad-452a-948b-72f91a4269a9",
+            "image_id": "41899527-29be-49d0-8b1c-7553550a8309",
+            "image_name": "ubuntu-18_04-python",
+            "key_pair": "tsi1632342802695-keypair",
+            "metadata": null,
+            "name": "tsi1632342802695-1",
+            "network": [
+              {
+                "access_network": true,
+                "fixed_ip_v4": "192.168.0.150",
+                "fixed_ip_v6": "",
+                "floating_ip": "",
+                "mac": "fa:16:3e:e7:4a:8a",
+                "name": "ebi-sdo-ecp-deployments-v4-51845837-network",
+                "port": "",
+                "uuid": "c8662baf-1643-4b15-ba50-3ac6038d3094"
+              }
+            ],
+            "network_mode": null,
+            "personality": [],
+            "power_state": "active",
+            "region": "RegionOne",
+            "scheduler_hints": [],
+            "security_groups": [
+              "tsi1632342802695-allow-icmp",
+              "tsi1632342802695-allow-ssh"
+            ],
+            "stop_before_destroy": false,
+            "tags": null,
+            "timeouts": null,
+            "user_data": null,
+            "vendor_options": [],
+            "volume": []
+          },
+          "sensitive_values": {
+            "all_metadata": {},
+            "all_tags": [],
+            "block_device": [],
+            "network": [
+              {}
+            ],
+            "personality": [],
+            "scheduler_hints": [],
+            "security_groups": [
+              false,
+              false
+            ],
+            "vendor_options": [],
+            "volume": []
+          },
+          "depends_on": [
+            "openstack_compute_secgroup_v2.allow-icmp",
+            "openstack_compute_secgroup_v2.allow-ssh"
+          ]
+        },
+        {
+          "address": "openstack_compute_keypair_v2.keypair",
+          "mode": "managed",
+          "type": "openstack_compute_keypair_v2",
+          "name": "keypair",
+          "provider_name": "registry.terraform.io/terraform-provider-openstack/openstack",
+          "schema_version": 0,
+          "values": {
+            "fingerprint": "93:7b:13:f7:b5:ad:3b:1b:fc:16:d4:c6:b7:a7:26:da",
+            "id": "tsi1632342802695-keypair",
+            "name": "tsi1632342802695-keypair",
+            "private_key": "",
+            "public_key": "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQDYZ6aE3YozuC4c+NHx0RANvWTgSfCc+jbq2yAi/LE+S7kSFKv0aQjvQnYl50UuSGb+DNlxPuRKKRTfeolPSLMqkmpky2Jg5fEf0E8WU8RmFmIZe/NMb+RAcvajug7fc2WwTAqjevFMdjmDrt2r02ItjhzBaprGsf51cOpdpEFcsVPBVEQcaPk4V7VOGvnsX7k03BRATlpobyqaUOonWunNY7x+u7Ebp5bVmx1uywK3+W6RVpxG3o44FjMIYDgU1G4WXuF2q2DXezc6SJs+E1hs8+rUnmJ7rKMF2UUgYssmht/EBnVKTExP6AfHHION1sc21TK5XQGBMhyNG9XTSDe7RJ7fqr3AcbpaD5QwfARpIRsRchTKrB/dKZUUGtkQqLSOiOXMwrALv630/5cqFCJLgw75IrP8h+2GRMaLoK9RlX3sP9SQy3cRr63W9sF93d18tQ6M2rP6iMJucD3w0g0tEZwJSjBVOEDL/HCyPnCHicnoK6S+FlFNcQjLFnoA6jUVF9eefLJUFkX8fRXZO2k4UDDSM+EzbqGL/2Y6AQedbSrreArRzAnPbUu9ynWAg1IXBzD0chqr4dpcV+w1+UUbqJyvu2RRv+c7sgBI44RBbPzK8y8EsUKRjimA5lmwYUj6vQJim9jD0N4EVcWB/a3sddXNnc7phKe8ikNOLm4KPQ== null",
+            "region": "RegionOne",
+            "value_specs": null
+          },
+          "sensitive_values": {}
+        },
+        {
+          "address": "openstack_compute_secgroup_v2.allow-icmp",
+          "mode": "managed",
+          "type": "openstack_compute_secgroup_v2",
+          "name": "allow-icmp",
+          "provider_name": "registry.terraform.io/terraform-provider-openstack/openstack",
+          "schema_version": 0,
+          "values": {
+            "description": "Allow ICMP traffic",
+            "id": "fa9fb718-4725-40df-86a7-fad47ca661f8",
+            "name": "tsi1632342802695-allow-icmp",
+            "region": "RegionOne",
+            "rule": [
+              {
+                "cidr": "0.0.0.0/0",
+                "from_group_id": "",
+                "from_port": -1,
+                "id": "f46682ff-5b20-46e4-b133-6481a7da9011",
+                "ip_protocol": "icmp",
+                "self": false,
+                "to_port": -1
+              }
+            ],
+            "timeouts": null
+          },
+          "sensitive_values": {
+            "rule": [
+              {}
+            ]
+          }
+        },
+        {
+          "address": "openstack_compute_secgroup_v2.allow-ssh",
+          "mode": "managed",
+          "type": "openstack_compute_secgroup_v2",
+          "name": "allow-ssh",
+          "provider_name": "registry.terraform.io/terraform-provider-openstack/openstack",
+          "schema_version": 0,
+          "values": {
+            "description": "Allow SSH traffic",
+            "id": "0eb8c972-3d83-4624-88fd-3e583b259da0",
+            "name": "tsi1632342802695-allow-ssh",
+            "region": "RegionOne",
+            "rule": [
+              {
+                "cidr": "0.0.0.0/0",
+                "from_group_id": "",
+                "from_port": 22,
+                "id": "8acd54e3-5182-4362-8a32-4710c8d8ed1d",
+                "ip_protocol": "tcp",
+                "self": false,
+                "to_port": 22
+              }
+            ],
+            "timeouts": null
+          },
+          "sensitive_values": {
+            "rule": [
+              {}
+            ]
+          }
+        },
+        {
+          "address": "openstack_networking_floatingip_v2.floatingip",
+          "mode": "managed",
+          "type": "openstack_networking_floatingip_v2",
+          "name": "floatingip",
+          "provider_name": "registry.terraform.io/terraform-provider-openstack/openstack",
+          "schema_version": 0,
+          "values": {
+            "address": "45.88.80.121",
+            "all_tags": [],
+            "description": "",
+            "dns_domain": "",
+            "dns_name": "",
+            "fixed_ip": "",
+            "id": "5a705da3-bbed-4ffc-bc9b-e93c0995d7c0",
+            "pool": "public",
+            "port_id": "",
+            "region": "RegionOne",
+            "subnet_id": null,
+            "tags": null,
+            "tenant_id": "a60051d9924d4402a3274d907d7f6141",
+            "timeouts": null,
+            "value_specs": null
+          },
+          "sensitive_values": {
+            "all_tags": []
+          }
+        }
+      ]
+    }
+  }
+}
