@@ -6,7 +6,7 @@ import java.util.Collection;
 import javax.mail.Address;
 import javax.mail.Message;
 import javax.mail.MessagingException;
-import javax.mail.Transport;
+import javax.mail.internet.AddressException;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
 
@@ -16,6 +16,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Component;
+import org.springframework.util.Assert;
 
 /**
  * @author Jose A. Dianes <jdianes@ebi.ac.uk>
@@ -28,35 +29,37 @@ public class SendMail {
 	
 	private static final Logger logger = LoggerFactory.getLogger(SendMail.class);
 	
-	@Value("${spring.mail.username}")
-	private String username;
-	
-	@Value("${spring.mail.password}")
-	private String password;
-	
-	@Value("${spring.mail.host}")
-	private String host;
-	
-	@Value("${spring.mail.port}")
-	private String port;
-	
-	@Value("${spring.mail.from}")
-	private String from;
-	
+	private final InternetAddress fromAddress;
 	private final JavaMailSender javamailSender;
 	
-	public SendMail(JavaMailSender javamailSender) {
+	/**
+	 * Initialising constructor.
+	 * 
+	 * @param javamailSender Mail sender.
+	 * @param from Sent email's {@code From} header field. Derived from {@code spring.mail.from} property.
+	 */
+	public SendMail(JavaMailSender javamailSender, @Value("${spring.mail.from}") String from) {
+	    Assert.notNull(from, "spring.mail.from property must be supplied in application.properties");
+
 		this.javamailSender = javamailSender;
+		InternetAddress tmpFrom = null;
+		try {
+		    tmpFrom = new InternetAddress(from);
+		} catch (AddressException addressException) {
+		    // If this happens all messages sent will not have a From header field!
+		    logger.error("Invalid spring.mail.from address of '{}'", from);
+		}
+		this.fromAddress = tmpFrom;
 	}
 	
-	public void send(Collection<String> toNotify, String subject, String  body) throws IOException{
+	public void send(Collection<String> toNotify, String subject, String  body) throws IOException {
 
 		try {
 			// Create a default MimeMessage object.
 			MimeMessage message = javamailSender.createMimeMessage();
 
 			// Set From: header field of the header.
-			message.setFrom(new InternetAddress(from));
+			message.setFrom(fromAddress);
 
 			Address[] addresses = new Address[toNotify.size()];
 			int i = 0;
